@@ -1,0 +1,1 @@
+C:\Projects\GB-Stuff\BGB\bgb.exe --watch bin\boilerplate.gb

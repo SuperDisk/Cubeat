@@ -10,10 +10,10 @@ PADVALUE := 0xFF
 VERSION := 0
 
 # 4-ASCII letter game ID
-GAMEID := BOIL
+GAMEID := ULGB
 
 # Game title, up to 11 ASCII chars
-TITLE := BOILERPLATE
+TITLE := LUMINESGB
 
 # New licensee, 2 ASCII chars
 # Homebrew games FTW!
@@ -24,7 +24,7 @@ OLDLIC := 0x33
 # MBC type, tells which hardware is in the cart
 # See https://gbdev.io/pandocs/#_0147-cartridge-type or consult any copy of Pan Docs
 # If using no MBC, consider enabling `-t` below
-MBC := 0x00
+MBC := 0x19
 
 # ROM size is set automatically by RGBFIX
 
@@ -34,7 +34,7 @@ MBC := 0x00
 SRAMSIZE := 0x00
 
 # ROM name
-ROMNAME := boilerplate
+ROMNAME := lumines
 ROMEXT  := gb
 
 
@@ -57,7 +57,7 @@ ASFLAGS += -h
 # FIXFLAGS += -s
 
 # Game Boy mode
-# LDFLAGS += -d
+LDFLAGS += -d
 
 # No banked WRAM mode
 # LDFLAGS += -w

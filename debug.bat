@@ -1,1 +1,1 @@
-C:\Projects\GB-Stuff\BGB\bgb.exe --watch bin\boilerplate.gb
+C:\Projects\GB-Stuff\BGB\bgb.exe --watch bin\lumines.gb

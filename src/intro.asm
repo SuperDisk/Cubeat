@@ -7,3 +7,5 @@ Intro::
 
 ; Put your code here!
 	jr @
+
+incbin "res/title.2bpp"

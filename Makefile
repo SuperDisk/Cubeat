@@ -110,6 +110,10 @@ $(RESDIR)/%.1bpp: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(RGBGFX) -d 1 -o $@ $<
 
+$(RESDIR)/%.2bpp $(RESDIR)/%.tilemap: $(RESDIR)/%.png
+	@$(MKDIR_P) $(@D)
+	$(RGBGFX) -d 2 -u -o $(RESDIR)/$*.2bpp -T $<
+
 # Define how to compress files using the PackBits16 codec
 # Compressor script requires Python 3
 $(RESDIR)/%.pb16: $(RESDIR)/% $(SRCDIR)/tools/pb16.py

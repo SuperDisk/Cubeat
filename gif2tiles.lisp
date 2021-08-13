@@ -43,15 +43,71 @@
           (setf out (append out (tile->2bpp new-tile))))))
     out))
 
-(defun dump-2bpp (img-2bpp)
-  (with-open-file (s "res/temp-bytes"
+(defun dump-bytes (fname img-2bpp)
+  (with-open-file (s fname
                      :direction :output
                      :element-type 'unsigned-byte
                      :if-exists :supersede)
     (loop for b in img-2bpp do
       (write-byte b s))))
 
-(defun gif->tiles (filename &key (dump nil))
+(defun splitimg (img)
+  (let ((out nil))
+    (loop for y below (skippy:height img) by 8 do
+      (loop for x below (skippy:width img) by 8 do
+        (let ((new-tile (skippy:make-image :width 8 :height 8)))
+          (skippy:composite img new-tile :sx x :sy y :dx 0 :dy 0)
+          (push new-tile out))))
+    (nreverse out)))
+
+(defun wrap-location (loc)
+  (let ((remainder (mod loc 20))
+        (row (floor loc 20)))
+    (+ #x9800 (* row 32) remainder)))
+
+(defun tile-map->code (annotated-tmap)
+  (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap)))
+        #+nil(unique-pairs (remove-duplicates
+                       (loop for (a b) on tmap by #'cddr
+                             collect (cons (cdr a) (cdr b)))
+                       :test #'equalp))
+        #+nil(annotated-pairs
+          (loop for (a b) on tmap by #'cddr
+                for i from 0 by 2
+                collect (cons a b))))
+
+    ; a method
+    (append
+     (loop for tile in unique-tiles
+           append
+           (list* #x3E tile
+                  (loop for (location . __tile) in (remove-if-not (lambda (x) (eql (cdr x) tile)) annotated-tmap)
+                        append
+                        (list #xEA
+                              (ldb (byte 8 0) (wrap-location location))
+                              (ldb (byte 8 8) (wrap-location location))))))
+
+     '(#xC9)
+     #+nil'(#xC3 #x30 #x40))
+    #+nil ; sp method
+    (append (loop for pair in unique-pairs
+                  append
+                  (list* #x31
+                         (car pair)
+                         (cdr pair)
+                         (loop for (loc . _p) in (remove-if-not (lambda (x) (equalp (cdr x) pair)) annotated-pairs)
+                               append
+                               (list #x08
+                                     (ldb (byte 8 0) (wrap-location loc))
+                                     (ldb (byte 8 8) (wrap-location loc))))))
+            '(#xC3 #x2c #x40))))
+
+(defun image->annotated-tilemap (split-img tiles)
+  (loop for tile in split-img
+        for i from 0
+        collect (cons i (min 255 (gethash tile tiles)))))
+
+(defun gif->tiles (filename &key)
   (let* ((in-stream (skippy:load-data-stream filename))
          (frames (skippy:images in-stream))
          (tiles (make-hash-table :test #'gif-data=))
@@ -71,7 +127,7 @@
                 (incf tile-id))
               (setf (gethash (gethash new-tile tiles) frame-set) 0))))
         (push frame-set frame-sets)))
-    (setf frame-sets (nreverse frame-sets))
+    (setf frame-sets (reverse frame-sets))
 
     (loop for tile being each hash-key of tiles do
       (let ((idx (gethash tile tiles)))
@@ -86,14 +142,6 @@
         (setf index-commonness (acons idx (gethash idx commonness-hash) index-commonness)))
       (setf index-commonness (sort index-commonness #'< :key 'cdr)))
 
-    (when dump
-      (maphash (lambda (k v)
-                 (let ((new-data-stream (skippy:make-data-stream :width 8 :height 8)))
-                   (skippy:add-image k new-data-stream)
-                   (setf (skippy:color-table new-data-stream) (skippy:color-table in-stream))
-                   (skippy:output-data-stream new-data-stream (format nil "~a.gif" v))))
-               tiles))
-
     (loop for (before after) on frame-sets
           for i from 0 do
       (let ((diff nil))
@@ -101,15 +149,38 @@
           (loop for idx being each hash-key of after do
             (when (null (gethash idx before))
               (push idx diff)))
-
-          (when dump
-            (ensure-directories-exist (format nil "~ato~a/" i (1+ i)))
-            (loop for idx in diff do
-              (let ((new-data-stream (skippy:make-data-stream :width 8 :height 8)))
-                (skippy:add-image (gethash idx indexes->tiles) new-data-stream)
-                (setf (skippy:color-table new-data-stream) (skippy:color-table in-stream))
-                (skippy:output-data-stream new-data-stream (format nil "~ato~a/~a.gif" i (1+ i) idx)))))
-
           (push diff diff-set))))
-    (setf diff-set (nreverse diff-set))
+    (setf diff-set (reverse diff-set))
+
+    (let ((sorted-tiles nil))
+      (loop for i from 0 to (1- (hash-table-count indexes->tiles)) do
+        (push (cons i (gethash i indexes->tiles)) sorted-tiles))
+      (setf sorted-tiles (mapcar #'cdr (sort sorted-tiles #'< :key #'car)))
+
+      (dump-bytes "res/temp-bytes"
+                 (loop for tile in sorted-tiles append (tile->2bpp tile))))
+
+    (dump-bytes "res/temp-tilemap"
+                (loop for tile in (splitimg (elt (skippy:images in-stream) 0))
+                      collect (gethash tile tiles)))
+
+    (dump-bytes "res/temp-tilemap-code-initial"
+                (tile-map->code (image->annotated-tilemap (splitimg (elt frames 0)) tiles)))
+    (loop for (before after) on (cons (car (last (coerce frames 'list))) (coerce frames 'list))
+          for i from 0
+          when after do
+            (let ((before-annotated-tm (image->annotated-tilemap (splitimg before) tiles))
+                  (after-annotated-tm (image->annotated-tilemap (splitimg after) tiles)))
+              (dump-bytes (format nil "res/temp-tilemap-code~a" i)
+                          (tile-map->code
+                           (loop for b in before-annotated-tm
+                                 for a in after-annotated-tm
+                                 when (not (equalp a b))
+                                   collect a)))))
+
+    (format t "~a unique tiles~%" (hash-table-count tiles))
+    (loop for diff in diff-set
+          for i from 0 do
+          (format t "~a different tiles between frames ~a-~a~%" (length diff) i (1+ i)))
+
     (cons tiles diff-set)))

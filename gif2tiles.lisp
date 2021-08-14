@@ -107,26 +107,29 @@
         for i from 0
         collect (cons i (min 255 (gethash tile tiles)))))
 
+(defun dbg (f val)
+  (funcall f val)
+  val)
+
 (defun gif->tiles (filename &key)
-  (let* ((in-stream (skippy:load-data-stream filename))
-         (frames (skippy:images in-stream))
+  (let* ((frames (skippy:images (skippy:load-data-stream filename)))
          (tiles (make-hash-table :test #'gif-data=))
          (indexes->tiles (make-hash-table))
-         (tile-id 0)
          (diff-set nil)
          (frame-sets nil)
          (index-commonness nil))
-    (loop for frame across frames do
-      (let ((frame-set (make-hash-table)))
-        (loop for y below (skippy:height frame) by 8 do
-          (loop for x below (skippy:width frame) by 8 do
-            (let ((new-tile (skippy:make-image :width 8 :height 8)))
-              (skippy:composite frame new-tile :sx x :sy y :dx 0 :dy 0)
-              (when (not (gethash new-tile tiles))
-                (setf (gethash new-tile tiles) tile-id)
-                (incf tile-id))
-              (setf (gethash (gethash new-tile tiles) frame-set) 0))))
-        (push frame-set frame-sets)))
+    (let ((tile-id 0))
+      (loop for frame across frames do
+        (let ((frame-set (make-hash-table)))
+          (loop for y below (skippy:height frame) by 8 do
+            (loop for x below (skippy:width frame) by 8 do
+              (let ((new-tile (skippy:make-image :width 8 :height 8)))
+                (skippy:composite frame new-tile :sx x :sy y :dx 0 :dy 0)
+                (when (not (gethash new-tile tiles))
+                  (setf (gethash new-tile tiles) tile-id)
+                  (incf tile-id))
+                (setf (gethash (gethash new-tile tiles) frame-set) 0))))
+          (push frame-set frame-sets))))
     (setf frame-sets (reverse frame-sets))
 
     (loop for tile being each hash-key of tiles do
@@ -161,7 +164,7 @@
                  (loop for tile in sorted-tiles append (tile->2bpp tile))))
 
     (dump-bytes "res/temp-tilemap"
-                (loop for tile in (splitimg (elt (skippy:images in-stream) 0))
+                (loop for tile in (splitimg (elt frame-set 0))
                       collect (gethash tile tiles)))
 
     (dump-bytes "res/temp-tilemap-code-initial"
@@ -173,14 +176,25 @@
                   (after-annotated-tm (image->annotated-tilemap (splitimg after) tiles)))
               (dump-bytes (format nil "res/temp-tilemap-code~a" i)
                           (tile-map->code
-                           (loop for b in before-annotated-tm
-                                 for a in after-annotated-tm
-                                 when (not (equalp a b))
-                                   collect a)))))
+                           (dbg (lambda (x) (format t "~a map updates between frames ~a, ~a~%" (length x) i (1+ i)))
+                                (loop for b in before-annotated-tm
+                                      for a in after-annotated-tm
+                                      when (not (equalp a b))
+                                        collect a))))))
 
+
+
+    (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))
+    (format t "~%")
     (loop for diff in diff-set
           for i from 0 do
-          (format t "~a different tiles between frames ~a-~a~%" (length diff) i (1+ i)))
+          (format t "~a different tiles between frames ~a, ~a~%" (length diff) i (1+ i)))
+    (format t "~%")
+    (loop for sp-img in (mapcar #'splitimg (coerce frames 'list))
+          for i from 0 do
+          (format t "~a unique frames in frame ~a~%" (length (remove-duplicates sp-img :test #'equalp :key #'skippy:image-data)) i))
 
     (cons tiles diff-set)))
+
+(defun pass () nil)

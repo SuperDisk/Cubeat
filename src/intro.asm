@@ -31,6 +31,7 @@ anim: db
 old_sp: dw
 ctr: db
 
+
 SECTION "Intro", ROMX
 
 Intro::
@@ -42,7 +43,7 @@ Intro::
   ; ld [hl], a
   ; endr
 
-; Turn the LCD off
+  ; Turn the LCD off
 	ld a, 0
 	ld [hLCDC], a
 
@@ -99,10 +100,9 @@ Done::
   ld [ctr], a
   jr Done
 .continue:
-
   ld hl, anim
   inc [hl]
-  ld a, 25
+  ld a, 27
   cp [hl]
   jr nz, .dostuf
   ld [hl], 1

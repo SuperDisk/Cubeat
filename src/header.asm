@@ -56,6 +56,7 @@ Reset::
 
   ld a, %00011011
   ld a, %01001110
+  ld a, %10001101
   ld [hBGP], a
   ld [hOBP0], a
   ld [hOBP1], a

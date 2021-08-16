@@ -79,9 +79,9 @@ Reset::
 
 	; Load the correct ROM bank for later
 	; Important to do it before enabling interrupts
-	ld a, BANK(Intro)
-	ldh [hCurROMBank], a
-	ld [rROMB0], a
+	; ld a, BANK(Intro)
+	; ldh [hCurROMBank], a
+	; ld [rROMB0], a
 
 	; Select wanted interrupts here
 	; You can also enable them later if you want

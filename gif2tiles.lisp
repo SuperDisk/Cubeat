@@ -112,16 +112,6 @@
     (format stream "ld sp, hl~%")
     (format stream "reti~%")))
 
-(defun image->annotated-tilemap (split-img tiles assignment)
-  (remove-if #'null
-             (loop for tile in split-img
-                   for i from 0
-                   collect
-                   (let* ((tile-name (gethash tile tiles))
-                          (tile-idx (car (find tile-name assignment :key #'cdr))))
-                     (cons i tile-idx)))
-             :key #'cdr))
-
 (defun dbg (f val)
   (funcall f val)
   val)
@@ -133,6 +123,8 @@
          frame-sets ; list of (set of the tile names for each frame)
          assignments ; list of (list of (idx . name) pairs) for tile map updates
          assignment-diffs ; pared down assignment list which just includes the updates
+         tilemaps ; list of (list of (loc . idx) representing a tile map)
+         tilemap-diffs ; pared down tile map list whcih just includes the updates
          )
 
     ;; Build tiles and frame-sets
@@ -185,7 +177,6 @@
                                             (setf free-idxs (remove (car pair) free-idxs)) ; activate it
                                           when (not pair) collect name))
                                   (new-assignment (copy-alist current-assignment)))
-                              (format t "~a~%" needed-names)
                               (loop for name in needed-names do
                                 (rplacd (assoc (pop free-idxs) new-assignment) name))
                               (setf current-assignment new-assignment)
@@ -195,12 +186,29 @@
           (loop for (before after) on (cons (car (last assignments)) assignments)
                 when (and before after)
                   collect
-                  (loop for e1 in before
-                        for e2 in after
-                        when (not (equalp e1 e2))
-                          ;; do (format t "discrepancy: ~a -> ~a~%" e1 e2)
-                          collect e2)))
-    ;; (break)
+                  (loop for (i1 . n1) in before
+                        for (i2 . n2) in after
+                        when (not (equalp i1 i2)) do (format t "Critical error~%")
+                        when (not (equalp n1 n2)) collect (cons i2 n2))))
+
+    (setf tilemaps
+          (loop for split-img in (mapcar #'splitimg frames)
+                for assignment in assignments
+                collect
+                (loop for tile in split-img
+                      for name = (gethash tile tiles)
+                      for index = (car (find name assignment :key #'cdr))
+                      for loc from 0
+                      collect (cons loc index))))
+
+    (setf tilemap-diffs
+          (loop for (before after) on (cons (car (last tilemaps)) tilemaps)
+                when (and before after)
+                  collect
+                  (loop for (l1 . i1) in before
+                        for (l2 . i2) in after
+                        when (not (equalp l1 l2)) do (format t "Critical error~%")
+                          when (not (equalp i1 i2)) collect (cons l2 i2))))
 
     ;; Dump map initialization code
     (with-open-file (gfx "res/graphics-code"
@@ -210,22 +218,19 @@
                                       :direction :output
                                       :if-exists :supersede)
         (format map "map_initial:~%")
-        (format map
-                (tile-map->source
-                 (image->annotated-tilemap (splitimg (car frames)) tiles (car assignments))
-                 0))
+        (format map (tile-map->source (car tilemaps) 0))
         (format gfx "gfx_initial:~%")
         (format gfx (graphics->source indexes->tiles (car assignments) 0))
 
         (loop for frame in frames
               for assignment-diff in assignment-diffs
+              for tilemap-diff in tilemap-diffs
               for i from 0 do
                 (format map "map~a:~%" i)
                 (format gfx "gfx~a:~%" i)
-                (let ((annotated-tm (image->annotated-tilemap (splitimg frame) tiles assignment-diff))
-                      (next-frame (mod (1+ i) (length frames))))
-                  (format t "~a map updates between frames ~a, ~a~%" (length annotated-tm) i (1+ i))
-                  (format map (tile-map->source annotated-tm next-frame))
+                (let ((next-frame (mod (1+ i) (length frames))))
+                  (format t "~a map updates between frames ~a, ~a~%" (length tilemap-diff) i (1+ i))
+                  (format map (tile-map->source tilemap-diff next-frame))
                   (format gfx (graphics->source indexes->tiles assignment-diff next-frame))))))
 
     (format t "~%")

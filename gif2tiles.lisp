@@ -86,14 +86,22 @@
       (format stream "ld [jump_next_frame_map+2], a~%")
       (format stream "ret~%"))))
 
+(defun update-hash (key func default hash)
+  (let ((val (gethash key hash default)))
+    (setf (gethash key hash) (funcall func val))))
+
 (defun graphics->source (indexes->tiles assignment next-frame)
   (with-output-to-string (stream)
-    (loop for (idx . name) in assignment do
-      (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
-        (loop for (b1 b2) on converted-tile by #'cddr
-              for i from 0 by 2 do
-          (format stream "ld sp, $~X~%" (dpb b2 (byte 8 8) b1))
-          (format stream "ld [$~X], sp~%" (+ #x8000 (* idx 16) i)))))
+    (let ((all-writes (make-hash-table)))
+      (loop for (idx . name) in assignment do
+        (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+          (loop for (b1 b2) on converted-tile by #'cddr
+                for i from 0 by 2 do
+                  (update-hash (dpb b2 (byte 8 8) b1) (lambda (x) (cons (+ #x8000 (* idx 16) i) x)) nil all-writes))))
+      (loop for data being each hash-key of all-writes do
+        (format stream "ld sp, $~X~%" data)
+        (loop for address in (gethash data all-writes) do
+          (format stream "ld [$~X], sp~%" address))))
 
     (format stream "ld a, LOW(gfx~a)~%" next-frame)
     (format stream "ld [jump_next_frame_gfx+1], a~%")
@@ -122,12 +130,12 @@
   (let* ((frames (coerce (skippy:images (skippy:load-data-stream filename)) 'list))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
          (indexes->tiles (make-hash-table)) ; map of tile name -> tile data
-         (diff-set nil) ; list of (list of tile names that need to be loaded for a frame)
-         (frame-sets nil) ; list of (set of the tile names for each frame)
-         (assignments nil) ; list of (list of (idx . name) pairs) for tile map updates
+         frame-sets ; list of (set of the tile names for each frame)
+         assignments ; list of (list of (idx . name) pairs) for tile map updates
+         assignment-diffs ; pared down assignment list which just includes the updates
          )
 
-    ;; Build frame-sets
+    ;; Build tiles and frame-sets
     (let ((tile-name 0))
       (loop for frame in frames do
         (let ((frame-set (make-hash-table)))
@@ -147,36 +155,52 @@
       (let ((idx (gethash tile tiles)))
         (setf (gethash idx indexes->tiles) tile)))
 
-    ;; Build diff-set
-    (loop for (before after) on (cons (car (last frame-sets)) frame-sets) do
-      (let ((diff nil))
-        (when (and before after)
-          (loop for idx being each hash-key of after do
-            (when (null (gethash idx before))
-              (push idx diff)))
-          (push diff diff-set))))
-    (setf diff-set (reverse diff-set))
-
     ; An "assignment" is a mapping from tile index -> tile name
     (setf assignments
-          (let* ((first-assignment (loop for tname being each hash-key of (car frame-sets)
-                                         for i from 0
-                                         collect (cons i tname)))
-                (current-assignment first-assignment))
-            (flet ((make-assignment (diff)
-                     (let* ((to-remain (remove-if-not (lambda (a) (find (cdr a) diff)) current-assignment))
-                            (need-names (remove-if (lambda (x) (find x to-remain :key #'cadr)) diff))
-                            (free-idxs (nshuffle
-                                        (loop for i from 0 to 255
-                                              when (not (find i to-remain :key #'cadr))
-                                                collect i)))
-                            (new-assignments (loop for needed-name in need-names
-                                                   collect (cons (pop free-idxs) needed-name))))
-                       (setf current-assignment (append to-remain new-assignments))
-                       new-assignments)))
-              (let ((the-rest (loop for diff in (cdr diff-set)
-                                       collect (make-assignment diff))))
-                (cons (make-assignment (car diff-set)) the-rest)))))
+          (let* ((initial-part (loop for tname being each hash-key of (car frame-sets)
+                                     for i from 0
+                                     collect (cons i tname)))
+                 (first-assignment (loop for i from 0 to 255
+                                         collect (or (assoc i initial-part) (cons i i))))
+                 (current-assignment first-assignment)
+                 (free-idxs (loop for i from (length initial-part) to 255 collect i)))
+            (flet ((assignment-contains (name assignment)
+                     (find name assignment :key #'cdr))
+                   (frame-set-contains (name frame-set)
+                     (gethash name frame-set))
+                   (is-active (idx)
+                     (not (find idx free-idxs))))
+              (cons first-assignment
+                    (loop for frame-set in (cdr frame-sets)
+                          collect
+                          (let ((freed-idxs (loop for (idx . name) in current-assignment
+                                                  when (not (frame-set-contains name frame-set))
+                                                    collect idx)))
+                            (setf free-idxs (remove-duplicates (append free-idxs freed-idxs)))
+                            (let ((needed-names
+                                    (loop for name being each hash-key of frame-set
+                                          for pair = (assignment-contains name current-assignment)
+                                          for pair-is-active = (and pair (is-active (car pair)))
+                                          when (and pair (not pair-is-active)) do
+                                            (setf free-idxs (remove (car pair) free-idxs)) ; activate it
+                                          when (not pair) collect name))
+                                  (new-assignment (copy-alist current-assignment)))
+                              (format t "~a~%" needed-names)
+                              (loop for name in needed-names do
+                                (rplacd (assoc (pop free-idxs) new-assignment) name))
+                              (setf current-assignment new-assignment)
+                              new-assignment)))))))
+
+    (setf assignment-diffs
+          (loop for (before after) on (cons (car (last assignments)) assignments)
+                when (and before after)
+                  collect
+                  (loop for e1 in before
+                        for e2 in after
+                        when (not (equalp e1 e2))
+                          ;; do (format t "discrepancy: ~a -> ~a~%" e1 e2)
+                          collect e2)))
+    ;; (break)
 
     ;; Dump map initialization code
     (with-open-file (gfx "res/graphics-code"
@@ -188,48 +212,29 @@
         (format map "map_initial:~%")
         (format map
                 (tile-map->source
-                 (image->annotated-tilemap
-                  (splitimg (car frames))
-                  tiles
-                  ;; TODO
-                  (loop for tname being each hash-key of (car frame-sets)
-                        for i from 0
-                        collect (cons i tname)))
+                 (image->annotated-tilemap (splitimg (car frames)) tiles (car assignments))
                  0))
         (format gfx "gfx_initial:~%")
-        (format gfx
-                (graphics->source
-                 indexes->tiles
-                 ;; TODO
-                 (loop for tname being each hash-key of (car frame-sets)
-                       for i from 0
-                       collect (cons i tname))
-                 0))
+        (format gfx (graphics->source indexes->tiles (car assignments) 0))
 
         (loop for frame in frames
-              for assignment in assignments
+              for assignment-diff in assignment-diffs
               for i from 0 do
                 (format map "map~a:~%" i)
                 (format gfx "gfx~a:~%" i)
-                (let ((annotated-tm (image->annotated-tilemap (splitimg frame) tiles assignment))
+                (let ((annotated-tm (image->annotated-tilemap (splitimg frame) tiles assignment-diff))
                       (next-frame (mod (1+ i) (length frames))))
                   (format t "~a map updates between frames ~a, ~a~%" (length annotated-tm) i (1+ i))
                   (format map (tile-map->source annotated-tm next-frame))
-                  (format gfx (graphics->source indexes->tiles assignment next-frame))))))
+                  (format gfx (graphics->source indexes->tiles assignment-diff next-frame))))))
 
     (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))
-    (format t "~%")
-    (loop for diff in diff-set
-          for i from 0 do
-          (format t "~a different tiles between frames ~a, ~a~%" (length diff) i (1+ i)))
     (format t "~%")
     (loop for sp-img in (mapcar #'splitimg frames)
           for i from 0 do
             (let ((ut (length (remove-duplicates sp-img :test #'equalp :key #'skippy:image-data))))
               (when (> ut 256)
-                (format t "Frame ~a has too many (~a) unique tiles!" i ut))))
-
-    (cons tiles diff-set)))
+                (format t "Frame ~a has too many (~a) unique tiles!" i ut))))))
 
 (defun pass () nil)

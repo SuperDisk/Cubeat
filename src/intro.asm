@@ -27,16 +27,11 @@ add_a_to_de: MACRO
 ENDM
 
 SECTION "Animation vars", WRAM0
-jump_next_frame_map: ds 3
-jump_next_frame_gfx: ds 3
+jump_next_frame: ds 3
+next_frame_bank: db
 original_sp: dw
-frame_counter: db
 
-SECTION "Animation map", ROMX
-include "res/map-code"
-
-SECTION "Animation gfx", ROMX
-include "res/graphics-code"
+include "res/code"
 
 SECTION "Intro", ROM0
 
@@ -50,42 +45,31 @@ Intro::
   and %10000000
   jr nz, .wait_lcdc_off
 
-  ;; Copy initial tile data
-  ld a, BANK(map_initial)
-  ld [rROMB0], a
-  call map_initial
 
-  ;; Copy initial graphics data
-  ld a, BANK(gfx_initial)
+  ;; Copy initial tile data
+  ld a, BANK(frame_initial)
   ld [rROMB0], a
-  ld hl, gfx_initial
+  ld hl, frame_initial
   call call_save_sp
 
   ;; Store JP opcode in the pointers
   ld a, $C3 ; jp
-  ld [jump_next_frame_map], a
-  ld [jump_next_frame_gfx], a
-
-  ld a, 4
-  ld [frame_counter], a
+  ld [jump_next_frame], a
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000
 	ld [hLCDC], a
 	ld [rLCDC], a
 
 animation_loop:
-  ld a, BANK(map_initial)
+  ld a, [next_frame_bank]
   ld [rROMB0], a
 
   call WaitVBlank
+  call WaitVBlank
+  call WaitVBlank
   di
 
-
-  call jump_next_frame_map
-
-  ld a, BANK(gfx_initial)
-  ld [rROMB0], a
-  ld hl, jump_next_frame_gfx
+  ld hl, jump_next_frame
   call call_save_sp
   ;; Code to update graphics returns with RETI so interrupts are enabled.
 

@@ -27,9 +27,31 @@ add_a_to_de: MACRO
 ENDM
 
 SECTION "Animation vars", WRAM0
-jump_next_frame: ds 3
 next_frame_bank: db
-original_sp: dw
+
+SECTION "Static RAM Code", ROM0
+static_ram_code:
+  xor a
+  ldh [rIF], a
+  assert IEF_VBLANK == 1
+  inc a ; ld a, IEF_VBLANK
+  ldh [rIE], a
+  reti
+.update_bg:
+  ld [orig_sp], sp
+  db $C3 ; jp xxxx
+.end:
+
+
+SECTION "RAM Code", WRAM0
+update_bg_done: ds 1 ; ld sp, xxxx
+orig_sp: ds 2 ; operand of above
+ram_code:
+  ds static_ram_code.update_bg - static_ram_code
+update_bg:
+  ds static_ram_code.end - static_ram_code.update_bg
+ptr_next_update_bg:
+  ds 2 ; operand of above
 
 include "res/code"
 
@@ -40,21 +62,29 @@ Intro::
 	ld a, 0
 	ld [hLCDC], a
 
+  ld de, static_ram_code
+  ld hl, ram_code
+  ld c, static_ram_code.end - static_ram_code
+  rst MemcpySmall
+
+  ld a, $31 ; ld sp, xxxx
+  ld [update_bg_done], a
+
 .wait_lcdc_off:
   ld a, [rLCDC]
   and %10000000
   jr nz, .wait_lcdc_off
 
-
   ;; Copy initial tile data
   ld a, BANK(frame_initial)
   ld [rROMB0], a
-  ld hl, frame_initial
-  call call_save_sp
 
-  ;; Store JP opcode in the pointers
-  ld a, $C3 ; jp
-  ld [jump_next_frame], a
+
+  ld a, LOW(frame_initial)
+  ld [ptr_next_update_bg], a
+  ld a, HIGH(frame_initial)
+  ld [ptr_next_update_bg+1], a
+  call update_bg
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000
 	ld [hLCDC], a
@@ -64,17 +94,20 @@ animation_loop:
   ld a, [next_frame_bank]
   ld [rROMB0], a
 
-  call WaitVBlank
-  call WaitVBlank
-  call WaitVBlank
   di
 
-  ld hl, jump_next_frame
-  call call_save_sp
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  halt ; wait for VBlank
+
+  assert IEF_VBLANK + 1 == IEF_STAT
+  inc a ; ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
+  ; TODO: do OAM DMA
+  call update_bg
   ;; Code to update graphics returns with RETI so interrupts are enabled.
 
   jp animation_loop
-
-call_save_sp:
-  ld [original_sp], sp
-  jp hl

@@ -64,42 +64,49 @@
         (row (floor loc 20)))
     (+ #x9800 (* row 32) remainder)))
 
-(defun tile-map->source (annotated-tmap)
+(defun anim->source (annotated-tmap indexes->tiles assignment next-frame &key (include-halts t))
   (with-output-to-string (stream)
-    (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap))))
-      (loop for tile in unique-tiles do
-        (format stream "ld a, ~a~%" tile)
-        (loop for (location . __tile) in (remove-if-not (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
-          (format stream "ld [$~X], a~%" (wrap-location location)))))))
-
-(defun graphics->source (indexes->tiles assignment)
-  (with-output-to-string (stream)
-    (let ((all-writes (make-hash-table)))
-      (loop for (idx . name) in assignment do
-        (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
-          (loop for (b1 b2) on converted-tile by #'cddr
-                for i from 0 by 2 do
-                  (update-hash (dpb b2 (byte 8 8) b1)
-                               (lambda (x) (cons (+ #x8000 (* idx 16) i) x)) nil all-writes))))
-      (loop for data being each hash-key of all-writes do
-        (format stream "ld sp, $~X~%" data)
-        (loop for address in (gethash data all-writes) do
-          (format stream "ld [$~X], sp~%" address))))))
-
-(defun transition->source (next-frame)
-  (with-output-to-string (stream)
+    (let ((total-cycles 0)
+          (cycle-counter 0))
+      (flet ((inc-cycles (amount)
+               (when include-halts
+                 (incf total-cycles amount)
+                 (when (> total-cycles 1000) (incf cycle-counter amount))
+                 (when (> cycle-counter 42)
+                   (format stream "xor a~%")
+                   (format stream "ldh [rIF], a~%")
+                   (format stream "halt~%")
+                   (setf cycle-counter 0)))))
+        (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap))))
+          (loop for tile in unique-tiles do
+            (format stream "ld a, ~a~%" tile)
+            (inc-cycles 2)
+            (loop for (location . __tile) in (remove-if-not
+                                              (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
+                                                (format stream "ld [$~X], a~%" (wrap-location location))
+                                                (inc-cycles 4))))
+        (let ((all-writes (make-hash-table)))
+          (loop for (idx . name) in assignment do
+            (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+              (loop for (b1 b2) on converted-tile by #'cddr
+                    for i from 0 by 2 do
+                      (update-hash (dpb b2 (byte 8 8) b1)
+                                   (lambda (x) (cons (+ #x8000 (* idx 16) i) x)) nil all-writes))))
+          (loop for data being each hash-key of all-writes do
+            (format stream "ld sp, $~X~%" data)
+            (inc-cycles 3)
+            (loop for address in (gethash data all-writes) do
+              (format stream "ld [$~X], sp~%" address)
+              (inc-cycles 5))))))
     (format stream "ld a, LOW(frame~a)~%" next-frame)
-    (format stream "ld [jump_next_frame+1], a~%")
+    (format stream "ld [ptr_next_update_bg], a~%")
     (format stream "ld a, HIGH(frame~a)~%" next-frame)
-    (format stream "ld [jump_next_frame+2], a~%")
+    (format stream "ld [ptr_next_update_bg+1], a~%")
 
     (format stream "ld a, BANK(frame~a)~%" next-frame)
     (format stream "ld [next_frame_bank], a~%")
 
-    (format stream "ld sp, original_sp~%")
-    (format stream "pop hl~%")
-    (format stream "ld sp, hl~%")
-    (format stream "reti~%")))
+    (format stream "jp update_bg_done~%")))
 
 (defun dbg (f val)
   (funcall f val)
@@ -207,9 +214,7 @@
 
       (format out "SECTION \"~a\", ROMX~%" (gensym "ANIMATION"))
       (format out "frame_initial:~%")
-      (format out (tile-map->source (car tilemaps)))
-      (format out (graphics->source indexes->tiles (car assignments)))
-      (format out (transition->source 0))
+      (format out (anim->source (car tilemaps) indexes->tiles (car assignments) 0 :include-halts nil))
 
       (loop for frame in frames
             for assignment-diff in assignment-diffs
@@ -220,10 +225,7 @@
               (let ((next-frame (mod (1+ i) (length frames))))
                 (format t "~a map updates between frames ~a, ~a~%" (length tilemap-diff) i (1+ i))
                 (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i))
-
-                (format out (tile-map->source tilemap-diff))
-                (format out (graphics->source indexes->tiles assignment-diff))
-                (format out (transition->source next-frame)))))
+                (format out (anim->source tilemap-diff indexes->tiles assignment-diff next-frame)))))
 
     (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))

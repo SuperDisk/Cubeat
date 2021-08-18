@@ -1,4 +1,5 @@
-(ql:quickload :skippy)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (ql:quickload '(:skippy) :silent t))
 
 (defun gif-data= (i1 i2)
   (equalp (skippy:image-data i1) (skippy:image-data i2)))

@@ -64,14 +64,16 @@ include "res/backgrounds/bg07.asm"
 include "res/backgrounds/bg08.asm"
 include "res/backgrounds/bg10.asm"
 include "res/backgrounds/bg11.asm"
+include "res/backgrounds/bg12.asm"
 include "res/backgrounds/bg13.asm"
+include "res/backgrounds/bg15.asm"
 include "res/backgrounds/bg18.asm"
 include "res/backgrounds/bg19.asm"
 include "res/backgrounds/bg20.asm"
 include "res/backgrounds/bg9.asm"
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "splash_screen_init"
+BRERB EQUS "bg15_init"
 
 SECTION "Intro", ROM0
 
@@ -108,9 +110,6 @@ Intro::
 	ld [rLCDC], a
 
 animation_loop:
-  call WaitVBlank
-  call WaitVBlank
-  call WaitVBlank
   call WaitVBlank
   ld a, [next_frame_bank]
   ld [rROMB0], a

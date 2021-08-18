@@ -54,9 +54,7 @@ Reset::
 	;; WARN "Edit to set palettes here"
 	; CGB palettes maybe, DMG ones always
 
-  ld a, %00011011
-  ld a, %01001110
-  ld a, %10001101
+  ld a, %11000110
   ld [hBGP], a
   ld [hOBP0], a
   ld [hOBP1], a

@@ -53,7 +53,25 @@ update_bg:
 ptr_next_update_bg:
   ds 2 ; operand of above
 
-include "res/code"
+include "res/backgrounds/bg01.asm"
+include "res/backgrounds/bg014.asm"
+include "res/backgrounds/bg02.asm"
+include "res/backgrounds/bg03.asm"
+include "res/backgrounds/bg04.asm"
+include "res/backgrounds/bg05.asm"
+include "res/backgrounds/bg06.asm"
+include "res/backgrounds/bg07.asm"
+include "res/backgrounds/bg08.asm"
+include "res/backgrounds/bg10.asm"
+include "res/backgrounds/bg11.asm"
+include "res/backgrounds/bg13.asm"
+include "res/backgrounds/bg18.asm"
+include "res/backgrounds/bg19.asm"
+include "res/backgrounds/bg20.asm"
+include "res/backgrounds/bg9.asm"
+include "res/backgrounds/splash_screen.asm"
+
+BRERB EQUS "splash_screen_init"
 
 SECTION "Intro", ROM0
 
@@ -76,13 +94,12 @@ Intro::
   jr nz, .wait_lcdc_off
 
   ;; Copy initial tile data
-  ld a, BANK(frame_initial)
+  ld a, BANK(BRERB)
   ld [rROMB0], a
 
-
-  ld a, LOW(frame_initial)
+  ld a, LOW(BRERB)
   ld [ptr_next_update_bg], a
-  ld a, HIGH(frame_initial)
+  ld a, HIGH(BRERB)
   ld [ptr_next_update_bg+1], a
   call update_bg
 
@@ -91,6 +108,8 @@ Intro::
 	ld [rLCDC], a
 
 animation_loop:
+  call WaitVBlank
+  call WaitVBlank
   call WaitVBlank
   call WaitVBlank
   ld a, [next_frame_bank]

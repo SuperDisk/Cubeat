@@ -38,6 +38,9 @@ RGBLINK := $(RGBDS)rgblink
 RGBFIX  := $(RGBDS)rgbfix
 RGBGFX  := $(RGBDS)rgbgfx
 
+SBCL := sbcl.exe
+GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
+
 ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
 # Argument constants
@@ -109,6 +112,14 @@ VPATH := $(SRCDIR)
 $(RESDIR)/%.1bpp: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(RGBGFX) -d 1 -o $@ $<
+
+$(RESDIR)/%.deop.gif: $(RESDIR)/%.gif
+	@$(MKDIR_P) $(@D)
+	gifsicle --unoptimize < $< > $@
+
+$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
+	@$(MKDIR_P) $(@D)
+	$(GIF2TILES) $< $@
 
 $(RESDIR)/%.2bpp $(RESDIR)/%.tilemap: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)

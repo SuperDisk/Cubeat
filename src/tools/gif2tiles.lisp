@@ -70,7 +70,7 @@
         (row (floor loc 20)))
     (+ #x9800 (* row 32) remainder)))
 
-(defun anim->source (annotated-tmap indexes->tiles assignment next-frame &key (include-halts t))
+(defun anim->source (annotated-tmap indexes->tiles assignment next-frame &key (include-halts t) (prefix ""))
   (with-output-to-string (stream)
     (let ((total-cycles 0)
           (cycle-counter 0)
@@ -136,12 +136,12 @@
                 (loop for address in (gethash data all-writes) do
                   (format stream "ld [$~X], sp~%" address)
                   (inc-cycles 5))))))))
-    (format stream "ld a, LOW(frame~a)~%" next-frame)
+    (format stream "ld a, LOW(~a_frame~a)~%" prefix next-frame)
     (format stream "ld [ptr_next_update_bg], a~%")
-    (format stream "ld a, HIGH(frame~a)~%" next-frame)
+    (format stream "ld a, HIGH(~a_frame~a)~%" prefix next-frame)
     (format stream "ld [ptr_next_update_bg+1], a~%")
 
-    (format stream "ld a, BANK(frame~a)~%" next-frame)
+    (format stream "ld a, BANK(~a_frame~a)~%" prefix next-frame)
     (format stream "ld [next_frame_bank], a~%")
 
     (format stream "jp update_bg_done~%")))
@@ -263,21 +263,26 @@
     (with-open-file (out out-filename
                          :direction :output
                          :if-exists :supersede)
+      (let ((prefix (pathname-name out-filename)))
+        (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
+        (format out "~a_init:~%" prefix)
+        (format out (anim->source (car tilemaps)
+                                  indexes->tiles
+                                  (car assignments)
+                                  0
+                                  :include-halts nil
+                                  :prefix prefix))
 
-      (format out "SECTION \"~a\", ROMX~%" (gensym "ANIMATION"))
-      (format out "frame_initial:~%")
-      (format out (anim->source (car tilemaps) indexes->tiles (car assignments) 0 :include-halts nil))
-
-      (loop for frame in frames
-            for assignment-diff in assignment-diffs
-            for tilemap-diff in tilemap-diffs
-            for i from 0 do
-              (format out "SECTION \"~a\", ROMX~%" (gensym "ANIMATION"))
-              (format out "frame~a:~%" i)
-              (let ((next-frame (mod (1+ i) (length frames))))
-                (format t "~a map updates between frames ~a, ~a~%" (length tilemap-diff) i (1+ i))
-                (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i))
-                (format out (anim->source tilemap-diff indexes->tiles assignment-diff next-frame)))))
+        (loop for frame in frames
+              for assignment-diff in assignment-diffs
+              for tilemap-diff in tilemap-diffs
+              for i from 0 do
+                (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
+                (format out "~a_frame~a:~%" prefix i)
+                (let ((next-frame (mod (1+ i) (length frames))))
+                  (format t "~a map updates between frames ~a, ~a~%" (length tilemap-diff) i (1+ i))
+                  (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i))
+                  (format out (anim->source tilemap-diff indexes->tiles assignment-diff next-frame :prefix prefix))))))
 
     (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))
@@ -290,4 +295,4 @@
 
 (defun main ()
   (apply #'gif->tiles (cdr sb-ext:*posix-argv*))
-  0)
+  (exit))

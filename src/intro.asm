@@ -86,11 +86,13 @@ Intro::
   ld [ptr_next_update_bg+1], a
   call update_bg
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8000
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800
 	ld [hLCDC], a
 	ld [rLCDC], a
 
 animation_loop:
+  call WaitVBlank
+  call WaitVBlank
   ld a, [next_frame_bank]
   ld [rROMB0], a
 

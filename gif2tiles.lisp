@@ -15,6 +15,12 @@
                     (elt sequence (1- i))))
   sequence)
 
+(defun partition (predicate list)
+  (loop for x in list
+        if (funcall predicate x) collect x into yes
+          else collect x into no
+        finally (return (values yes no))))
+
 (defun update-hash (key func default hash)
   (let ((val (gethash key hash default)))
     (setf (gethash key hash) (funcall func val))))
@@ -79,28 +85,57 @@
                    (format stream "halt~%")
                    (if using-a (format stream "ld a, ~a~%" current-a-value))
                    (setf cycle-counter 0)))))
-        (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap))))
-          (loop for tile in unique-tiles do
-            (format stream "ld a, ~a~%" tile)
-            (setf current-a-value tile)
-            (inc-cycles 2 :using-a t)
-            (loop for (location . __tile) in (remove-if-not
-                                              (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
-                                                (format stream "ld [$~X], a~%" (wrap-location location))
-                                                (inc-cycles 4 :using-a t))))
-        (let ((all-writes (make-hash-table)))
-          (loop for (idx . name) in assignment do
-            (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
-              (loop for (b1 b2) on converted-tile by #'cddr
-                    for i from 0 by 2 do
-                      (update-hash (dpb b2 (byte 8 8) b1)
-                                   (lambda (x) (cons (+ #x8000 (* idx 16) i) x)) nil all-writes))))
-          (loop for data being each hash-key of all-writes do
-            (format stream "ld sp, $~X~%" data)
-            (inc-cycles 3)
-            (loop for address in (gethash data all-writes) do
-              (format stream "ld [$~X], sp~%" address)
-              (inc-cycles 5))))))
+        (multiple-value-bind (top-tilemap bottom-tilemap)
+            (partition (lambda (loc) (<= (car loc) 150)) annotated-tmap)
+          (multiple-value-bind (top-assignment bottom-assignment)
+              (partition (lambda (a) (find (car a) top-tilemap :key #'cdr)) assignment)
+
+            ;; Top tilemap
+            (loop for (location . tile) in top-tilemap do
+              (setf current-a-value (logxor #b10000000 tile))
+              (format stream "ld a, ~a~%" current-a-value)
+              (inc-cycles 2 :using-a t)
+              (format stream "ld [$~X], a~%" (wrap-location location))
+              (inc-cycles 4 :using-a t))
+
+            ;; Top Graphics
+            (let ((all-writes (make-hash-table)))
+              (loop for (idx . name) in top-assignment do
+                (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+                  (loop for (b1 b2) on converted-tile by #'cddr
+                        for i from 0 by 2 do
+                          (update-hash (dpb b2 (byte 8 8) b1)
+                                       (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
+              (loop for data being each hash-key of all-writes do
+                (format stream "ld sp, $~X~%" data)
+                (inc-cycles 3)
+                (loop for address in (gethash data all-writes) do
+                  (format stream "ld [$~X], sp~%" address)
+                  (inc-cycles 5))))
+
+            ;; Bottom tilemap
+            (loop for (location . tile) in bottom-tilemap do
+              (setf current-a-value (logxor #b10000000 tile))
+              (format stream "ld a, ~a~%" current-a-value)
+              (inc-cycles 2 :using-a t)
+              (format stream "ld [$~X], a~%" (wrap-location location))
+              (inc-cycles 4 :using-a t))
+
+
+            ;; Bottom Graphics
+            (let ((all-writes (make-hash-table)))
+              (loop for (idx . name) in bottom-assignment do
+                (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+                  (loop for (b1 b2) on converted-tile by #'cddr
+                        for i from 0 by 2 do
+                          (update-hash (dpb b2 (byte 8 8) b1)
+                                       (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
+              (loop for data being each hash-key of all-writes do
+                (format stream "ld sp, $~X~%" data)
+                (inc-cycles 3)
+                (loop for address in (gethash data all-writes) do
+                  (format stream "ld [$~X], sp~%" address)
+                  (inc-cycles 5))))))))
     (format stream "ld a, LOW(frame~a)~%" next-frame)
     (format stream "ld [ptr_next_update_bg], a~%")
     (format stream "ld a, HIGH(frame~a)~%" next-frame)
@@ -115,7 +150,7 @@
   (funcall f val)
   val)
 
-(defun gif->tiles (filename &key)
+(defun gif->tiles (filename out-filename)
   (let* ((frames (coerce (skippy:images (skippy:load-data-stream filename)) 'list))
          (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
@@ -158,9 +193,9 @@
     (setf assignments
           (let* ((max-tiles (min (1- (hash-table-count tiles)) 255))
                  (initial-part (loop for tname being each hash-key of (car frame-sets)
-                                     for i from 0
+                                     for i from 4 ; reserve 4 tiles
                                      collect (cons i tname)))
-                 (first-assignment (loop for i from 0 to max-tiles
+                 (first-assignment (loop for i from 4 to max-tiles
                                          collect (or (assoc i initial-part) (cons i i))))
                  (current-assignment first-assignment)
                  (free-idxs (loop for i from (length initial-part) to max-tiles collect i)))
@@ -225,7 +260,7 @@
                           when (not (equalp i1 i2)) collect (cons l2 i2))))
 
     ;; Dump map initialization code
-    (with-open-file (out "res/code"
+    (with-open-file (out out-filename
                          :direction :output
                          :if-exists :supersede)
 
@@ -253,4 +288,6 @@
               (when (> ut 256)
                 (format t "Frame ~a has too many (~a) unique tiles!" i ut))))))
 
-(defun pass () nil)
+(defun main ()
+  (apply #'gif->tiles (cdr sb-ext:*posix-argv*))
+  0)

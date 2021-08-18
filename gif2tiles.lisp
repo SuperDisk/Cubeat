@@ -67,24 +67,27 @@
 (defun anim->source (annotated-tmap indexes->tiles assignment next-frame &key (include-halts t))
   (with-output-to-string (stream)
     (let ((total-cycles 0)
-          (cycle-counter 0))
-      (flet ((inc-cycles (amount)
+          (cycle-counter 0)
+          (current-a-value 0))
+      (flet ((inc-cycles (amount &key (using-a nil))
                (when include-halts
                  (incf total-cycles amount)
-                 (when (> total-cycles 1000) (incf cycle-counter amount))
+                 (when (> total-cycles 1090) (incf cycle-counter amount))
                  (when (> cycle-counter 42)
                    (format stream "xor a~%")
                    (format stream "ldh [rIF], a~%")
                    (format stream "halt~%")
+                   (if using-a (format stream "ld a, ~a~%" current-a-value))
                    (setf cycle-counter 0)))))
         (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap))))
           (loop for tile in unique-tiles do
             (format stream "ld a, ~a~%" tile)
-            (inc-cycles 2)
+            (setf current-a-value tile)
+            (inc-cycles 2 :using-a t)
             (loop for (location . __tile) in (remove-if-not
                                               (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
                                                 (format stream "ld [$~X], a~%" (wrap-location location))
-                                                (inc-cycles 4))))
+                                                (inc-cycles 4 :using-a t))))
         (let ((all-writes (make-hash-table)))
           (loop for (idx . name) in assignment do
             (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
@@ -114,6 +117,7 @@
 
 (defun gif->tiles (filename &key)
   (let* ((frames (coerce (skippy:images (skippy:load-data-stream filename)) 'list))
+         (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
          (indexes->tiles (make-hash-table)) ; map of tile name -> tile data
          frame-sets ; list of (set of the tile names for each frame)
@@ -121,6 +125,7 @@
          assignment-diffs ; pared down assignment list which just includes the updates
          tilemaps ; list of (list of (loc . idx) representing a tile map)
          tilemap-diffs ; pared down tile map list whcih just includes the updates
+         (name-commonness (make-hash-table))
          )
 
     ;; Build tiles and frame-sets
@@ -142,6 +147,12 @@
     (loop for tile being each hash-key of tiles do
       (let ((name (gethash tile tiles)))
         (setf (gethash name indexes->tiles) tile)))
+
+    ;; Collect the "commonness" of each name
+    (loop for split-img in split-frames do
+      (loop for tile in split-img do
+        (update-hash (gethash tile tiles) #'1+ 0 name-commonness)))
+    ;; (break)
 
     ; An "assignment" is a mapping from tile index -> tile name
     (setf assignments
@@ -165,7 +176,13 @@
                           (let ((freed-idxs (loop for (idx . name) in current-assignment
                                                   when (not (frame-set-contains name frame-set))
                                                     collect idx)))
-                            (setf free-idxs (remove-duplicates (append free-idxs freed-idxs)))
+                            (setf free-idxs
+                                  (remove-duplicates (append free-idxs freed-idxs))
+                                  #+nil(sort (remove-duplicates (append free-idxs freed-idxs))
+                                        (lambda (i1 i2)
+                                          (let ((n1 (cdr (assoc i1 current-assignment)))
+                                                (n2 (cdr (assoc i2 current-assignment))))
+                                            (> n1 n2)))))
                             (let ((needed-names
                                     (loop for name being each hash-key of frame-set
                                           for pair = (assignment-contains name current-assignment)
@@ -189,7 +206,7 @@
                         when (not (equalp n1 n2)) collect (cons i2 n2))))
 
     (setf tilemaps
-          (loop for split-img in (mapcar #'splitimg frames)
+          (loop for split-img in split-frames
                 for assignment in assignments
                 collect
                 (loop for tile in split-img
@@ -230,7 +247,7 @@
     (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))
     (format t "~%")
-    (loop for sp-img in (mapcar #'splitimg frames)
+    (loop for sp-img in split-frames
           for i from 0 do
             (let ((ut (length (remove-duplicates sp-img :test #'equalp :key #'skippy:image-data))))
               (when (> ut 256)

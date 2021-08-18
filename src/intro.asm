@@ -29,6 +29,7 @@ ENDM
 SECTION "Animation vars", WRAM0
 next_frame_bank: db
 
+
 SECTION "Static RAM Code", ROM0
 static_ram_code:
   xor a
@@ -41,7 +42,6 @@ static_ram_code:
   ld [orig_sp], sp
   db $C3 ; jp xxxx
 .end:
-
 
 SECTION "RAM Code", WRAM0
 update_bg_done: ds 1 ; ld sp, xxxx

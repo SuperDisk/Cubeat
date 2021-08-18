@@ -2,3 +2,6 @@
 /obj/
 /dep/
 /res/
+*.swf
+*.psd
+*.mp4

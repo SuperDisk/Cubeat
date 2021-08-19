@@ -56,7 +56,9 @@ Reset::
 
   ld a, %00100111
   ld [hBGP], a
+  ld a, %10001101
   ld [hOBP0], a
+  ld a, %00100111
   ld [hOBP1], a
 
 	; You will also need to reset your handlers' variables below

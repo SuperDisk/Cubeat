@@ -194,7 +194,7 @@
     (setf assignments
           (let* ((max-tiles (min (1- (hash-table-count tiles)) 255))
                  (initial-part (loop for tname being each hash-key of (car frame-sets)
-                                     for i from 4 ; reserve 4 tiles
+                                     for i from 6 ; reserved tiles
                                      collect (cons i tname)))
                  (first-assignment (loop for i from 4 to max-tiles
                                          collect (or (assoc i initial-part) (cons i i))))

@@ -32,6 +32,7 @@ frame_counter: db
 
 SECTION "Animation vars", WRAM0
 next_frame_bank: db
+current_tilemap: db
 
 SECTION "Static RAM Code", ROM0
 static_ram_code:
@@ -46,6 +47,10 @@ static_ram_code:
   db $C3 ; jp xxxx
 .end:
 
+playfield_buffer_rom:
+include "playfield_buffer.inc"
+.end:
+
 SECTION "RAM Code", WRAM0
 update_bg_done: ds 1 ; ld sp, xxxx
 orig_sp: ds 2 ; operand of above
@@ -56,28 +61,30 @@ update_bg:
 ptr_next_update_bg:
   ds 2 ; operand of above
 
+SECTION "Buffer ram code", WRAM0
+playfield_buffer:
+  ds (playfield_buffer_rom.end - playfield_buffer_rom)
+
 ;; These define their own sections
 include "res/backgrounds/bg01.asm"
-include "res/backgrounds/bg02.asm"
-include "res/backgrounds/bg03.asm"
-include "res/backgrounds/bg04.asm"
-include "res/backgrounds/bg05.asm"
-include "res/backgrounds/bg06.asm"
-include "res/backgrounds/bg07.asm"
-include "res/backgrounds/bg08.asm"
-include "res/backgrounds/bg9.asm"
-include "res/backgrounds/bg10.asm"
-include "res/backgrounds/bg11.asm"
-include "res/backgrounds/bg12.asm"
-include "res/backgrounds/bg13.asm"
-include "res/backgrounds/bg014.asm"
-include "res/backgrounds/bg15.asm"
-include "res/backgrounds/bg18.asm"
-include "res/backgrounds/bg19.asm"
-include "res/backgrounds/bg20.asm"
-include "res/backgrounds/splash_screen.asm"
-
-BRERB EQUS "bg03_init"
+; include "res/backgrounds/bg02.asm"
+; include "res/backgrounds/bg03.asm"
+; include "res/backgrounds/bg04.asm"
+; include "res/backgrounds/bg05.asm"
+; include "res/backgrounds/bg06.asm"
+; include "res/backgrounds/bg07.asm"
+; include "res/backgrounds/bg08.asm"
+; include "res/backgrounds/bg9.asm"
+; include "res/backgrounds/bg10.asm"
+; include "res/backgrounds/bg11.asm"
+; include "res/backgrounds/bg12.asm"
+; include "res/backgrounds/bg13.asm"
+; include "res/backgrounds/bg014.asm"
+; include "res/backgrounds/bg15.asm"
+; include "res/backgrounds/bg18.asm"
+; include "res/backgrounds/bg19.asm"
+; include "res/backgrounds/bg20.asm"
+; include "res/backgrounds/splash_screen.asm"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -103,8 +110,16 @@ Intro::
   ld c, static_ram_code.end - static_ram_code
   rst MemcpySmall
 
+  ld de, playfield_buffer_rom
+  ld hl, playfield_buffer
+  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
+  call Memcpy
+
   ld a, $31 ; ld sp, xxxx
   ld [update_bg_done], a
+
+  ld a, $98
+  ld [current_tilemap], a
 
 .wait_lcdc_off:
   ld a, [rLCDC]
@@ -188,25 +203,34 @@ endm
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  ;; Copy initial tile data
-  ld a, BANK(BRERB)
+  ;; Copy initial map
+  ld a, BANK(bg01_init_even)
   ld [rROMB0], a
 
-  ld a, LOW(BRERB)
+  ld a, LOW(bg01_init_even)
   ld [ptr_next_update_bg], a
-  ld a, HIGH(BRERB)
+  ld a, HIGH(bg01_init_even)
   ld [ptr_next_update_bg+1], a
   call update_bg
+
+  ld a, LOW(bg01_render1)
+  ld [ptr_next_update_bg], a
+  ld a, HIGH(bg01_render1)
+  ld [ptr_next_update_bg+1], a
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [hLCDC], a
 	ld [rLCDC], a
 
 animation_loop:
-  call WaitVBlank
-  call WaitVBlank
   ld a, [next_frame_bank]
   ld [rROMB0], a
+
+  ld a, [current_tilemap]
+  xor %00000100
+  ld h, a
+  ld l, $81
+  ld [current_tilemap], a
 
   di
 
@@ -221,12 +245,8 @@ animation_loop:
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   ; TODO: do OAM DMA
+
   call update_bg
   ;; Code to update graphics returns with RETI so interrupts are enabled.
-
-.wait_for_below_play_area
-  ld a, [rLY]
-  cp 135 ; free to do OAM DMA here (past the play area)
-  jr nc, .wait_for_below_play_area
 
   jp animation_loop

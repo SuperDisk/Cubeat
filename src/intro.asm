@@ -204,19 +204,21 @@ endm
   call hOAMDMA
 
   ;; Copy initial map
-  ld a, BANK(bg01_init_even)
+  ld a, BANK(bg01_init)
   ld [rROMB0], a
 
-  ld a, LOW(bg01_init_even)
+  ld a, LOW(bg01_init)
   ld [ptr_next_update_bg], a
-  ld a, HIGH(bg01_init_even)
+  ld a, HIGH(bg01_init)
   ld [ptr_next_update_bg+1], a
   call update_bg
 
-  ld a, LOW(bg01_render1)
+  ld a, LOW(bg01_render0)
   ld [ptr_next_update_bg], a
-  ld a, HIGH(bg01_render1)
+  ld a, HIGH(bg01_render0)
   ld [ptr_next_update_bg+1], a
+  ld a, BANK(bg01_render0)
+  ld [next_frame_bank], a
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [hLCDC], a
@@ -226,23 +228,18 @@ animation_loop:
   ld a, [next_frame_bank]
   ld [rROMB0], a
 
-  ld a, [current_tilemap]
-  xor %00000100
-  ld h, a
-  ld l, $81
-  ld [current_tilemap], a
-
   di
 
   ld a, IEF_VBLANK
   ldh [rIE], a
   halt ; wait for VBlank
+  nop
 
-  assert IEF_VBLANK + 1 == IEF_STAT
-  inc a ; ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+  ; assert IEF_VBLANK + 1 == IEF_STAT
+  ; inc a ; ld a, IEF_STAT
+  ; ldh [rIE], a
+  ; ld a, STATF_MODE00
+  ; ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   ; TODO: do OAM DMA
 

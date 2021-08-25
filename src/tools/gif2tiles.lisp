@@ -66,28 +66,23 @@
           (push new-tile out))))
     (nreverse out)))
 
-(defun wrap-location (loc)
-  (let ((remainder (mod loc 20))
-        (row (floor loc 20)))
-    (+ #x9800 (* row 32) remainder)))
-
 (defun generate-playfield-buffer ()
   (flet ((wrap-playfield-location (x y)
-           (+ (* (+ 4 y) 18) x 1)))
+           (+ (* y 20) x)))
     (let (idx->buffer-offset)
       (values
        (with-output-to-string (out)
-         (let ((current-row-start-pos #x9881)
+         (let ((current-row-start-pos 0)
                (bytes-generated 0))
-           (loop for y from 0 to 12 do
-             (loop for x from 0 to (1- 17) do
+           (loop for y from 0 to (1- 18) do
+             (loop for x from 0 to (- 20 2) do
                (push (cons (wrap-playfield-location x y) (1+ bytes-generated))
                      idx->buffer-offset)
                (format out "ld a, 0~%")
                (format out "ld [hl+], a~%")
                (incf bytes-generated 3))
 
-             (push (cons (wrap-playfield-location 17 y) (1+ bytes-generated))
+             (push (cons (wrap-playfield-location 19 y) (1+ bytes-generated))
                    idx->buffer-offset)
              (format out "ld [hl], 0~%")
              (incf bytes-generated 2)
@@ -96,39 +91,48 @@
              (let ((new-l (ldb (byte 8 0) current-row-start-pos)))
                (format out "ld l, ~a~%" new-l)
                (incf bytes-generated 2)
-               (when (= new-l #x01)
+               (when (zerop new-l)
                  (format out "inc h~%")
-                 (incf bytes-generated 1))))))
+                 (incf bytes-generated))))))
        (reverse idx->buffer-offset)))))
 
 (defparameter *idx->playfield-buffer-offset*
   (nth-value 1 (generate-playfield-buffer)))
 
-(defun playfield-idx-p (idx)
-  (let ((x (mod idx 20))
-        (y (floor idx 18)))
-    (and (>= x 1) (<= x 17)
-         (>= y 4) (<= y 16))))
-
-(defun gameplay-frame->source (non-playfield-tilemap parity next-frame prefix &key (initial nil))
+(defun initials->source (map1 map2)
   (with-output-to-string (stream)
-    (when (not initial)
-      (format stream "call playfield_buffer~%"))
-    (loop for (location . tile) in non-playfield-tilemap do
-      (format stream "ld a, ~a~%" (logxor #b10000000 tile))
-      (format stream "ld [$~X], a~%" (+ (if (equalp parity 'even) 0 #x400)
-                                        (wrap-location location))))
+    (flet ((wrap-location (loc parity)
+             (let ((remainder (mod loc 20))
+                   (row (floor loc 20)))
+               (+ (if (equalp parity 'even) #x9800 #x9C00)
+                  (* row 32)
+                  remainder))))
+      (loop for (location . tile) in map1 do
+        (format stream "ld a, ~a~%" (logxor #b10000000 tile))
+        (format stream "ld [$~X], a~%" (wrap-location location 'even)))
+      (loop for (location . tile) in map2 do
+        (format stream "ld a, ~a~%" (logxor #b10000000 tile))
+        (format stream "ld [$~X], a~%" (wrap-location location 'odd))))))
 
-    (when (not initial)
-      (format stream "ld a, LOW(~a_render~a)~%" prefix next-frame)
-      (format stream "ld [ptr_next_update_bg], a~%")
-      (format stream "ld a, HIGH(~a_render~a)~%" prefix next-frame)
-      (format stream "ld [ptr_next_update_bg+1], a~%")
+(defun gameplay-frame->source (next-frame prefix)
+  (with-output-to-string (stream)
+    (format stream "ld a, LOW(~a_render~a)~%" prefix next-frame)
+    (format stream "ld [ptr_next_update_bg], a~%")
+    (format stream "ld a, HIGH(~a_render~a)~%" prefix next-frame)
+    (format stream "ld [ptr_next_update_bg+1], a~%")
 
-      (format stream "ld a, BANK(~a_render~a)~%" prefix next-frame)
-      (format stream "ld [next_frame_bank], a~%")
+    (format stream "ld a, BANK(~a_render~a)~%" prefix next-frame)
+    (format stream "ld [next_frame_bank], a~%")
 
-      (format stream "jp update_bg_done~%"))))
+
+    (format stream "ld a, [current_tilemap]~%")
+    (format stream "xor %00000100~%")
+    (format stream "ld h, a~%")
+    (format stream "ld l, $0~%")
+    (format stream "ld [current_tilemap], a~%")
+
+
+    (format stream "jp playfield_buffer~%")))
 
 (defun animation-frame->source (next-playfield-tilemap indexes->tiles assignment next-frame prefix &key (initial nil))
   (with-output-to-string (stream)
@@ -168,8 +172,7 @@
 
         ;; Buffer
         (loop for (location . tile) in next-playfield-tilemap
-              for loc = (cdr (assoc location *idx->playfield-buffer-offset*))
-              when loc do ; TODO
+              for loc = (cdr (assoc location *idx->playfield-buffer-offset*)) do
                 (format stream "ld a, ~a~%" (logxor #b10000000 tile))
                 (format stream "ld [playfield_buffer + $~X], a~%" loc))))
 
@@ -277,7 +280,6 @@
                       for loc from 0
                       collect (cons loc index))))
 
-
     (setf tilemap-diffs
           (loop for (before after) on (cons (car (last tilemaps)) tilemaps)
                 when (and before after)
@@ -319,47 +321,37 @@
       (let ((prefix (pathname-name out-filename)))
         (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
 
-        (format out "~a_init_even:~%" prefix)
-        (format out (gameplay-frame->source (car tilemaps) 'even 1 prefix :initial t))
-
-        (format out "~a_init_odd:~%" prefix)
-        (format out (gameplay-frame->source (cadr tilemaps) 'odd 1 prefix :initial t))
-
-        (format out "~a_init_gfx:~%" prefix)
-        (let ((second-frame-playfield-tilemap (remove-if-not #'playfield-idx-p (cadr tilemaps) :key #'car)))
-          (format out (animation-frame->source second-frame-playfield-tilemap
-                                               indexes->tiles
-                                               (car assignments)
-                                               1
-                                               prefix
-                                               :initial t)))
+        (format out "~a_init:~%" prefix)
+        (format out (initials->source (car tilemaps) (cadr tilemaps)))
+        (format out (animation-frame->source (cadr tilemaps)
+                                             indexes->tiles
+                                             (car assignments)
+                                             1
+                                             prefix
+                                             :initial t))
 
         (loop for frame in frames
               for assignment-diff in assignment-diffs
               for tilemap-diff in tilemap-diffs-interspersed
               for fine-tilemap-diff in tilemap-diffs
-              for i from 0
-              with parity = 'even do
-                (let ((next-frame (mod (1+ i) (length frames)))
-                      (non-playfield-tilemap-diff (remove-if #'playfield-idx-p tilemap-diff :key #'car))
-                      (playfield-next-tilemap-diff (remove-if-not #'playfield-idx-p fine-tilemap-diff :key #'car)))
+              for i from 0 do
+                (let ((next-frame (mod (1+ i) (length frames))))
                   (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
 
                   (format out "~a_render~a:~%" prefix i)
-                  (format out (animation-frame->source playfield-next-tilemap-diff
+                  (format out (animation-frame->source fine-tilemap-diff
                                                        indexes->tiles
                                                        assignment-diff
                                                        next-frame
                                                        prefix))
                   (format out "~a_gameplay~a:~%" prefix i)
-                  (format out (gameplay-frame->source non-playfield-tilemap-diff parity next-frame prefix))
+                  (format out (gameplay-frame->source next-frame prefix))
 
                   ;; (format t "~a map updates between frames ~a, ~a~%" (length tilemap-diff) i (1+ i))
                   ;; (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i))
 
-                  (if (equalp parity 'even)
-                      (setf parity 'odd)
-                      (setf parity 'even))))))
+
+                  ))))
 
     (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))

@@ -124,7 +124,6 @@
     (format stream "ld a, BANK(~a_render~a)~%" prefix next-frame)
     (format stream "ld [next_frame_bank], a~%")
 
-
     (format stream "ld a, [current_tilemap]~%")
     (format stream "xor %00000100~%")
     (format stream "ld h, a~%")
@@ -199,9 +198,6 @@
          assignments ; list of (list of (idx . name) pairs) for tile map updates
          assignment-diffs ; pared down assignment list which just includes the updates
          tilemaps ; list of (list of (loc . idx) representing a tile map)
-         tilemap-diffs-even ; pared down tile map list whcih just includes the updates (even frames)
-         tilemap-diffs-odd ; pared down tile map list whcih just includes the updates (odd frames)
-         tilemap-diffs-interspersed ; the full list of tilemap diffs
          tilemap-diffs
          )
 
@@ -289,31 +285,6 @@
                         when (not (equalp l1 l2)) do (format t "Critical error~%")
                           when (not (equalp i1 i2)) collect (cons l2 i2))))
 
-    (setf tilemap-diffs-even
-          (let ((even-tilemaps (loop for tm in tilemaps by #'cddr collect tm)))
-            (loop for (before after) on (cons (car (last even-tilemaps)) even-tilemaps)
-                  when (and before after)
-                    collect
-                    (loop for (l1 . i1) in before
-                          for (l2 . i2) in after
-                          when (not (equalp l1 l2)) do (format t "Critical error~%")
-                            when (not (equalp i1 i2)) collect (cons l2 i2)))))
-
-    (setf tilemap-diffs-odd
-          (let ((odd-tilemaps (loop for tm in (cdr tilemaps) by #'cddr collect tm)))
-            (loop for (before after) on (cons (car (last odd-tilemaps)) odd-tilemaps)
-                  when (and before after)
-                    collect
-                    (loop for (l1 . i1) in before
-                          for (l2 . i2) in after
-                          when (not (equalp l1 l2)) do (format t "Critical error~%")
-                            when (not (equalp i1 i2)) collect (cons l2 i2)))))
-
-    (setf tilemap-diffs-interspersed
-          (loop for even in tilemap-diffs-even
-                for odd in tilemap-diffs-odd
-                append (list even odd)))
-
     ;; Dump map initialization code
     (with-open-file (out out-filename
                          :direction :output
@@ -332,8 +303,7 @@
 
         (loop for frame in frames
               for assignment-diff in assignment-diffs
-              for tilemap-diff in tilemap-diffs-interspersed
-              for fine-tilemap-diff in tilemap-diffs
+              for tilemap-diff in tilemap-diffs
               for i from 0 do
                 (let ((next-frame (mod (1+ i) (length frames))))
                   (format out "SECTION \"~a\", ROMX~%" (gensym prefix))

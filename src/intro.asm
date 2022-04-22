@@ -87,7 +87,8 @@ include "res/backgrounds/bg01.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg01_init"
+BRERB EQUS "bg01_gfx_init"
+BRERB2 EQUS "bg01_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -101,8 +102,15 @@ all_graphics_end:
 
 SECTION "Background Graphics", ROMX
 
-SECTION "Playfield Buffer", ROM0
+SECTION "Playfield Buffer ROM", ROM0
+
+playfield_buffer_rom:
 include "playfield_buffer.inc"
+.end:
+
+SECTION "Playfield Buffer RAM", WRAM0
+playfield_buffer:
+ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
 SECTION "Intro", ROM0
 
@@ -133,6 +141,12 @@ Intro::
   ld de, all_graphics
   ld hl, $8000
   ld bc, (all_graphics_end - all_graphics)
+  call Memcpy
+
+
+  ld de, playfield_buffer_rom
+  ld hl, playfield_buffer
+  ld bc, (playfield_buffer_rom.end - playfield_buffer_rom)
   call Memcpy
 
   ld a, 16
@@ -224,7 +238,15 @@ endm
   ld [update_playfield_buffer+2], a
 
   call update_playfield_buffer
+  ld hl, $9800 ; TODO: choose unused
   call playfield_buffer
+
+  ld a, BANK(BRERB2)
+  ld [next_map_bank], a
+  ld a, LOW(BRERB2)
+  ld [update_playfield_buffer+1], a
+  ld a, HIGH(BRERB2)
+  ld [update_playfield_buffer+2], a
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [hLCDC], a
@@ -234,6 +256,10 @@ animation_loop:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Load buffer with new tile data
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+
   call update_playfield_buffer
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -241,9 +267,6 @@ animation_loop:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ld hl, $9800 ; TODO: choose unused
-
-  ld a, [next_map_bank]
-  ld [rROMB0], a
 
   di
 

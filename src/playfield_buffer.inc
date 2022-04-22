@@ -1,4 +1,3 @@
-playfield_buffer:
 ld a, 0
 ld [hl+], a
 ld a, 0

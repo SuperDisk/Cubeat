@@ -31,7 +31,9 @@ drop_pos: db
 frame_counter: db
 
 SECTION "Animation vars", WRAM0
-next_frame_bank: db
+next_gfx_bank: db
+next_map_bank: db
+update_playfield_buffer: ds 3 ; includes jump opcode
 
 SECTION "Static RAM Code", ROM0
 static_ram_code:
@@ -58,34 +60,34 @@ ptr_next_update_bg:
 
 ;; These define their own sections
 include "res/backgrounds/bg01.asm"
-include "res/backgrounds/bg02.asm"
-include "res/backgrounds/bg03.asm"
-include "res/backgrounds/bg04.asm"
-include "res/backgrounds/bg05.asm"
-include "res/backgrounds/bg06.asm"
-include "res/backgrounds/bg07.asm"
-include "res/backgrounds/bg08.asm"
-include "res/backgrounds/bg09.asm"
-include "res/backgrounds/bg10.asm"
-include "res/backgrounds/bg11.asm"
-include "res/backgrounds/bg12.asm"
-include "res/backgrounds/bg13.asm"
-include "res/backgrounds/bg14.asm"
-include "res/backgrounds/bg15.asm"
-include "res/backgrounds/bg16.asm"
-include "res/backgrounds/bg17.asm"
-include "res/backgrounds/bg18.asm"
-include "res/backgrounds/bg19.asm"
-include "res/backgrounds/bg20.asm"
-include "res/backgrounds/bg21.asm"
-include "res/backgrounds/bg22.asm"
-include "res/backgrounds/bg23.asm"
-include "res/backgrounds/bg24.asm"
-include "res/backgrounds/bg25.asm"
+; include "res/backgrounds/bg02.asm"
+; include "res/backgrounds/bg03.asm"
+; include "res/backgrounds/bg04.asm"
+; include "res/backgrounds/bg05.asm"
+; include "res/backgrounds/bg06.asm"
+; include "res/backgrounds/bg07.asm"
+; include "res/backgrounds/bg08.asm"
+; include "res/backgrounds/bg09.asm"
+; include "res/backgrounds/bg10.asm"
+; include "res/backgrounds/bg11.asm"
+; include "res/backgrounds/bg12.asm"
+; include "res/backgrounds/bg13.asm"
+; include "res/backgrounds/bg14.asm"
+; include "res/backgrounds/bg15.asm"
+; include "res/backgrounds/bg16.asm"
+; include "res/backgrounds/bg17.asm"
+; include "res/backgrounds/bg18.asm"
+; include "res/backgrounds/bg19.asm"
+; include "res/backgrounds/bg20.asm"
+; include "res/backgrounds/bg21.asm"
+; include "res/backgrounds/bg22.asm"
+; include "res/backgrounds/bg23.asm"
+; include "res/backgrounds/bg24.asm"
+; include "res/backgrounds/bg25.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg03_init"
+BRERB EQUS "bg01_init"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -98,6 +100,9 @@ incbin "res/pice_fall_highlight.2bpp"
 all_graphics_end:
 
 SECTION "Background Graphics", ROMX
+
+SECTION "Playfield Buffer", ROM0
+include "playfield_buffer.inc"
 
 SECTION "Intro", ROM0
 
@@ -113,6 +118,9 @@ Intro::
 
   ld a, $31 ; ld sp, xxxx
   ld [update_bg_done], a
+
+  ld a, $C3 ; jp xxxx
+  ld [update_playfield_buffer], a
 
 .wait_lcdc_off:
   ld a, [rLCDC]
@@ -206,14 +214,56 @@ endm
   ld [ptr_next_update_bg+1], a
   call update_bg
 
+  ;; Copy initial map data
+  ld a, BANK(BRERB2)
+  ld [rROMB0], a
+
+  ld a, LOW(BRERB2)
+  ld [update_playfield_buffer+1], a
+  ld a, HIGH(BRERB2)
+  ld [update_playfield_buffer+2], a
+
+  call update_playfield_buffer
+  call playfield_buffer
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [hLCDC], a
 	ld [rLCDC], a
 
 animation_loop:
-  call WaitVBlank
-  call WaitVBlank
-  ld a, [next_frame_bank]
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Load buffer with new tile data
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  call update_playfield_buffer
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Execute buffer, loading tile data into unused map
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld hl, $9800 ; TODO: choose unused
+
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+
+  di
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  halt ; wait for VBlank
+
+  assert IEF_VBLANK + 1 == IEF_STAT
+  inc a ; ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
+  call playfield_buffer
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Load gfx, and swap map
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, [next_gfx_bank]
   ld [rROMB0], a
 
   di

@@ -31,6 +31,7 @@ drop_pos: db
 frame_counter: db
 
 SECTION "Animation vars", WRAM0
+current_bg: db
 next_gfx_bank: db
 next_map_bank: db
 update_playfield_buffer: ds 3 ; includes jump opcode
@@ -59,7 +60,7 @@ ptr_next_update_bg:
   ds 2 ; operand of above
 
 ;; These define their own sections
-include "res/backgrounds/bg01.asm"
+; include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"
 ; include "res/backgrounds/bg04.asm"
@@ -80,15 +81,15 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg19.asm"
 ; include "res/backgrounds/bg20.asm"
 ; include "res/backgrounds/bg21.asm"
-; include "res/backgrounds/bg22.asm"
+include "res/backgrounds/bg22.asm"
 ; include "res/backgrounds/bg23.asm"
 ; include "res/backgrounds/bg24.asm"
 ; include "res/backgrounds/bg25.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg01_gfx_init"
-BRERB2 EQUS "bg01_map0"
+BRERB EQUS "bg22_gfx_init"
+BRERB2 EQUS "bg22_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -129,6 +130,9 @@ Intro::
 
   ld a, $C3 ; jp xxxx
   ld [update_playfield_buffer], a
+
+  ld a, $98
+  ld [current_bg], a
 
 .wait_lcdc_off:
   ld a, [rLCDC]
@@ -238,7 +242,7 @@ endm
   ld [update_playfield_buffer+2], a
 
   call update_playfield_buffer
-  ld hl, $9800 ; TODO: choose unused
+  ld hl, $9800
   call playfield_buffer
 
   ld a, BANK(BRERB2)
@@ -266,7 +270,11 @@ animation_loop:
   ;; Execute buffer, loading tile data into unused map
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld hl, $9800 ; TODO: choose unused
+  ld a, [current_bg]
+  xor %00000100
+  ld [current_bg], a
+  ld h, a
+  ld l, 0
 
   di
 
@@ -295,8 +303,13 @@ animation_loop:
   ldh [rIE], a
   halt ; wait for VBlank
 
-  assert IEF_VBLANK + 1 == IEF_STAT
-  inc a ; ld a, IEF_STAT
+  ; swap map
+  ld a, [rLCDC]
+  xor %00001000
+  ld [rLCDC], a
+  ld [hLCDC], a
+
+  ld a, IEF_STAT
   ldh [rIE], a
   ld a, STATF_MODE00
   ldh [rSTAT], a ; Careful, this may make the STAT int pending

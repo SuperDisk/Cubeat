@@ -74,22 +74,22 @@ ptr_next_update_bg:
 ; include "res/backgrounds/bg12.asm"
 ; include "res/backgrounds/bg13.asm"
 ; include "res/backgrounds/bg14.asm"
-; include "res/backgrounds/bg15.asm"
+include "res/backgrounds/bg15.asm"
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
 ; include "res/backgrounds/bg19.asm"
 ; include "res/backgrounds/bg20.asm"
 ; include "res/backgrounds/bg21.asm"
-include "res/backgrounds/bg22.asm"
+; include "res/backgrounds/bg22.asm"
 ; include "res/backgrounds/bg23.asm"
 ; include "res/backgrounds/bg24.asm"
 ; include "res/backgrounds/bg25.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg22_gfx_init"
-BRERB2 EQUS "bg22_map0"
+BRERB EQUS "bg15_gfx_init"
+BRERB2 EQUS "bg15_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:

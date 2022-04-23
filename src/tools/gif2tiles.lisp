@@ -126,32 +126,52 @@
 
     (format stream "ret~%")))
 
-(defun gfx->source (indexes->tiles assignment next-frame &key (include-halts t) (prefix ""))
+(defun gfx->source (annotated-tmap indexes->tiles assignment next-frame &key (include-halts t) (prefix ""))
   (with-output-to-string (stream)
     (let ((total-cycles 0)
           (cycle-counter 0))
       (flet ((inc-cycles (amount)
                (when include-halts
                  (incf total-cycles amount)
-                 (when (> total-cycles 1090) (incf cycle-counter amount))
+                 (when (> total-cycles 1075) (incf cycle-counter amount))
                  (when (> cycle-counter 42)
                    (format stream "xor a~%")
                    (format stream "ldh [rIF], a~%")
                    (format stream "halt~%")
                    (setf cycle-counter 0)))))
-        (let ((all-writes (make-hash-table)))
-          (loop for (idx . name) in assignment do
-            (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
-              (loop for (b1 b2) on converted-tile by #'cddr
-                    for i from 0 by 2 do
-                      (update-hash (dpb b2 (byte 8 8) b1)
-                                   (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
-          (loop for data being each hash-key of all-writes do
-            (format stream "ld sp, $~X~%" data)
-            (inc-cycles 3)
-            (loop for address in (gethash data all-writes) do
-              (format stream "ld [$~X], sp~%" address)
-              (inc-cycles 5))))))
+        (let ((top-tilemap (remove-if-not (lambda (loc) (<= (car loc) 150)) annotated-tmap)))
+          (multiple-value-bind (top-assignment bottom-assignment)
+              (partition (lambda (a) (find (car a) top-tilemap :key #'cdr)) assignment)
+
+            ;; top graphics
+            (let ((all-writes (make-hash-table)))
+              (loop for (idx . name) in top-assignment do
+                (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+                  (loop for (b1 b2) on converted-tile by #'cddr
+                        for i from 0 by 2 do
+                          (update-hash (dpb b2 (byte 8 8) b1)
+                                       (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
+              (loop for data being each hash-key of all-writes do
+                (format stream "ld sp, $~X~%" data)
+                (inc-cycles 3)
+                (loop for address in (gethash data all-writes) do
+                  (format stream "ld [$~X], sp~%" address)
+                  (inc-cycles 5))))
+
+            ;; bottom graphics
+            (let ((all-writes (make-hash-table)))
+              (loop for (idx . name) in bottom-assignment do
+                (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+                  (loop for (b1 b2) on converted-tile by #'cddr
+                        for i from 0 by 2 do
+                          (update-hash (dpb b2 (byte 8 8) b1)
+                                       (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
+              (loop for data being each hash-key of all-writes do
+                (format stream "ld sp, $~X~%" data)
+                (inc-cycles 3)
+                (loop for address in (gethash data all-writes) do
+                  (format stream "ld [$~X], sp~%" address)
+                  (inc-cycles 5))))))))
     (format stream "ld a, LOW(~a_gfx~a)~%" prefix next-frame)
     (format stream "ld [ptr_next_update_bg], a~%")
     (format stream "ld a, HIGH(~a_gfx~a)~%" prefix next-frame)
@@ -260,7 +280,8 @@
       (let ((prefix (pathname-name out-filename)))
         (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
         (format out "~a_gfx_init:~%" prefix)
-        (format out (gfx->source indexes->tiles
+        (format out (gfx->source (car tilemaps)
+                                 indexes->tiles
                                  (car assignments)
                                  0
                                  :include-halts nil
@@ -273,7 +294,7 @@
                 (let ((next-frame (mod (1+ i) (length frames))))
                   (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
                   (format out "~a_gfx~a:~%" prefix i)
-                  (format out (gfx->source indexes->tiles assignment-diff next-frame :prefix prefix))
+                  (format out (gfx->source tmap indexes->tiles assignment-diff next-frame :prefix prefix))
                   (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i))
 
                   (format out "SECTION \"~a\", ROMX~%" (gensym prefix))

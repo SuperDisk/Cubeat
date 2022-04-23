@@ -233,17 +233,17 @@ endm
   call update_bg
 
   ;; Copy initial map data
-  ld a, BANK(BRERB2)
-  ld [rROMB0], a
+  ; ld a, BANK(BRERB2)
+  ; ld [rROMB0], a
 
-  ld a, LOW(BRERB2)
-  ld [update_playfield_buffer+1], a
-  ld a, HIGH(BRERB2)
-  ld [update_playfield_buffer+2], a
+  ; ld a, LOW(BRERB2)
+  ; ld [update_playfield_buffer+1], a
+  ; ld a, HIGH(BRERB2)
+  ; ld [update_playfield_buffer+2], a
 
-  call update_playfield_buffer
-  ld hl, $9800
-  call playfield_buffer
+  ; call update_playfield_buffer
+  ; ld hl, $9800
+  ; call playfield_buffer
 
   ld a, BANK(BRERB2)
   ld [next_map_bank], a
@@ -281,6 +281,7 @@ animation_loop:
   ld a, IEF_VBLANK
   ldh [rIE], a
   halt ; wait for VBlank
+  nop
 
   assert IEF_VBLANK + 1 == IEF_STAT
   inc a ; ld a, IEF_STAT
@@ -302,6 +303,7 @@ animation_loop:
   ld a, IEF_VBLANK
   ldh [rIE], a
   halt ; wait for VBlank
+  nop
 
   ; swap map
   ld a, [rLCDC]

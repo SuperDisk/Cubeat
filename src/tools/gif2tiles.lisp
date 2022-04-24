@@ -111,10 +111,15 @@
 
 (defun tmap->source (annotated-tmap next-frame prefix)
   (with-output-to-string (stream)
-    (loop for (location . tile) in annotated-tmap
-          for loc = (cdr (assoc location *idx->playfield-buffer-offset*)) do
-            (format stream "ld a, ~a~%" (logxor #b10000000 tile))
-            (format stream "ld [playfield_buffer + $~X], a~%" loc))
+    (let (old-loc)
+      (format stream "ld de, 3~%")
+      (loop for (location . tile) in annotated-tmap
+            for loc = (cdr (assoc location *idx->playfield-buffer-offset*)) do
+              (if (and old-loc (= (- loc old-loc) 3))
+                  (format stream "add hl, de~%")
+                  (format stream "ld hl, playfield_buffer + $~X~%" loc))
+              (format stream "ld [hl], ~a~%" (logxor #b10000000 tile))
+              (setf old-loc loc)))
 
     (format stream "ld a, LOW(~a_map~a)~%" prefix next-frame)
     (format stream "ld [update_playfield_buffer+1], a~%")

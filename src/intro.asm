@@ -235,11 +235,6 @@ Intro::
   ld a, $77
   ld [rAUDVOL], a
 
-  ld a, BANK(fbelow)
-  ld [rROMB0], a
-  ld hl, fbelow
-  call hUGE_init
-
   ; Turn the LCD off
 	ld a, 0
 	ld [hLCDC], a
@@ -375,12 +370,6 @@ animation_loop:
   ;; Load buffer with new tile data
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld a, BANK(fbelow)
-  ld [rROMB0], a
-  call hUGE_dosound
-  ; call hUGE_dosound
-  ; call hUGE_dosound
-
   call WaitVBlank
 
   ld a, [next_map_bank]
@@ -416,10 +405,6 @@ animation_loop:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Load gfx, and swap map
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ld a, BANK(fbelow)
-  ld [rROMB0], a
-  call hUGE_dosound
 
   ld a, [next_gfx_bank]
   ld [rROMB0], a
@@ -513,9 +498,5 @@ animation_loop:
 ;   jr nc, .wait_for_below_play_area
 
 .no_button:
-
-  ld a, BANK(fbelow)
-  ld [rROMB0], a
-  call hUGE_dosound
 
   jp animation_loop

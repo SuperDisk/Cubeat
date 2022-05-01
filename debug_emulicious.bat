@@ -1,0 +1,1 @@
+C:\Projects\GB-Stuff\Emulicious\Emulicious.exe bin\lumines.gb

@@ -26,13 +26,7 @@ add_a_to_de: MACRO
     add_a_to_r16 d, e
 ENDM
 
-SECTION "Game vars", WRAM0
-drop_pos: db
-frame_counter: db
-
 SECTION "Animation vars", WRAM0
-viewing_animation: db
-
 current_bg: db
 next_gfx_bank: db
 next_map_bank: db
@@ -63,145 +57,35 @@ ptr_next_update_bg:
 
 ;; These define their own sections
 include "res/backgrounds/bg01.asm"
-include "res/backgrounds/bg02.asm"
-include "res/backgrounds/bg03.asm"
-include "res/backgrounds/bg04.asm"
-include "res/backgrounds/bg05.asm"
-include "res/backgrounds/bg06.asm"
-include "res/backgrounds/bg07.asm"
-include "res/backgrounds/bg08.asm"
-include "res/backgrounds/bg09.asm"
-include "res/backgrounds/bg10.asm"
-include "res/backgrounds/bg11.asm"
-include "res/backgrounds/bg12.asm"
-include "res/backgrounds/bg13.asm"
-include "res/backgrounds/bg14.asm"
-include "res/backgrounds/bg15.asm"
-include "res/backgrounds/bg16.asm"
-include "res/backgrounds/bg17.asm"
-include "res/backgrounds/bg18.asm"
-include "res/backgrounds/bg19.asm"
-include "res/backgrounds/bg20.asm"
-include "res/backgrounds/bg21.asm"
+; include "res/backgrounds/bg02.asm"
+; include "res/backgrounds/bg03.asm"
+; include "res/backgrounds/bg04.asm"
+; include "res/backgrounds/bg05.asm"
+; include "res/backgrounds/bg06.asm"
+; include "res/backgrounds/bg07.asm"
+; include "res/backgrounds/bg08.asm"
+; include "res/backgrounds/bg09.asm"
+; include "res/backgrounds/bg10.asm"
+; include "res/backgrounds/bg11.asm"
+; include "res/backgrounds/bg12.asm"
+; include "res/backgrounds/bg13.asm"
+; include "res/backgrounds/bg14.asm"
+; include "res/backgrounds/bg15.asm"
+; include "res/backgrounds/bg16.asm"
+; include "res/backgrounds/bg17.asm"
+; include "res/backgrounds/bg18.asm"
+; include "res/backgrounds/bg19.asm"
+; include "res/backgrounds/bg20.asm"
+; include "res/backgrounds/bg21.asm"
 include "res/backgrounds/bg22.asm"
-include "res/backgrounds/bg23.asm"
-include "res/backgrounds/bg24.asm"
-include "res/backgrounds/bg25.asm"
+; include "res/backgrounds/bg23.asm"
+; include "res/backgrounds/bg24.asm"
+; include "res/backgrounds/bg25.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "splash_screen_gfx_init"
-BRERB2 EQUS "splash_screen_map0"
-
-CLORB EQUS "bg16_gfx_init"
-CLORB2 EQUS "bg16_map0"
-
-SECTION "shit", ROM0
-cool_bgs:
-db BANK(splash_screen_gfx_init)
-dw splash_screen_gfx_init
-db BANK(splash_screen_map0)
-dw splash_screen_map0
-db BANK(bg01_gfx_init)
-dw bg01_gfx_init
-db BANK(bg01_map0)
-dw bg01_map0
-db BANK(bg02_gfx_init)
-dw bg02_gfx_init
-db BANK(bg02_map0)
-dw bg02_map0
-db BANK(bg03_gfx_init)
-dw bg03_gfx_init
-db BANK(bg03_map0)
-dw bg03_map0
-db BANK(bg04_gfx_init)
-dw bg04_gfx_init
-db BANK(bg04_map0)
-dw bg04_map0
-db BANK(bg05_gfx_init)
-dw bg05_gfx_init
-db BANK(bg05_map0)
-dw bg05_map0
-db BANK(bg06_gfx_init)
-dw bg06_gfx_init
-db BANK(bg06_map0)
-dw bg06_map0
-db BANK(bg07_gfx_init)
-dw bg07_gfx_init
-db BANK(bg07_map0)
-dw bg07_map0
-db BANK(bg08_gfx_init)
-dw bg08_gfx_init
-db BANK(bg08_map0)
-dw bg08_map0
-db BANK(bg09_gfx_init)
-dw bg09_gfx_init
-db BANK(bg09_map0)
-dw bg09_map0
-db BANK(bg10_gfx_init)
-dw bg10_gfx_init
-db BANK(bg10_map0)
-dw bg10_map0
-db BANK(bg11_gfx_init)
-dw bg11_gfx_init
-db BANK(bg11_map0)
-dw bg11_map0
-db BANK(bg12_gfx_init)
-dw bg12_gfx_init
-db BANK(bg12_map0)
-dw bg12_map0
-db BANK(bg13_gfx_init)
-dw bg13_gfx_init
-db BANK(bg13_map0)
-dw bg13_map0
-db BANK(bg14_gfx_init)
-dw bg14_gfx_init
-db BANK(bg14_map0)
-dw bg14_map0
-db BANK(bg15_gfx_init)
-dw bg15_gfx_init
-db BANK(bg15_map0)
-dw bg15_map0
-db BANK(bg16_gfx_init)
-dw bg16_gfx_init
-db BANK(bg16_map0)
-dw bg16_map0
-db BANK(bg17_gfx_init)
-dw bg17_gfx_init
-db BANK(bg17_map0)
-dw bg17_map0
-db BANK(bg18_gfx_init)
-dw bg18_gfx_init
-db BANK(bg18_map0)
-dw bg18_map0
-db BANK(bg19_gfx_init)
-dw bg19_gfx_init
-db BANK(bg19_map0)
-dw bg19_map0
-db BANK(bg20_gfx_init)
-dw bg20_gfx_init
-db BANK(bg20_map0)
-dw bg20_map0
-db BANK(bg21_gfx_init)
-dw bg21_gfx_init
-db BANK(bg21_map0)
-dw bg21_map0
-db BANK(bg22_gfx_init)
-dw bg22_gfx_init
-db BANK(bg22_map0)
-dw bg22_map0
-db BANK(bg23_gfx_init)
-dw bg23_gfx_init
-db BANK(bg23_map0)
-dw bg23_map0
-db BANK(bg24_gfx_init)
-dw bg24_gfx_init
-db BANK(bg24_map0)
-dw bg24_map0
-db BANK(bg25_gfx_init)
-dw bg25_gfx_init
-db BANK(bg25_map0)
-dw bg25_map0
+BRERB EQUS "bg22_gfx_init"
+BRERB2 EQUS "bg22_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -212,8 +96,6 @@ incbin "res/numbers_8x8_only.2bpp"
 incbin "res/radar.2bpp"
 incbin "res/pice_fall_highlight.2bpp"
 all_graphics_end:
-
-SECTION "Background Graphics", ROMX
 
 SECTION "Playfield Buffer ROM", ROM0
 
@@ -252,9 +134,6 @@ Intro::
 
   ld a, $98
   ld [current_bg], a
-
-  xor a
-  ld [viewing_animation], a
 
 .wait_lcdc_off:
   ld a, [rLCDC]
@@ -366,11 +245,15 @@ endm
 	ld [rLCDC], a
 
 animation_loop:
+  ;;;;;;;;;;;;;;;;;;;;
+  ;; Run game logic update
+  ;;;;;;;;;;;;;;;;;;;;
+
+  call game_step
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Load buffer with new tile data
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  call WaitVBlank
 
   ld a, [next_map_bank]
   ld [rROMB0], a
@@ -427,76 +310,17 @@ animation_loop:
   ld a, STATF_MODE00
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
-  ; TODO: do OAM DMA
   call update_bg
   ;; Code to update graphics returns with RETI so interrupts are enabled.
 
-  ld a, [hPressedKeys]
-  and $FF
-  jr z, .no_button
+  ;; TODO: Update OAM
 
-  ;; User pressed a key
+.wait_for_below_play_area
+  ld a, [rLY]
+  cp 136 ; free to do OAM DMA here (past the play area)
+  jr c, .wait_for_below_play_area
 
-  ; Turn the LCD off
-	ld a, 0
-	ld [hLCDC], a
+  ld a, HIGH(wShadowOAM)
+  call hOAMDMA
 
-.wait_lcdc_off:
-  ld a, [rLCDC]
-  and %10000000
-  jr nz, .wait_lcdc_off
-
-  ld a, $98
-  ld [current_bg], a
-
-  ld hl, cool_bgs
-  ld a, [viewing_animation]
-  add a, 6
-  cp 144+6+6
-  jr nz, .no_reset
-  xor a
-.no_reset:
-  ld [viewing_animation], a
-  add_a_to_hl
-
-  ld a, [hl+]
-  ; ld a, BANK(CLORB)
-  ld [rROMB0], a
-
-  ld a, [hl+]
-  ; ld a, LOW(CLORB)
-  ld [ptr_next_update_bg], a
-  ld a, [hl+]
-  ; ld a, HIGH(CLORB)
-  ld [ptr_next_update_bg+1], a
-  call update_bg
-
-  ld hl, cool_bgs
-  ld a, [viewing_animation]
-  add_a_to_hl
-  inc hl
-  inc hl
-  inc hl
-
-  ld a, [hl+]
-  ; ld a, BANK(CLORB2)
-  ld [next_map_bank], a
-  ld a, [hl+]
-  ; ld a, LOW(CLORB2)
-  ld [update_playfield_buffer+1], a
-  ld a, [hl+]
-  ; ld a, HIGH(CLORB2)
-  ld [update_playfield_buffer+2], a
-
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [hLCDC], a
-	ld [rLCDC], a
-
-; .wait_for_below_play_area
-;   ld a, [rLY]
-;   cp 135 ; free to do OAM DMA here (past the play area)
-;   jr nc, .wait_for_below_play_area
-
-.no_button:
-
-  jp animation_loop
+  jr animation_loop

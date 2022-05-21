@@ -27,6 +27,16 @@ Reset::
 	xor a
 	ldh [rNR52], a
 
+  ; Enable sound globally
+  ld a, $80
+  ld [rAUDENA], a
+  ; Enable all channels in stereo
+  ld a, $FF
+  ld [rAUDTERM], a
+  ; Set volume
+  ld a, $FF
+  ld [rAUDVOL], a
+
 	; Wait for VBlank and turn LCD off
 .waitVBlank
 	ldh a, [rLY]
@@ -79,9 +89,9 @@ Reset::
 
 	; Load the correct ROM bank for later
 	; Important to do it before enabling interrupts
-	; ld a, BANK(Intro)
-	; ldh [hCurROMBank], a
-	; ld [rROMB0], a
+	ld a, BANK(Intro)
+	ldh [hCurROMBank], a
+	ld [rROMB0], a
 
 	; Select wanted interrupts here
 	; You can also enable them later if you want
@@ -155,4 +165,3 @@ SECTION "Stack", WRAM0
 wStack:
 	ds STACK_SIZE
 wStackBottom:
-

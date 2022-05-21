@@ -2,7 +2,7 @@ include "defines.asm"
 
 SECTION "Music Playback Vars", WRAM0
 vgm_offset: dw
-bank: db
+vgm_bank: db
 
 SECTION "Music Playback", ROM0
 
@@ -12,7 +12,7 @@ mus_step:
   ld h, [hl]
   ld l, a
 
-  ld a, [bank]
+  ld a, [vgm_bank]
   ld [rROMB0], a
   ld b, a
 
@@ -31,9 +31,9 @@ mus_step:
   jr .step
 
 .bankswitch:
-  ld a, [bank]
+  ld a, [vgm_bank]
   inc a
-  ld [bank], a
+  ld [vgm_bank], a
   ld [rROMB0], a
   ld hl, 0
   jr .step

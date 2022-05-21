@@ -89,9 +89,9 @@ Reset::
 
 	; Load the correct ROM bank for later
 	; Important to do it before enabling interrupts
-	ld a, BANK(Intro)
-	ldh [hCurROMBank], a
-	ld [rROMB0], a
+	; ld a, BANK(Intro)
+	; ldh [hCurROMBank], a
+	; ld [rROMB0], a
 
 	; Select wanted interrupts here
 	; You can also enable them later if you want
@@ -141,6 +141,7 @@ SECTION "Global vars", HRAM
 
 ; 0 if CGB (including DMG mode and GBA), non-zero for other models
 hConsoleType:: db
+hIsSGB:: db
 
 ; Copy of the currently-loaded ROM bank, so the handlers can restore it
 ; Make sure to always write to it before writing to ROMB0

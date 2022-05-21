@@ -147,6 +147,36 @@ $(RESDIR)/%.pb8.size: $(RESDIR)/%
 
 ###############################################
 #                                             #
+#                     SGB                     #
+#                                             #
+#          ripped from motherboard            #
+#                                             #
+###############################################
+
+SUPERFAMICONV := superfamiconv.exe
+
+SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
+COLORZERO = "\#00000000"
+
+$(RESDIR)/borders/%.borderpal: $(RESDIR)/borders/%.png
+	@$(MKDIR_P) $(@D)
+	$(SUPERFAMICONV) palette -i $< -d $@ $(SUPERFAMICONVFLAGS) -P 3 -C 16 --color-zero $(COLORZERO)
+$(RESDIR)/borders/%.borderchr: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borderpal
+	@$(MKDIR_P) $(@D)
+	$(SUPERFAMICONV) tiles -i $< -p $(@:.borderchr=.borderpal) -d $@ $(SUPERFAMICONVFLAGS) -B 4 #--max-tiles 256
+$(RESDIR)/borders/%.bordermap: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borderpal $(RESDIR)/borders/%.borderchr
+	@$(MKDIR_P) $(@D)
+	$(SUPERFAMICONV) map -i $< -p $(@:.bordermap=.borderpal) -t $(@:.bordermap=.borderchr) -d $@ $(SUPERFAMICONVFLAGS) -B 4 --map-width 32 --map-height 28
+
+# SuperFamiconv can't generate palettes starting from #4 (mandatory for SGB borders, which can only use palettes 4-6, maybe also 7?)
+$(RESDIR)/borders/%.4.bordermap: $(SRCDIR)/tools/shift_border_palettes.py $(RESDIR)/borders/%.bordermap
+	$^ $@ && truncate -s 2048 $@
+
+$(RESDIR)/borders/%.borderattr: $(RESDIR)/borders/%.4.bordermap $(RESDIR)/borders/%.borderpal
+	cat $^ > $@
+
+###############################################
+#                                             #
 #                 COMPILATION                 #
 #                                             #
 ###############################################

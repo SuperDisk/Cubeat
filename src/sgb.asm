@@ -1,38 +1,6 @@
 ;; This file stolen from https://github.com/ISSOtm/motherboard-gb
 
-; sgb_packet packet_type, nb_packets, packet_data...
-sgb_packet: MACRO
-    db (\1 << 3) | (\2)
-NB_REPT = _NARG + (-2)
-
-    REPT NB_REPT
-        SHIFT
-        db \2
-    ENDR
-    PURGE NB_REPT
-ENDM
-
-; sgb_packet_padded packet_type, nb_packets, packet_data...
-sgb_packet_padded: MACRO
-SGBPacket:
-    db (\1 << 3) | (\2)
-NB_REPT = _NARG + (-2)
-
-    REPT NB_REPT
-        SHIFT
-        db \2
-    ENDR
-    PURGE NB_REPT
-.end
-PACKET_SIZE = .end - SGBPacket
-    IF PACKET_SIZE % SGB_PACKET_SIZE != 0
-        dbr 0, SGB_PACKET_SIZE - PACKET_SIZE
-    ENDC
-
-    PURGE .end
-    PURGE SGBPacket
-    PURGE PACKET_SIZE
-ENDM
+include "defines.asm"
 
 SECTION "SGB routines", ROM0
 
@@ -80,12 +48,8 @@ FreezeSGBScreen::
 ; @return a $30
 ; @destroy e
 SendPacketNoDelay::
-    ldh a, [hSoftResettingPermitted]
-    push af
-    xor a
-    ldh [hSoftResettingPermitted], a
     ; Packet transmission begins by sending $00 then $30
-    ; xor a
+    xor a
     ldh [rP1], a
     ld a, $30
     ldh [rP1], a
@@ -117,8 +81,6 @@ SendPacketNoDelay::
     ld a, $30
     ldh [rP1], a
 
-    pop af
-    ldh [hSoftResettingPermitted], a
     ret
 
 SGBDelay::

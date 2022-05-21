@@ -30,7 +30,6 @@ lb: MACRO
 	ld \1, (LOW(\2) << 8) | LOW(\3)
 ENDM
 
-
 ; SGB packet types
 RSRESET
 PAL01     rb 1
@@ -64,14 +63,11 @@ SGB_PACKET_SIZE equ 16
 
 ; sgb_packet packet_type, nb_packets, data...
 sgb_packet: MACRO
-PACKET_SIZE equ _NARG - 1 ; Size of what's below
 	db (\1 << 3) | (\2)
 	REPT _NARG - 2
 		SHIFT
 		db \2
 	ENDR
-
-	ds SGB_PACKET_SIZE - PACKET_SIZE, 0
 ENDM
 
 

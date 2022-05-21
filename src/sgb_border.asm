@@ -1,5 +1,7 @@
 ;; This file stolen from https://github.com/ISSOtm/motherboard-gb
 
+include "defines.asm"
+
 SECTION "SGB setup", ROMX
 
 TwoPlayersPacket:
@@ -10,9 +12,8 @@ OnePlayerPacket:
 DisablePalettesPacket:
     sgb_packet ICON_EN, 1, %001 ; Disable palettes, keep other two
 
-NB_BORDER_TILES = 1
 CompressedBorderTiles:
-INCBIN "src/res/sgb/borders/tetbits.borderchr.pb16"
+INCBIN "res/borders/SuperGameBoyFrame.borderchr.pb16"
 TransferBorderTilesPacket:
     sgb_packet CHR_TRN, 1, %00 ; BG tiles, $00-7F
 TransferBorderTilesPacket2:
@@ -20,22 +21,12 @@ TransferBorderTilesPacket2:
 
 BORDER_ATTRIBUTE_SIZE = $880
 CompressedBorderAttributes:
-INCBIN "src/res/sgb/borders/tetbits.borderattr.pb16"
+INCBIN "res/borders/SuperGameBoyFrame.borderattr.pb16"
 TransferBorderAttributesPacket:
     sgb_packet PCT_TRN, 1
 
-NB_ATTRIBUTE_FILES = 3
-CompressedAttributeFiles:
-INCBIN "src/res/sgb/attr_files.bin.pb16"
-TransferAttributeFilesPacket:
-    sgb_packet ATTR_TRN, 1
-
-NB_PALETTE_FILES = 10
-CompressedPaletteFiles:
-INCBIN "src/res/sgb/palettes.bin.pb16"
-TransferPaletteFilesPacket:
-    sgb_packet PAL_TRN, 1
-
+; hack
+vSGBTransferArea EQU $8000
 
 ; Sets up a ton of SGB-related stuff
 ; The stuff in question takes a bunch of time, but we need to do it ASAP, basically
@@ -68,13 +59,13 @@ DoSGBSetup::
 .isSGB
     ; Freeze the screen for the upcoming transfers
     call FreezeSGBScreen
-    rst wait_vblank ; Wait an extra frame to make up for the SGB delay (can be removed if decompression takes long enough)
+    rst WaitVBlank ; Wait an extra frame to make up for the SGB delay (can be removed if decompression takes long enough)
     ; Shut the LCD down to decompress directly to VRAM
     xor a
     ldh [hLCDC], a
     inc a ; ld a, 1
     ldh [hIsSGB], a
-    rst wait_vblank
+    rst WaitVBlank
 
     ; Now, send the border while the static screen is being shown
     ld de, CompressedBorderTiles
@@ -83,60 +74,36 @@ DoSGBSetup::
     call pb16_unpack_block
     push de
     call FillScreenWithSGBMap ; Also re-enables display and sets up render params
-    rst wait_vblank ; Wait for the first blank frame to display; the transfer will start at the end of the following frame
+    rst WaitVBlank ; Wait for the first blank frame to display; the transfer will start at the end of the following frame
     ld hl, TransferBorderTilesPacket
     call SendPackets
     xor a
     ldh [hLCDC], a
-    rst wait_vblank
+    rst WaitVBlank
     pop de
     ld hl, vSGBTransferArea
     ld b, 0 ; FIXME: hardcoded for the time being
     call pb16_unpack_block
     call SetupSGBLCDC
-    rst wait_vblank
+    rst WaitVBlank
     ld hl, TransferBorderTilesPacket2
     call SendPackets
     xor a
     ldh [hLCDC], a
-    rst wait_vblank
+    rst WaitVBlank
     ld de, CompressedBorderAttributes
     ld hl, vSGBTransferArea
     ld b, BORDER_ATTRIBUTE_SIZE / 16
     call pb16_unpack_block
     call SetupSGBLCDC
-    rst wait_vblank
+    rst WaitVBlank
     ld hl, TransferBorderAttributesPacket
     call SendPackets
 
     ; Now send the attribute files...
     xor a
     ldh [hLCDC], a
-    rst wait_vblank
-
-    ; Same thing!
-    ld de, CompressedAttributeFiles
-    ld hl, vSGBTransferArea
-    ld b, (90 * NB_ATTRIBUTE_FILES + 89) / 16 ; + (90 - 1) to round up
-    call pb16_unpack_block
-    call SetupSGBLCDC
-    rst wait_vblank
-    ld hl, TransferAttributeFilesPacket
-    call SendPackets
-
-    ; Palette files now...
-    xor a
-    ldh [hLCDC], a
-    rst wait_vblank
-    ; Same thing!
-    ld de, CompressedPaletteFiles
-    ld hl, vSGBTransferArea
-    ld b, (2 * 4 * NB_PALETTE_FILES) / 16
-    call pb16_unpack_block
-    call SetupSGBLCDC
-    rst wait_vblank
-    ld hl, TransferPaletteFilesPacket
-    call SendPackets ; Perform delay, because the transfer takes a while
+    rst WaitVBlank
 
     ; Clear the garbage we transmitted by blanking the palette
     ; Thought of disabling the LCD, but it appears this doesn't blank the screen on SGB!

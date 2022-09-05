@@ -36,8 +36,9 @@ DoSGBSetup::
     ldh [hIsSGB], a
 
     ; Freeze the screen for the upcoming transfers
-    ; call FreezeSGBScreen
-    ; rst WaitVBlank ; Wait an extra frame to make up for the SGB delay (can be removed if decompression takes long enough)
+    call FreezeSGBScreen
+    call SGBDelay
+    call .waitVBlank ; Wait an extra frame to make up for the SGB delay (can be removed if decompression takes long enough)
     ; Shut the LCD down to decompress directly to VRAM
 
     call .turnLCDOff
@@ -49,6 +50,15 @@ DoSGBSetup::
     call pb16_unpack_block
     push de
     call FillScreenWithSGBMap ; Also re-enables display and sets up render params
+    ; Render params are written to the HRAM shadow regs, not the actual hardware regs.
+    ; This would normally not be a problem, since the VBlank handler takes care of applying the copy,
+    ; but said handler is disabled when this function is run.
+    ; Set up the screen position and palette manually.
+    xor a
+    ldh [rSCY], a
+    ldh [rSCX], a
+    ld a, %11100100
+    ldh [rBGP], a
     call .waitVBlank
     ld hl, TransferBorderTilesPacket
     call SendPackets
@@ -76,9 +86,8 @@ DoSGBSetup::
     xor a
     ldh [hBGP], a
 
-    ; We don't unfreeze the screen, this will be done by the next PAL_SET packet
-
-    ld hl, OnePlayerPacket ; We're not gonna use multiplayer capabilities, though.
+    ; Unfreeze the screen
+    ld hl, UnfreezeScreenPacket
     jp SendPacketNoDelay ; Tail call
 
 

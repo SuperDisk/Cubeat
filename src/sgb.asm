@@ -98,6 +98,8 @@ SGBDelay::
 FreezeScreenPacket:
     sgb_packet MASK_EN, 1, 1
 
+UnfreezeScreenPacket::
+    sgb_packet MASK_EN, 1, 0
 
 ; Fill the $9C00 tilemap with a pattern suitable for SGB _TRN
 ; Also sets up the rendering parameters for the transfer

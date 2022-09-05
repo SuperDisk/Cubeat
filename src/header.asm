@@ -156,9 +156,13 @@ hOAMDMA::
 
 SECTION UNION "Shadow OAM", WRAM0,ALIGN[8]
 
+;; HUD, preview blocks (top part of screen)
 wShadowOAM::
 	ds NB_SPRITES * 4
 
+;; Radar, drop highlights, animations (bottom part of screen)
+wShadowOAM2::
+	ds NB_SPRITES * 4
 
 SECTION "Stack", WRAM0
 

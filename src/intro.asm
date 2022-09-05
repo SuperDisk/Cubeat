@@ -75,7 +75,7 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
 ; include "res/backgrounds/bg19.asm"
-; include "res/backgrounds/bg20.asm"
+include "res/backgrounds/bg20.asm"
 ; include "res/backgrounds/bg21.asm"
 include "res/backgrounds/bg22.asm"
 ; include "res/backgrounds/bg23.asm"
@@ -198,38 +198,38 @@ endm
   update_sprite 7, 125+(8*2), 4, 7
   update_sprite 8, 125+(8*3), 4, 4
 
-  ; radar
-  update_sprite 10, 124+(8*0), 32, $30
-  update_sprite 12, 124+(8*2), 32, $31
-  update_sprite 11, 124+(8*1), 32, $26
+  ; ; radar
+  ; update_sprite 10, 124+(8*0), 32, $30
+  ; update_sprite 12, 124+(8*2), 32, $31
+  ; update_sprite 11, 124+(8*1), 32, $26
 
-  ; radar "stem"
-  update_sprite 13, 124+(8*1), 32+(8*0), $32
-  update_sprite 14, 124+(8*1), 32+(8*1), $32
-  update_sprite 15, 124+(8*1), 32+(8*2), $32
-  update_sprite 16, 124+(8*1), 32+(8*3), $32
-  update_sprite 17, 124+(8*1), 32+(8*4), $32
-  update_sprite 18, 124+(8*1), 32+(8*5), $32
-  update_sprite 19, 124+(8*1), 32+(8*6), $32
-  update_sprite 20, 124+(8*1), 32+(8*7), $32
-  update_sprite 21, 124+(8*1), 32+(8*8), $32
-  update_sprite 22, 124+(8*1), 32+(8*9), $32
-  update_sprite 23, 124+(8*1), 32+(8*10), $32
-  update_sprite 24, 124+(8*1), 32+(8*11), $32
-  update_sprite 25, 124+(8*1), 32+(8*12), $32
+  ; ; radar "stem"
+  ; update_sprite 13, 124+(8*1), 32+(8*0), $32
+  ; update_sprite 14, 124+(8*1), 32+(8*1), $32
+  ; update_sprite 15, 124+(8*1), 32+(8*2), $32
+  ; update_sprite 16, 124+(8*1), 32+(8*3), $32
+  ; update_sprite 17, 124+(8*1), 32+(8*4), $32
+  ; update_sprite 18, 124+(8*1), 32+(8*5), $32
+  ; update_sprite 19, 124+(8*1), 32+(8*6), $32
+  ; update_sprite 20, 124+(8*1), 32+(8*7), $32
+  ; update_sprite 21, 124+(8*1), 32+(8*8), $32
+  ; update_sprite 22, 124+(8*1), 32+(8*9), $32
+  ; update_sprite 23, 124+(8*1), 32+(8*10), $32
+  ; update_sprite 24, 124+(8*1), 32+(8*11), $32
+  ; update_sprite 25, 124+(8*1), 32+(8*12), $32
 
-  ; Pice fall highlight
-  update_sprite 26, 64, 47+(8*0), $33
-  update_sprite 27, 64, 47+(8*1), $33
-  update_sprite 28, 64, 47+(8*2), $33
-  update_sprite 29, 64, 47+(8*3), $33
-  update_sprite 30, 64, 47+(8*4), $33
-  update_sprite 31, 64, 47+(8*5), $33
-  update_sprite 32, 64, 47+(8*6), $33
-  update_sprite 33, 64, 47+(8*7), $33
-  update_sprite 34, 64, 47+(8*8), $33
-  update_sprite 35, 64, 47+(8*9), $33
-  update_sprite 36, 64, 47+(8*10), $33
+  ; ; Pice fall highlight
+  ; update_sprite 26, 64, 47+(8*0), $33
+  ; update_sprite 27, 64, 47+(8*1), $33
+  ; update_sprite 28, 64, 47+(8*2), $33
+  ; update_sprite 29, 64, 47+(8*3), $33
+  ; update_sprite 30, 64, 47+(8*4), $33
+  ; update_sprite 31, 64, 47+(8*5), $33
+  ; update_sprite 32, 64, 47+(8*6), $33
+  ; update_sprite 33, 64, 47+(8*7), $33
+  ; update_sprite 34, 64, 47+(8*8), $33
+  ; update_sprite 35, 64, 47+(8*9), $33
+  ; update_sprite 36, 64, 47+(8*10), $33
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
@@ -272,9 +272,9 @@ animation_loop:
   call update_playfield_buffer
 
   ld a, $80
-  ld [playfield_buffer+129], a
+  ld [playfield_buffer+123], a
   ld a, $81
-  ld [playfield_buffer+132], a
+  ld [playfield_buffer+126], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Execute buffer, loading tile data into unused map
@@ -328,8 +328,6 @@ animation_loop:
 
   call update_bg
   ;; Code to update graphics returns with RETI so interrupts are enabled.
-
-  ;; TODO: Update OAM
 
 .wait_for_below_play_area
   ld a, [rLY]

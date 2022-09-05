@@ -149,8 +149,6 @@ $(RESDIR)/%.pb8.size: $(RESDIR)/%
 #                                             #
 #                     SGB                     #
 #                                             #
-#          ripped from motherboard            #
-#                                             #
 ###############################################
 
 SUPERFAMICONV := superfamiconv.exe
@@ -163,7 +161,7 @@ $(RESDIR)/borders/%.borderpal: $(RESDIR)/borders/%.png
 	$(SUPERFAMICONV) palette -i $< -d $@ $(SUPERFAMICONVFLAGS) -P 3 -C 16 --color-zero $(COLORZERO)
 $(RESDIR)/borders/%.borderchr: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borderpal
 	@$(MKDIR_P) $(@D)
-	$(SUPERFAMICONV) tiles -i $< -p $(@:.borderchr=.borderpal) -d $@ $(SUPERFAMICONVFLAGS) -B 4 #--max-tiles 256
+	$(SUPERFAMICONV) tiles -i $< -p $(@:.borderchr=.borderpal) -d $@ $(SUPERFAMICONVFLAGS) -B 4 --max-tiles 256
 $(RESDIR)/borders/%.bordermap: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borderpal $(RESDIR)/borders/%.borderchr
 	@$(MKDIR_P) $(@D)
 	$(SUPERFAMICONV) map -i $< -p $(@:.bordermap=.borderpal) -t $(@:.bordermap=.borderchr) -d $@ $(SUPERFAMICONVFLAGS) -B 4 --map-width 32 --map-height 28

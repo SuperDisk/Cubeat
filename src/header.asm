@@ -20,6 +20,14 @@ SECTION "Header", ROM0[$100]
 EntryPoint:
 	ldh [hConsoleType], a
 
+  xor a
+  ldh [hIsSGB], a
+  ld a, BANK(DoSGBSetup)
+  ld [rROMB0], a
+  ld a, $14
+  cp c
+  call z, DoSGBSetup
+
 Reset::
 	di ; Disable interrupts while we set up
 

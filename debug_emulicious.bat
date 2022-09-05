@@ -1,1 +1,1 @@
-C:\Projects\GB-Stuff\Emulicious\Emulicious.exe bin\lumines.gb
+java -jar ..\Emulicious-modded\Emulicious2.jar bin\lumines.gb

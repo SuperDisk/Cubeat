@@ -97,6 +97,10 @@ incbin "res/radar.2bpp"
 incbin "res/pice_fall_highlight.2bpp"
 all_graphics_end:
 
+block_gfx:
+incbin "res/pices_8x8_Grid-Alpha-Bomb.2bpp"
+.end:
+
 SECTION "Playfield Buffer ROM", ROM0
 
 playfield_buffer_rom:
@@ -148,6 +152,13 @@ Intro::
   ld bc, (all_graphics_end - all_graphics)
   call Memcpy
 
+  ;; Copy "pice" graphics
+  ld a, BANK(block_gfx)
+  ld [rROMB0], a
+  ld de, block_gfx
+  ld hl, $8800
+  ld c, 32*2
+  rst MemcpySmall
 
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
@@ -259,6 +270,11 @@ animation_loop:
   ld [rROMB0], a
 
   call update_playfield_buffer
+
+  ld a, $80
+  ld [playfield_buffer+129], a
+  ld a, $81
+  ld [playfield_buffer+132], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Execute buffer, loading tile data into unused map

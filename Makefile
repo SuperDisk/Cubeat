@@ -123,7 +123,7 @@ $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
 
 $(RESDIR)/%.2bpp $(RESDIR)/%.tilemap: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
-	$(RGBGFX) -d 2 -u -o $(RESDIR)/$*.2bpp -t $(RESDIR)/$*.tilemap $<
+	$(RGBGFX) -d 2 -o $(RESDIR)/$*.2bpp -t $(RESDIR)/$*.tilemap $<
 
 # Define how to compress files using the PackBits16 codec
 # Compressor script requires Python 3

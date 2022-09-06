@@ -93,16 +93,15 @@ incbin "res/leveltimescore.2bpp"
 incbin "res/numbers_big_8x8.2bpp"
 incbin "res/numbers_8x8_only.2bpp"
 incbin "res/numbers_8x8_only.2bpp"
+incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
+incbin "res/pices_8x8_sprite/pice_sprite_1.2bpp"
+
 incbin "res/radar.2bpp"
 incbin "res/pice_fall_highlight.2bpp"
 all_graphics_end:
 
 block_gfx:
 incbin "res/pices_8x8_Grid-Alpha-Bomb.2bpp"
-.end:
-
-block_gfx_sprite:
-incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
 .end:
 
 SECTION "Playfield Buffer ROM", ROM0
@@ -155,13 +154,6 @@ Intro::
   ld hl, $8000
   ld bc, (all_graphics_end - all_graphics)
   call Memcpy
-
-  ;; Copy "pice" graphics to sprite area
-  ld a, BANK(block_gfx_sprite)
-  ld [rROMB0], a
-  ld de, block_gfx_sprite
-  ld c, 32*2
-  rst MemcpySmall
 
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)
@@ -220,15 +212,15 @@ endm
   update_sprite 8, 125+(8*3), 4-3, 4
 
   ; Pice preview
-  update_sprite 10, 2, 17, $34
-  update_sprite 11, 10, 17, $35
-  update_sprite 12, 2, 17+8, $35
-  update_sprite 13, 10, 17+8, $34
+  update_sprite 10, 2, 17, $26
+  update_sprite 11, 10, 17, $27
+  update_sprite 12, 2, 17+8, $27
+  update_sprite 13, 10, 17+8, $26
 
-  update_sprite 14, 20, 17, $34
-  update_sprite 15, 28, 17, $35
-  update_sprite 16, 20, 17+8, $35
-  update_sprite 17, 28, 17+8, $34
+  update_sprite 14, 20, 17, $26
+  update_sprite 15, 28, 17, $27
+  update_sprite 16, 20, 17+8, $27
+  update_sprite 17, 28, 17+8, $26
 
   ; Score numbers
   update_sprite 18, 115, 9, $12
@@ -241,49 +233,32 @@ endm
   update_sprite 25, 115+(6*7), 9, $12
 
   ; radar
-  update_sprite2 1, 124+(8*0), 32, $30
-  update_sprite2 2, 124+(8*2), 32, $31
-  update_sprite2 3, 124+(8*1), 32, $26
+  update_sprite2 0, 124+(8*0), 32, $3E
+  update_sprite2 1, 124+(8*2), 32, $40
+  update_sprite2 2, 124+(8*1), 32, $2A
 
   ; radar "stem"
-  update_sprite2 4, 124+(8*1), 32+(8*0), $32
-  update_sprite2 5, 124+(8*1), 32+(8*1), $32
-  update_sprite2 6, 124+(8*1), 32+(8*2), $32
-  update_sprite2 7, 124+(8*1), 32+(8*3), $32
-  update_sprite2 8, 124+(8*1), 32+(8*4), $32
-  update_sprite2 9, 124+(8*1), 32+(8*5), $32
-  update_sprite2 10, 124+(8*1), 32+(8*6), $32
-  update_sprite2 11, 124+(8*1), 32+(8*7), $32
-  update_sprite2 12, 124+(8*1), 32+(8*8), $32
-  update_sprite2 13, 124+(8*1), 32+(8*9), $32
-  update_sprite2 14, 124+(8*1), 32+(8*10), $32
-  update_sprite2 15, 124+(8*1), 32+(8*11), $32
-  update_sprite2 16, 124+(8*1), 32+(8*12), $32
+  update_sprite2 3, 124+(8*1), 32+(16*1), $42
+  update_sprite2 4, 124+(8*1), 32+(16*2), $42
+  update_sprite2 5, 124+(8*1), 32+(16*3), $42
+  update_sprite2 6, 124+(8*1), 32+(16*4), $42
+  update_sprite2 7, 124+(8*1), 32+(16*5), $42
+  update_sprite2 8, 124+(8*1), 32+(16*6), $42
 
   ; Pice fall highlight
-  update_sprite2 17, 64, 49+(8*0), $33
-  update_sprite2 18, 64, 49+(8*1), $33
-  update_sprite2 19, 64, 49+(8*2), $33
-  update_sprite2 20, 64, 49+(8*3), $33
-  update_sprite2 21, 64, 49+(8*4), $33
-  update_sprite2 22, 64, 49+(8*5), $33
-  update_sprite2 23, 64, 49+(8*6), $33
-  update_sprite2 24, 64, 49+(8*7), $33
-  update_sprite2 25, 64, 49+(8*8), $33
-  update_sprite2 26, 64, 49+(8*9), $33
-  update_sprite2 27, 64, 49+(8*10), $33
+  update_sprite2 9, 64, 49+(16*0), $44
+  update_sprite2 10, 64, 49+(16*1), $44
+  update_sprite2 11, 64, 49+(16*2), $44
+  update_sprite2 12, 64, 49+(16*3), $44
+  update_sprite2 13, 64, 49+(16*4), $44
+  update_sprite2 14, 64, 49+(16*5), $44
 
-  update_sprite2 28, 64-16, 49+(8*0), $33
-  update_sprite2 29, 64-16, 49+(8*1), $33
-  update_sprite2 30, 64-16, 49+(8*2), $33
-  update_sprite2 31, 64-16, 49+(8*3), $33
-  update_sprite2 32, 64-16, 49+(8*4), $33
-  update_sprite2 33, 64-16, 49+(8*5), $33
-  update_sprite2 34, 64-16, 49+(8*6), $33
-  update_sprite2 35, 64-16, 49+(8*7), $33
-  update_sprite2 36, 64-16, 49+(8*8), $33
-  update_sprite2 37, 64-16, 49+(8*9), $33
-  update_sprite2 38, 64-16, 49+(8*10), $33
+  update_sprite2 15, 64-16, 49+(16*0), $44
+  update_sprite2 16, 64-16, 49+(16*1), $44
+  update_sprite2 17, 64-16, 49+(16*2), $44
+  update_sprite2 18, 64-16, 49+(16*3), $44
+  update_sprite2 19, 64-16, 49+(16*4), $44
+  update_sprite2 20, 64-16, 49+(16*5), $44
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
@@ -309,6 +284,8 @@ endm
 	ld [hLCDC], a
 	ld [rLCDC], a
 
+  call init_game
+
 animation_loop:
   ;;;;;;;;;;;;;;;;;;;;
   ;; Run game logic update
@@ -330,6 +307,9 @@ animation_loop:
   cp 136 ; free to do OAM DMA here (past the play area)
   jr nz, .wait_for_below_play_area
 
+  ld a, [rLCDC]
+  res 2, a
+  ld [rLCDC], a
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
@@ -363,6 +343,9 @@ animation_loop:
   cp 32 ; free to do OAM DMA here (past the play area)
   jr nz, .wait_for_before_radar
 
+  ld a, [rLCDC]
+  set 2, a
+  ld [rLCDC], a
   ld a, HIGH(wShadowOAM2)
   call hOAMDMA
 
@@ -371,6 +354,9 @@ animation_loop:
   cp 136 ; free to do OAM DMA here (past the play area)
   jr nz, .wait_for_below_play_area0
 
+  ld a, [rLCDC]
+  res 2, a
+  ld [rLCDC], a
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 

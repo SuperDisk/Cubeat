@@ -14,11 +14,11 @@ board: ds (18*13)
 SECTION "Engine code", ROM0
 
 game_step::
-  ld hl, frame_counter
-  inc [hl]
-  inc hl
-  assert frame_counter+1 == radar_pos
-  inc [hl]
+  ; ld hl, frame_counter
+  ; inc [hl]
+  ; inc hl
+  ; assert frame_counter+1 == radar_pos
+  ; inc [hl]
 
 
 

@@ -128,6 +128,11 @@ Reset::
 	ld a, h ; ld a, HIGH(wShadowOAM)
 	ldh [hOAMHigh], a
 
+	ld hl, wShadowOAM2
+	ld c, NB_SPRITES * 4
+	xor a
+	rst MemsetSmall
+
 	; `Intro`'s bank has already been loaded earlier
 	jp Intro
 
@@ -151,6 +156,8 @@ SECTION "Global vars", HRAM
 hConsoleType:: db
 hIsSGB:: db
 
+hTempStack:: dw
+
 ; Copy of the currently-loaded ROM bank, so the handlers can restore it
 ; Make sure to always write to it before writing to ROMB0
 ; (Mind that if using ROMB1, you will run into problems)
@@ -168,6 +175,8 @@ SECTION UNION "Shadow OAM", WRAM0,ALIGN[8]
 ;; HUD, preview blocks (top part of screen)
 wShadowOAM::
 	ds NB_SPRITES * 4
+
+SECTION UNION "Shadow OAM 2", WRAM0,ALIGN[8]
 
 ;; Radar, drop highlights, animations (bottom part of screen)
 wShadowOAM2::

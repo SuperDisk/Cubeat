@@ -26,6 +26,10 @@ add_a_to_de: MACRO
     add_a_to_r16 d, e
 ENDM
 
+SECTION "Music vars", WRAM0
+music_bank: db
+music_pointer: dw
+
 SECTION "Animation vars", WRAM0
 current_bg: db
 next_gfx_bank: db
@@ -45,6 +49,23 @@ static_ram_code:
   db $C3 ; jp xxxx
 .end:
 
+SECTION "x00", ROMX, BANK[1]
+the_vgm:
+incbin "x00"
+
+SECTION "x01", ROMX, BANK[2]
+incbin "x01"
+SECTION "x02", ROMX, BANK[3]
+incbin "x02"
+SECTION "x03", ROMX, BANK[4]
+incbin "x03"
+SECTION "x04", ROMX, BANK[5]
+incbin "x04"
+SECTION "x05", ROMX, BANK[6]
+incbin "x05"
+SECTION "x06", ROMX, BANK[7]
+incbin "x06"
+
 SECTION "RAM Code", WRAM0
 update_bg_done: ds 1 ; ld sp, xxxx
 orig_sp: ds 2 ; operand of above
@@ -56,7 +77,7 @@ ptr_next_update_bg:
   ds 2 ; operand of above
 
 ;; These define their own sections
-include "res/backgrounds/bg01.asm"
+; include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"
 ; include "res/backgrounds/bg04.asm"
@@ -70,7 +91,7 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg12.asm"
 ; include "res/backgrounds/bg13.asm"
 ; include "res/backgrounds/bg14.asm"
-; include "res/backgrounds/bg15.asm"
+include "res/backgrounds/bg15.asm"
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
@@ -84,8 +105,8 @@ include "res/backgrounds/bg01.asm"
 
 ; include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg01_gfx_init"
-BRERB2 EQUS "bg01_map0"
+BRERB EQUS "bg15_gfx_init"
+BRERB2 EQUS "bg15_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -121,8 +142,16 @@ Intro::
   ld [rAUDENA], a
   ld a, $FF
   ld [rAUDTERM], a
-  ld a, $77
+  ld a, $FF
   ld [rAUDVOL], a
+
+  ld a, BANK(the_vgm)
+  ld [music_bank], a
+  ld hl, the_vgm
+  ld a, l
+  ld [music_pointer], a
+  ld a, h
+  ld [music_pointer+1], a
 
   ; Turn the LCD off
 	ld a, 0
@@ -285,8 +314,61 @@ endm
 	ld [rLCDC], a
 
   call init_game
+  jr animation_loop
+
+do_music:
+    ld a, [hl+]
+    cp $FF
+    jr z, .bankswitch
+    cp $5F
+    jr z, .port1
+    cp $5E
+    jr z, .port0
+    cp $61
+    ret z ; wait
+
+    jr do_music
+
+.bankswitch:
+    inc c
+    ld a, c
+    ld [rROMB0], a
+    ld hl, the_vgm
+    jr do_music
+.port1:
+    ld a, [hl+]
+    ld [$0003], a
+    ld a, [hl+]
+    ld [$0004], a
+    jr do_music
+.port0:
+    ld a, [hl+]
+    ld [$0001], a
+    ld a, [hl+]
+    ld [$0002], a
+    jr do_music
+
+do_music1:
+    ld a, [music_bank]
+    ld c, a
+    ld [rROMB0], a
+    ld a, [music_pointer]
+    ld l, a
+    ld a, [music_pointer+1]
+    ld h, a
+
+    call do_music
+
+    ld a, c
+    ld [music_bank], a
+    ld a, l
+    ld [music_pointer], a
+    ld a, h
+    ld [music_pointer+1], a
+    ret
 
 animation_loop:
+
   ;;;;;;;;;;;;;;;;;;;;
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;
@@ -338,6 +420,8 @@ animation_loop:
 
   call playfield_buffer
 
+  call do_music1
+
 .wait_for_before_radar
   ld a, [rLY]
   cp 32 ; free to do OAM DMA here (past the play area)
@@ -388,4 +472,6 @@ animation_loop:
   call update_bg
   ;; Code to update graphics returns with RETI so interrupts are enabled.
 
-  jr animation_loop
+  call do_music1
+
+  jp animation_loop

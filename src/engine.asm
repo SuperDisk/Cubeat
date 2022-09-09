@@ -1,15 +1,26 @@
 include "defines.asm"
 
+DEF PLAYFIELD_TOPLEFT EQU $79
+
 SECTION "Game vars", WRAM0
 drop_pos: db
 
 frame_counter: db
 radar_pos: db
 
-;; Board is 18 wide, 13 high (including the two tiles on top that are out of bounds)
-board: ds (18*13)
+falling_block_pos: db
 
-;; Next piece
+;; Board is 18 wide, 13 high (including the two tiles on top that are out of bounds)
+board: ds (18*11)
+
+update_sprite2: macro ; which sprite, x, y, tile
+  ld a, \3+16
+  ld [wShadowOAM2+(4*\1)], a
+  ld a, \2+8
+  ld [wShadowOAM2+(4*\1)+1], a
+  ld a, \4
+  ld [wShadowOAM2+(4*\1)+2], a
+endm
 
 SECTION "Engine code", ROM0
 
@@ -88,9 +99,49 @@ game_step::
   jr nz, .no_reset_radar
   ld a, 8
 .no_reset_radar:
-
   ld [radar_pos], a
 
+  ;; Move the drop position around
+  ld a, [hPressedKeys]
+  ld h, a
+  ld a, [drop_pos]
+
+  bit 4, h
+  jr z, .no_right
+
+  ;; Player pressed right
+  inc a
+  cp 17
+  jr nz, .done
+  xor a
+
+.no_right:
+  bit 5, h
+  jr z, .done
+
+  ;; Player pressed left
+  dec a
+  bit 7, a
+  jr z, .done
+  ld a, 16
+
+.done:
+  ld [drop_pos], a
+
+update_graphics:
+  ; update_sprite2 21, 16, 48, $26
+
+  ;; Falling block in BG
+  ; ld hl, playfield_map + (PLAYFIELD_TOPLEFT*2)
+  ; ld a, [hl+]
+  ; ld h, [hl]
+  ; ld l, a
+  ; ld [hl], $80
+
+
+  ;; Radar position
+
+  ld a, [radar_pos]
   spriteX 3
   spriteX 4
   spriteX 5
@@ -107,20 +158,15 @@ game_step::
   add 8
   spriteX 1
 
+  ;; Drop pos
 
-  ld a, [hPressedKeys]
-  ld h, a
   ld a, [drop_pos]
+  add 2
+  ;; multiply by 3
+  add a
+  add a
+  add a
 
-  bit 4, h
-  jr z, .no_right
-  add 8
-.no_right:
-  bit 5, h
-  jr z, .no_left
-  sub 8
-.no_left:
-  ld [drop_pos], a
   spriteX 9
   spriteX 10
   spriteX 11
@@ -137,5 +183,9 @@ game_step::
   spriteX 19
   spriteX 20
 
-.no_press:
+  sub 16
+  spriteX 21
+  add 8
+  spriteX 22
+
   ret

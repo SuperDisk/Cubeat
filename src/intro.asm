@@ -92,7 +92,6 @@ all_graphics:
 incbin "res/leveltimescore.2bppu"
 incbin "res/numbers_big_8x8.2bppu"
 incbin "res/numbers_8x8_only.2bppu"
-incbin "res/numbers_8x8_only.2bppu"
 
 incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
 incbin "res/pices_8x8_sprite/pice_sprite_1.2bpp"
@@ -112,7 +111,7 @@ include "playfield_buffer.inc"
 .end:
 
 SECTION "Playfield Buffer RAM", WRAM0
-playfield_buffer:
+playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
 SECTION "Intro", ROM0
@@ -213,15 +212,15 @@ endm
   update_sprite 8, 125+(8*3), 4-3, 4
 
   ; Pice preview
-  update_sprite 10, 2, 16, $26
-  update_sprite 11, 10, 16, $27
-  update_sprite 12, 2, 16+8, $27
-  update_sprite 13, 10, 16+8, $26
+  update_sprite 10, 2, 16, $26-10
+  update_sprite 11, 10, 16, $27-10
+  update_sprite 12, 2, 16+8, $27-10
+  update_sprite 13, 10, 16+8, $26-10
 
-  update_sprite 14, 20, 16, $26
-  update_sprite 15, 28, 16, $27
-  update_sprite 16, 20, 16+8, $27
-  update_sprite 17, 28, 16+8, $26
+  update_sprite 14, 20, 16, $26-10
+  update_sprite 15, 28, 16, $27-10
+  update_sprite 16, 20, 16+8, $27-10
+  update_sprite 17, 28, 16+8, $26-10
 
   ; Score numbers
   update_sprite 18, 115, 9, $12
@@ -234,32 +233,36 @@ endm
   update_sprite 25, 115+(6*7), 9, $12
 
   ; radar
-  update_sprite2 0, 124+(8*0), 33, $3E
-  update_sprite2 1, 124+(8*2), 33, $40
-  update_sprite2 2, 124+(8*1), 33, $2A
+  update_sprite2 0, 124+(8*0), 33, $3E-10
+  update_sprite2 1, 124+(8*2), 33, $40-10
+  update_sprite2 2, 124+(8*1), 33, $2A-10
 
   ; radar "stem"
-  update_sprite2 3, 124+(8*1), 32+(16*1), $42
-  update_sprite2 4, 124+(8*1), 32+(16*2), $42
-  update_sprite2 5, 124+(8*1), 32+(16*3), $42
-  update_sprite2 6, 124+(8*1), 32+(16*4), $42
-  update_sprite2 7, 124+(8*1), 32+(16*5), $42
-  update_sprite2 8, 124+(8*1), 32+(16*6), $42
+  update_sprite2 3, 124+(8*1), 32+(16*1), $42-10
+  update_sprite2 4, 124+(8*1), 32+(16*2), $42-10
+  update_sprite2 5, 124+(8*1), 32+(16*3), $42-10
+  update_sprite2 6, 124+(8*1), 32+(16*4), $42-10
+  update_sprite2 7, 124+(8*1), 32+(16*5), $42-10
+  update_sprite2 8, 124+(8*1), 32+(16*6), $42-10
 
   ; Pice fall highlight
-  update_sprite2 9, 64, 49+(16*0), $44
-  update_sprite2 10, 64, 49+(16*1), $44
-  update_sprite2 11, 64, 49+(16*2), $44
-  update_sprite2 12, 64, 49+(16*3), $44
-  update_sprite2 13, 64, 49+(16*4), $44
-  update_sprite2 14, 64, 49+(16*5)-8, $44
+  update_sprite2 9, 64, 49+(16*0), $44-10
+  update_sprite2 10, 64, 49+(16*1), $44-10
+  update_sprite2 11, 64, 49+(16*2), $44-10
+  update_sprite2 12, 64, 49+(16*3), $44-10
+  update_sprite2 13, 64, 49+(16*4), $44-10
+  update_sprite2 14, 64, 49+(16*5), $44-10
 
-  update_sprite2 15, 64-16, 49+(16*0), $44
-  update_sprite2 16, 64-16, 49+(16*1), $44
-  update_sprite2 17, 64-16, 49+(16*2), $44
-  update_sprite2 18, 64-16, 49+(16*3), $44
-  update_sprite2 19, 64-16, 49+(16*4), $44
-  update_sprite2 20, 64-16, 49+(16*5), $44
+  update_sprite2 15, 64-16, 49+(16*0), $44-10
+  update_sprite2 16, 64-16, 49+(16*1), $44-10
+  update_sprite2 17, 64-16, 49+(16*2), $44-10
+  update_sprite2 18, 64-16, 49+(16*3), $44-10
+  update_sprite2 19, 64-16, 49+(16*4), $44-10
+  update_sprite2 20, 64-16, 49+(16*5), $44-10
+
+  ; Falling block
+  update_sprite2 21, 16, 48, $26-10
+  update_sprite2 22, 16+8, 48, $26-10
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
@@ -288,12 +291,6 @@ endm
   call init_game
 
 animation_loop:
-  ;;;;;;;;;;;;;;;;;;;;
-  ;; Run game logic update
-  ;;;;;;;;;;;;;;;;;;;;
-
-  call game_step
-
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Load buffer with new tile data
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -302,6 +299,12 @@ animation_loop:
   ld [rROMB0], a
 
   call update_playfield_buffer
+
+  ;;;;;;;;;;;;;;;;;;;;
+  ;; Run game logic update
+  ;;;;;;;;;;;;;;;;;;;;
+
+  call game_step
 
 .wait_for_below_play_area
   ld a, [rLY]

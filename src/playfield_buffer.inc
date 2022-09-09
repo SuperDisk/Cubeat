@@ -761,10 +761,4 @@ ld [hl+], a
 ld [hl], 0
 ld l, 64
 
-xor a
-ldh [rIF], a
-assert IEF_VBLANK == 1
-inc a ; ld a, IEF_VBLANK
-ldh [rIE], a
-
-reti
+ret

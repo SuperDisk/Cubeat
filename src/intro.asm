@@ -89,10 +89,11 @@ BRERB2 EQUS "bg01_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
-incbin "res/leveltimescore.2bpp"
-incbin "res/numbers_big_8x8.2bpp"
-incbin "res/numbers_8x8_only.2bpp"
-incbin "res/numbers_8x8_only.2bpp"
+incbin "res/leveltimescore.2bppu"
+incbin "res/numbers_big_8x8.2bppu"
+incbin "res/numbers_8x8_only.2bppu"
+incbin "res/numbers_8x8_only.2bppu"
+
 incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
 incbin "res/pices_8x8_sprite/pice_sprite_1.2bpp"
 
@@ -101,7 +102,7 @@ incbin "res/pice_fall_highlight.2bpp"
 all_graphics_end:
 
 block_gfx:
-incbin "res/pices_8x8_Grid-Alpha-Bomb.2bpp"
+incbin "res/pices_8x8_Grid-Alpha-Bomb.2bppu"
 .end:
 
 SECTION "Playfield Buffer ROM", ROM0
@@ -212,15 +213,15 @@ endm
   update_sprite 8, 125+(8*3), 4-3, 4
 
   ; Pice preview
-  update_sprite 10, 2, 17, $26
-  update_sprite 11, 10, 17, $27
-  update_sprite 12, 2, 17+8, $27
-  update_sprite 13, 10, 17+8, $26
+  update_sprite 10, 2, 16, $26
+  update_sprite 11, 10, 16, $27
+  update_sprite 12, 2, 16+8, $27
+  update_sprite 13, 10, 16+8, $26
 
-  update_sprite 14, 20, 17, $26
-  update_sprite 15, 28, 17, $27
-  update_sprite 16, 20, 17+8, $27
-  update_sprite 17, 28, 17+8, $26
+  update_sprite 14, 20, 16, $26
+  update_sprite 15, 28, 16, $27
+  update_sprite 16, 20, 16+8, $27
+  update_sprite 17, 28, 16+8, $26
 
   ; Score numbers
   update_sprite 18, 115, 9, $12
@@ -233,9 +234,9 @@ endm
   update_sprite 25, 115+(6*7), 9, $12
 
   ; radar
-  update_sprite2 0, 124+(8*0), 32, $3E
-  update_sprite2 1, 124+(8*2), 32, $40
-  update_sprite2 2, 124+(8*1), 32, $2A
+  update_sprite2 0, 124+(8*0), 33, $3E
+  update_sprite2 1, 124+(8*2), 33, $40
+  update_sprite2 2, 124+(8*1), 33, $2A
 
   ; radar "stem"
   update_sprite2 3, 124+(8*1), 32+(16*1), $42
@@ -251,7 +252,7 @@ endm
   update_sprite2 11, 64, 49+(16*2), $44
   update_sprite2 12, 64, 49+(16*3), $44
   update_sprite2 13, 64, 49+(16*4), $44
-  update_sprite2 14, 64, 49+(16*5), $44
+  update_sprite2 14, 64, 49+(16*5)-8, $44
 
   update_sprite2 15, 64-16, 49+(16*0), $44
   update_sprite2 16, 64-16, 49+(16*1), $44
@@ -304,8 +305,12 @@ animation_loop:
 
 .wait_for_below_play_area
   ld a, [rLY]
-  cp 136 ; free to do OAM DMA here (past the play area)
+  cp 135 ; free to do OAM DMA here (past the play area)
   jr nz, .wait_for_below_play_area
+.wait_for_below_play_area_hblank
+  ld a, [rSTAT]
+  and %0000011
+  jr nz, .wait_for_below_play_area_hblank
 
   ld a, [rLCDC]
   res 2, a
@@ -340,8 +345,12 @@ animation_loop:
 
 .wait_for_before_radar
   ld a, [rLY]
-  cp 32 ; free to do OAM DMA here (past the play area)
+  cp 30
   jr nz, .wait_for_before_radar
+.wait_for_before_radar_hblank
+  ld a, [rSTAT]
+  and %0000011
+  jr nz, .wait_for_before_radar_hblank
 
   ld a, [rLCDC]
   set 2, a
@@ -351,8 +360,12 @@ animation_loop:
 
 .wait_for_below_play_area0
   ld a, [rLY]
-  cp 136 ; free to do OAM DMA here (past the play area)
+  cp 135 ; free to do OAM DMA here (past the play area)
   jr nz, .wait_for_below_play_area0
+.wait_for_below_play_area_hblank0
+  ld a, [rSTAT]
+  and %0000011
+  jr nz, .wait_for_below_play_area_hblank0
 
   ld a, [rLCDC]
   res 2, a
@@ -388,4 +401,4 @@ animation_loop:
   call update_bg
   ;; Code to update graphics returns with RETI so interrupts are enabled.
 
-  jr animation_loop
+  jp animation_loop

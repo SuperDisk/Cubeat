@@ -121,6 +121,10 @@ $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@
 
+$(RESDIR)/%.2bppu $(RESDIR)/%.tilemapu: $(RESDIR)/%.png
+	@$(MKDIR_P) $(@D)
+	$(RGBGFX) -u -d 2 -o $(RESDIR)/$*.2bppu -t $(RESDIR)/$*.tilemapu $<
+
 $(RESDIR)/%.2bpp $(RESDIR)/%.tilemap: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(RGBGFX) -d 2 -o $(RESDIR)/$*.2bpp -t $(RESDIR)/$*.tilemap $<

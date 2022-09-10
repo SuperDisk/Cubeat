@@ -1,17 +1,5 @@
 include "defines.asm"
 
-SECTION "Game vars", WRAM0
-drop_pos: db
-
-frame_counter: db
-radar_pos: db
-
-falling_block_y: db
-
-;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
-board: ds (18*11)
-.end:
-
 update_sprite2: macro ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM2+(4*\1)], a
@@ -21,8 +9,6 @@ update_sprite2: macro ; which sprite, x, y, tile
   ld [wShadowOAM2+(4*\1)+2], a
 endm
 
-SECTION "Engine code", ROM0
-
 spriteX: MACRO ; which sprite
   ld [wShadowOAM2+(4*\1)+1], a
 ENDM
@@ -31,6 +17,26 @@ spriteY: MACRO ; which sprite
   ld [wShadowOAM2+(4*\1)], a
 ENDM
 
+SECTION "Game vars", WRAM0
+drop_pos: db
+
+frame_counter: db
+radar_pos: db
+
+falling_block_rate: db
+falling_block_timer: db
+falling_block_y: db
+
+dpad_frames: db
+
+;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
+board: ds (18*11)
+.end:
+
+SECTION "Engine code", ROM0
+
+DEF DPAD_HOLD_FRAMES EQU 7
+
 init_game::
   xor a
   ld [frame_counter], a
@@ -38,18 +44,28 @@ init_game::
   ld [drop_pos], a
   ld [falling_block_y], a
 
-  xor a
   ld hl, board
   ld bc, board.end - board
   call Memset
 
+  ld a, 18
+  ld [falling_block_rate], a
+  ld [falling_block_timer], a
+
+  ld a, DPAD_HOLD_FRAMES
+  ld [dpad_frames], a
+
+  ret
+
 game_step::
   call poll_joystick
 
+  ;; Increment frame counter
   ld a, [frame_counter]
   inc a
   ld [frame_counter], a
 
+  ;; Move radar right
   ld a, [radar_pos]
   inc a
   cp 153
@@ -58,8 +74,32 @@ game_step::
 .no_reset_radar:
   ld [radar_pos], a
 
+  ld a, [hHeldKeys]
+  and %00110000
+  jr nz, .did_hold_key
+
+.no_hold_key:
+  ld a, DPAD_HOLD_FRAMES
+  ld [dpad_frames], a
+  jr .done
+
+.did_hold_key:
+  ;; User is pressing a direction key, prepare to
+  ;; rapidly move the block
+  ld a, [dpad_frames]
+  dec a
+  jr nz, .no_slide
+  inc a
+  ld [dpad_frames], a
+  ld a, [hHeldKeys]
+  jr .do_slide
+
+.no_slide:
+  ld [dpad_frames], a
+
   ;; Move the drop position around
   ld a, [hPressedKeys]
+.do_slide:
   ld h, a
   ld a, [drop_pos]
 
@@ -69,8 +109,8 @@ game_step::
   ;; Player pressed right
   inc a
   cp 17
-  jr nz, .done
-  xor a
+  jr nz, .save
+  dec a
 
 .no_right:
   bit 5, h
@@ -79,11 +119,27 @@ game_step::
   ;; Player pressed left
   dec a
   bit 7, a
-  jr z, .done
-  ld a, 16
+  jr z, .save
+  inc a
 
-.done:
+.save:
   ld [drop_pos], a
+.done:
+
+  ;; Update falling block position
+  ld a, [falling_block_timer]
+  dec a
+  jr nz, .no_fall
+
+  ;; Block needs to fall
+  ld a, [falling_block_y]
+  inc a
+  ld [falling_block_y], a
+
+  ld a, [falling_block_rate]
+
+.no_fall:
+  ld [falling_block_timer], a
 
 update_graphics:
   ;; Radar position
@@ -109,7 +165,6 @@ update_graphics:
 
   ld a, [drop_pos]
   add 2
-  ;; multiply by 3
   add a
   add a
   add a
@@ -137,9 +192,6 @@ update_graphics:
   spriteX 22
 
   ld a, [falling_block_y]
-  inc a
-  ld [falling_block_y], a
-  dec a
   add a
   add a
   add a

@@ -109,6 +109,18 @@
 (defparameter *idx->playfield-buffer-offset*
   (nth-value 1 (generate-playfield-buffer)))
 
+(defun generate-playfield-update-code (mapping)
+  (flet ((wrap-playfield-location (x y)
+           (+ (* (+ 6 y) 20) 1 x)))
+    (with-output-to-string (out)
+      (loop for y from 0 below 11 do
+        (loop for x from 0 below 18
+              for offs = (cdr (assoc (wrap-playfield-location x y) mapping)) do
+                (format out "ld a, [hl+]~%")
+                (format out "or a~%")
+                (format out "jr z, @+5~%")
+                (format out "ld [playfield_buffer+~a], a~%" offs))))))
+
 (defun tmap->source (annotated-tmap next-frame prefix)
   (with-output-to-string (stream)
     (let (old-loc)

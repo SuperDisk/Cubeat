@@ -17,6 +17,10 @@ spriteY: MACRO ; which sprite
   ld [wShadowOAM2+(4*\1)], a
 ENDM
 
+previewTile: macro ; which sprite, x, y, tile
+  ld [wShadowOAM+(4*\1)+2], a
+endm
+
 add_a_to_r16: MACRO
     add \2
     ld \2, a
@@ -56,9 +60,10 @@ radar_pos: db
 falling_block_rate: db
 falling_block_timer: db
 falling_block_y: db
-fast_dropping: db
 
 dpad_frames: db
+
+block: ds 4
 
 ;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
 board: ds (18*11)
@@ -78,7 +83,6 @@ init_game::
   ld [radar_pos], a
   ld [drop_pos], a
   ld [falling_block_y], a
-  ld [fast_dropping], a
 
   ld hl, board
   ld bc, board.end - board
@@ -90,6 +94,15 @@ init_game::
 
   ld a, DPAD_HOLD_FRAMES
   ld [dpad_frames], a
+
+  ld a, $81
+  ld [block+0], a
+  ld a, $81
+  ld [block+1], a
+  ld a, $80
+  ld [block+2], a
+  ld a, $80
+  ld [block+3], a
 
   ret
 
@@ -175,21 +188,15 @@ game_step::
   ;; Perform a quick drop
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld a, [hPressedKeys]
+  ld a, [hHeldKeys]
   bit PADB_DOWN, a
-  jr z, .no_down
-
-  ld [fast_dropping], a
+  jr nz, .do_fall
 
 .no_down:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update falling block Y pos
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ld a, [fast_dropping]
-  or a
-  jr nz, .do_fall
 
   ld a, [falling_block_timer]
   dec a
@@ -213,7 +220,7 @@ game_step::
 
   ld a, [falling_block_y]
   cp 3
-  jr c, .no_collide_other_block
+  jp c, .no_collide_other_block
   cp BOARD_H+1
   jr z, .block_collision
 
@@ -235,9 +242,6 @@ game_step::
 .block_collision:
   ;; Block hit the bottom. Place there.
 
-  xor a
-  ld [fast_dropping], a
-
   ld a, [falling_block_y]
   sub 2
   ld c, a
@@ -246,56 +250,82 @@ game_step::
 
   call goto_xy_pos_with_vram
 
-  ld a, $81
+  ;; Load up the board AND playfield buffer with the new block tiles
+
+  ld a, [block+0]
   ld [hl+], a
-  ld a, $80
+  ld a, [block+1]
   ld [hl], a
 
   ld a, 17
   add_a_to_hl
 
-  ld a, $80
+  ld a, [block+2]
   ld [hl+], a
-  ld a, $81
+  ld a, [block+3]
   ld [hl], a
 
+  ;; Reset falling block position
   xor a
   ld [falling_block_y], a
+
+  ;; Paint block directly onto background to avoid flicker
+
+  ;; TODO: Just paint the one BG that needs it, this solution is
+  ;; currently ridiculous since it paints both unnecessarily
 
   ld a, [drop_pos]
   add_a_to_bc
   inc bc
 
-  ld h, b
+  ld a, b
+  xor %00000100
+  ld h, a
   ld l, c
 
   ld de, $20
 
   di
-  xor a
-  ldh [rIF], a
+
   ld a, IEF_STAT
   ldh [rIE], a
   ld a, STATF_MODE00
   ldh [rSTAT], a
-  halt
-  nop
-
-  ld a, $81
-  ld [hl+], a
-  dec a
-  ld [hl+], a
-  add hl, de
-  dec hl
-  dec hl
 
   xor a
   ldh [rIF], a
   halt
+  nop
 
-  ld a, $80
+  ld a, [block+0]
+  ld [bc], a
+  inc bc
   ld [hl+], a
-  inc a
+  ld a, [block+1]
+  ld [bc], a
+  inc bc
+  ld [hl+], a
+
+  add hl, de
+  dec hl
+  dec hl
+
+  ld a, h
+  xor %00000100
+  ld b, a
+  ld c, l
+
+  xor a
+  ldh [rIF], a
+  halt
+  nop
+
+  ld a, [block+2]
+  ld [bc], a
+  inc bc
+  ld [hl+], a
+  ld a, [block+3]
+  ld [bc], a
   ld [hl+], a
 
 .no_collide_other_block:
@@ -304,7 +334,7 @@ game_step::
   ;; Make blocks fall
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld bc, BOARD_W
+  ld c, BOARD_W
   push bc
 
   ld b, 0
@@ -315,6 +345,7 @@ game_step::
 
 .walk_right_row:
   ld c, 9
+
 .walk_up_column:
   ld a, [hl]
   or a
@@ -332,9 +363,7 @@ game_step::
   jr nz, .walk_up_column
 
   pop bc
-  dec bc
-  ld a, b
-  or c
+  dec c
   jr z, .walk_done
   push bc
 
@@ -443,9 +472,8 @@ goto_xy_pos:
 ;;; Sets some pointers to a block position in the board.
 ;;; Param: C = Y position on board
 ;;; Param: B = X position on board
-;;; Return: BC = Pointer into VRAM of coord
 ;;; Return: HL = Pointer into board of coord
-;;; Destroy: AF DE
+;;; Destroy: AF DE BC
   dec c
   xor a
 

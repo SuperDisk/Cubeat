@@ -346,6 +346,8 @@ animation_loop:
 
   call playfield_buffer
 
+  ;; TODO: Shove more game logic in here. LY=8
+
 .wait_for_before_radar
   ld a, [rLY]
   cp 30

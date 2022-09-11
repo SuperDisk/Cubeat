@@ -134,6 +134,14 @@ game_step::
   ;; Move the drop position around
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ld a, [drop_pos]
+  ld b, a
+  ld a, [falling_block_y]
+  sub 2
+  ld c, a
+  call goto_xy_pos
+  ld de, ROW
+
   ld a, [hHeldKeys]
   and %00110000
   jr nz, .did_hold_key
@@ -158,29 +166,70 @@ game_step::
 
   ld a, [hPressedKeys]
 .do_slide:
-  ld h, a
+  ld c, a
   ld a, [drop_pos]
+  ld b, a
 
-  bit PADB_RIGHT, h
+  bit PADB_RIGHT, c
   jr z, .no_right
 
   ;; Player pressed right
-  inc a
-  cp 17
-  jr nz, .save
-  dec a
+  inc b
+
+  ;; Check hit right side of board
+  cp BOARD_W-2
+  jr z, .revert
+
+  ;; If we're above the board, don't check for collision
+  ld a, [falling_block_y]
+  cp 2
+  jr c, .save
+
+  ;; Check hit block
+  push hl
+  inc hl
+  inc hl
+  xor a
+  or [hl]
+  add hl, de
+  or [hl]
+  pop hl
+  jr z, .save
+
+.revert:
+  dec b
+  jr .save
 
 .no_right:
-  bit PADB_LEFT, h
+  bit PADB_LEFT, c
   jr z, .done
 
   ;; Player pressed left
-  dec a
-  bit 7, a
+  dec b
+
+  ;; Check hit left side of board
+  bit 7, b
+  jr nz, .revert2
+
+
+  ;; If we're above the board, don't check for collision
+  ld a, [falling_block_y]
+  cp 2
+  jr c, .save
+
+  ;; Check hit block
+  dec hl
+  xor a
+  or [hl]
+  add hl, de
+  or [hl]
   jr z, .save
-  inc a
+
+.revert2:
+  inc b
 
 .save:
+  ld a, b
   ld [drop_pos], a
 .done:
 
@@ -219,19 +268,30 @@ game_step::
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ld a, [falling_block_y]
-  cp 3
+  sub 2
+
+  ;; If we're above the board, don't check for collision
   jp c, .no_collide_other_block
-  cp BOARD_H+1
+
+  ;; If we're past the bottom of the board, we collided
+  cp BOARD_H-1
   jr z, .block_collision
 
-  sub 2
+  ; If we're sitting on the bottom row, don't check for collision
+  cp BOARD_H-2
+  jp z, .no_collide_other_block
+
+  ; If we're on the first row, don't check for collision
+  or a
+  jp z, .no_collide_other_block
+
+  ;; Check if collided with other blocks
+  inc a
   ld c, a
   ld a, [drop_pos]
   ld b, a
 
   call goto_xy_pos
-  ld a, ROW*2
-  add_a_to_hl
   xor a
   or [hl]
   inc hl
@@ -243,7 +303,7 @@ game_step::
   ;; Block hit the bottom. Place there.
 
   ld a, [falling_block_y]
-  sub 2
+  sub 3
   ld c, a
   ld a, [drop_pos]
   ld b, a
@@ -338,7 +398,7 @@ game_step::
   push bc
 
   ld b, 0
-  ld c, BOARD_H
+  ld c, BOARD_H-1
   call goto_xy_pos
 
   ld de, -ROW
@@ -445,7 +505,6 @@ goto_xy_pos_with_vram:
 ;;; Return: BC = Pointer into VRAM of coord
 ;;; Return: HL = Pointer into board of coord
 ;;; Destroy: AF DE
-  dec c
   xor a
 
   ld hl, $9CC0
@@ -473,8 +532,7 @@ goto_xy_pos:
 ;;; Param: C = Y position on board
 ;;; Param: B = X position on board
 ;;; Return: HL = Pointer into board of coord
-;;; Destroy: AF DE BC
-  dec c
+;;; Destroy: AF BC
   xor a
 
 .mult:

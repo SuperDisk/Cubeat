@@ -481,44 +481,28 @@ game_step::
   ;; Make blocks fall
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld c, BOARD_W
-  push bc
+  ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
+  ld h, 0
+  ld l, ROW
+  add hl, bc
 
-  ld b, 0
-  ld c, BOARD_H-1
-  call goto_xy_pos
+  ld d, (BOARD_W*BOARD_H)-ROW
 
-.walk_right_row:
-  ld c, 9
-  ld de, -ROW
-
-.walk_up_column:
+.fall_loop:
   ld a, [hl]
   or a
-  jr nz, .cant_take
+  jr nz, .no_take
 
-  push hl
-  add hl, de
-  ld a, [hl]
-  ld [hl], 0
-  pop hl
+  ld a, [bc]
   ld [hl], a
-.cant_take:
-  add hl, de
-  dec c
-  jr nz, .walk_up_column
+  xor a
+  ld [bc], a
 
-  pop bc
-  dec c
-  jr z, .walk_done
-  push bc
-
-  inc hl
-  ld de, ROW*9
-  add hl, de
-  jr .walk_right_row
-
-.walk_done:
+.no_take:
+  dec hl
+  dec bc
+  dec d
+  jr nz, .fall_loop
 
 update_graphics:
   ;; Dropping block tiles

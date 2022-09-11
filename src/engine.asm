@@ -488,10 +488,9 @@ game_step::
   ld c, BOARD_H-1
   call goto_xy_pos
 
-  ld de, -ROW
-
 .walk_right_row:
   ld c, 9
+  ld de, -ROW
 
 .walk_up_column:
   ld a, [hl]
@@ -515,8 +514,8 @@ game_step::
   push bc
 
   inc hl
-  ld a, ROW*9
-  add_a_to_hl
+  ld de, ROW*9
+  add hl, de
   jr .walk_right_row
 
 .walk_done:

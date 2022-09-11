@@ -17,8 +17,12 @@ spriteY: MACRO ; which sprite
   ld [wShadowOAM2+(4*\1)], a
 ENDM
 
-previewTile: macro ; which sprite, x, y, tile
+spriteTile1: macro ; tile
   ld [wShadowOAM+(4*\1)+2], a
+endm
+
+spriteTile2: macro ; tile
+  ld [wShadowOAM2+(4*\1)+2], a
 endm
 
 add_a_to_r16: MACRO
@@ -62,6 +66,9 @@ falling_block_timer: db
 falling_block_y: db
 
 dpad_frames: db
+
+next_block1: ds 4
+next_block2: ds 4
 
 block: ds 4
 
@@ -129,6 +136,52 @@ game_step::
   ld a, 8
 .no_reset_radar:
   ld [radar_pos], a
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Rotate piece
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, [hPressedKeys]
+  bit PADB_A, a
+  jr z, .no_rotate_left
+
+  ld a, [block+0]
+  ld h, a
+
+  ld a, [block+1]
+  ld [block+0], a
+
+  ld a, [block+3]
+  ld [block+1], a
+
+  ld a, [block+2]
+  ld [block+3], a
+
+  ld a, h
+  ld [block+2], a
+
+.no_rotate_left:
+
+  ld a, [hPressedKeys]
+  bit PADB_B, a
+  jr z, .no_rotate_right
+
+  ld a, [block+3]
+  ld h, a
+
+  ld a, [block+1]
+  ld [block+3], a
+
+  ld a, [block+0]
+  ld [block+1], a
+
+  ld a, [block+2]
+  ld [block+0], a
+
+  ld a, h
+  ld [block+2], a
+
+.no_rotate_right:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Move the drop position around
@@ -297,7 +350,7 @@ game_step::
   inc hl
   or [hl]
 
-  jr z, .no_collide_other_block
+  jp z, .no_collide_other_block
 
 .block_collision:
   ;; Block hit the bottom. Place there.
@@ -388,6 +441,40 @@ game_step::
   ld [bc], a
   ld [hl+], a
 
+  ;; Generate random new block (TODO: queue)
+  ld a, [rDIV]
+  ld hl, randstate
+  ld [hl+], a
+  ld [hl+], a
+  ld a, [frame_counter]
+  ld [hl+], a
+  ld [hl], a
+  call rand
+
+  ld a, c
+  and 1
+  add $80
+  ld [block+0], a
+  rrc c
+
+  ld a, c
+  and 1
+  add $80
+  ld [block+1], a
+  rrc c
+
+  ld a, c
+  and 1
+  add $80
+  ld [block+2], a
+  rrc c
+
+  ld a, c
+  and 1
+  add $80
+  ld [block+3], a
+  rrc c
+
 .no_collide_other_block:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -435,6 +522,35 @@ game_step::
 .walk_done:
 
 update_graphics:
+  ;; Dropping block tiles
+  ld a, [block+0]
+  sub $80
+  xor 1
+  add a
+  add $38
+  spriteTile2 21
+
+  ld a, [block+1]
+  sub $80
+  xor 1
+  add a
+  add $38
+  spriteTile2 22
+
+  ld a, [block+2]
+  sub $80
+  xor 1
+  add a
+  add $38
+  spriteTile2 23
+
+  ld a, [block+3]
+  sub $80
+  xor 1
+  add a
+  add $38
+  spriteTile2 24
+
   ;; Radar position
 
   ld a, [radar_pos]
@@ -481,8 +597,10 @@ update_graphics:
   ;; Falling block
   sub 16
   spriteX 21
+  spriteX 23
   add 8
   spriteX 22
+  spriteX 24
 
   ld a, [falling_block_y]
   add a
@@ -491,6 +609,9 @@ update_graphics:
   add 48
   spriteY 22
   spriteY 21
+  add 8
+  spriteY 23
+  spriteY 24
 
 .playfield_update:
   ld hl, board

@@ -20,7 +20,7 @@
 ; 3. This notice may not be removed or altered from any source distribution.
 ;
 section "rand_ram",WRAM0
-randstate: ds 4
+randstate:: ds 4
 
 section "rand",ROM0
 

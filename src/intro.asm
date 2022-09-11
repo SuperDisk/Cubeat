@@ -93,12 +93,14 @@ incbin "res/leveltimescore.2bppu"
 incbin "res/numbers_big_8x8.2bppu"
 incbin "res/numbers_8x8_only.2bppu"
 
-incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
-incbin "res/pices_8x8_sprite/pice_sprite_1.2bpp"
-
 incbin "res/radar.2bpp"
 incbin "res/pice_fall_highlight.2bpp"
-all_graphics_end:
+.end:
+
+sprite_block_gfx:
+incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
+incbin "res/pices_8x8_sprite/pice_sprite_1.2bpp"
+.end:
 
 block_gfx:
 incbin "res/pices_8x8_Grid-Alpha-Bomb.2bppu"
@@ -152,8 +154,33 @@ Intro::
   ld [rROMB0], a
   ld de, all_graphics
   ld hl, $8000
-  ld bc, (all_graphics_end - all_graphics)
+  ld bc, (all_graphics.end - all_graphics)
   call Memcpy
+
+  ;; Copy "pice" graphics to sprite area
+  ld c, 16
+  rst MemcpySmall
+
+  xor a
+  ld c, 16
+  rst MemsetSmall
+
+  ld c, 16
+  rst MemcpySmall
+
+  xor a
+  ld c, 16
+  rst MemsetSmall
+
+  ld c, 16
+  rst MemcpySmall
+
+  xor a
+  ld c, 16
+  rst MemsetSmall
+
+  ld c, 16
+  rst MemcpySmall
 
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)
@@ -162,7 +189,6 @@ Intro::
   ld hl, $8800
   ld c, 32*2
   rst MemcpySmall
-
 
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
@@ -212,15 +238,15 @@ endm
   update_sprite 8, 125+(8*3), 4-3, 4
 
   ; Pice preview
-  update_sprite 10, 2, 16, $26-10
-  update_sprite 11, 10, 16, $27-10
-  update_sprite 12, 2, 16+8, $27-10
-  update_sprite 13, 10, 16+8, $26-10
+  update_sprite 10, 2, 16, $38
+  update_sprite 11, 10, 16, $3A
+  update_sprite 12, 2, 16+8, $3A
+  update_sprite 13, 10, 16+8, $38
 
-  update_sprite 14, 20, 16, $26-10
-  update_sprite 15, 28, 16, $27-10
-  update_sprite 16, 20, 16+8, $27-10
-  update_sprite 17, 28, 16+8, $26-10
+  update_sprite 14, 20, 16, $38
+  update_sprite 15, 28, 16, $3A
+  update_sprite 16, 20, 16+8, $3A
+  update_sprite 17, 28, 16+8, $38
 
   ; Score numbers
   update_sprite 18, 115, 9, $12
@@ -233,36 +259,39 @@ endm
   update_sprite 25, 115+(6*7), 9, $12
 
   ; radar
-  update_sprite2 0, 124+(8*0), 33, $3E-10
-  update_sprite2 1, 124+(8*2), 33, $40-10
-  update_sprite2 2, 124+(8*1), 33, $2A-10
+  update_sprite2 0, 124+(8*0), 33, $30
+  update_sprite2 1, 124+(8*2), 33, $32
+  update_sprite2 2, 124+(8*1), 33, $1C
 
   ; radar "stem"
-  update_sprite2 3, 124+(8*1), 32+(16*1), $42-10
-  update_sprite2 4, 124+(8*1), 32+(16*2), $42-10
-  update_sprite2 5, 124+(8*1), 32+(16*3), $42-10
-  update_sprite2 6, 124+(8*1), 32+(16*4), $42-10
-  update_sprite2 7, 124+(8*1), 32+(16*5), $42-10
-  update_sprite2 8, 124+(8*1), 32+(16*6), $42-10
+  update_sprite2 3, 124+(8*1), 32+(16*1), $34
+  update_sprite2 4, 124+(8*1), 32+(16*2), $34
+  update_sprite2 5, 124+(8*1), 32+(16*3), $34
+  update_sprite2 6, 124+(8*1), 32+(16*4), $34
+  update_sprite2 7, 124+(8*1), 32+(16*5), $34
+  update_sprite2 8, 124+(8*1), 32+(16*6), $34
 
   ; Pice fall highlight
-  update_sprite2 9, 64, 49+(16*0), $44-10
-  update_sprite2 10, 64, 49+(16*1), $44-10
-  update_sprite2 11, 64, 49+(16*2), $44-10
-  update_sprite2 12, 64, 49+(16*3), $44-10
-  update_sprite2 13, 64, 49+(16*4), $44-10
-  update_sprite2 14, 64, 49+(16*5), $44-10
+  update_sprite2 9, 64, 49+(16*0), $36
+  update_sprite2 10, 64, 49+(16*1), $36
+  update_sprite2 11, 64, 49+(16*2), $36
+  update_sprite2 12, 64, 49+(16*3), $36
+  update_sprite2 13, 64, 49+(16*4), $36
+  update_sprite2 14, 64, 49+(16*5), $36
 
-  update_sprite2 15, 64-16, 49+(16*0), $44-10
-  update_sprite2 16, 64-16, 49+(16*1), $44-10
-  update_sprite2 17, 64-16, 49+(16*2), $44-10
-  update_sprite2 18, 64-16, 49+(16*3), $44-10
-  update_sprite2 19, 64-16, 49+(16*4), $44-10
-  update_sprite2 20, 64-16, 49+(16*5), $44-10
+  update_sprite2 15, 64-16, 49+(16*0), $36
+  update_sprite2 16, 64-16, 49+(16*1), $36
+  update_sprite2 17, 64-16, 49+(16*2), $36
+  update_sprite2 18, 64-16, 49+(16*3), $36
+  update_sprite2 19, 64-16, 49+(16*4), $36
+  update_sprite2 20, 64-16, 49+(16*5), $36
 
   ; Falling block
-  update_sprite2 21, 16, 48, $26-10
-  update_sprite2 22, 16+8, 48, $26-10
+  update_sprite2 21, 16, 48, $38
+  update_sprite2 22, 16+8, 48, $3A
+
+  update_sprite2 23, 16, 48+8, $3A
+  update_sprite2 24, 16+8, 48+8, $38
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA

@@ -56,6 +56,7 @@ radar_pos: db
 falling_block_rate: db
 falling_block_timer: db
 falling_block_y: db
+fast_dropping: db
 
 dpad_frames: db
 
@@ -77,6 +78,7 @@ init_game::
   ld [radar_pos], a
   ld [drop_pos], a
   ld [falling_block_y], a
+  ld [fast_dropping], a
 
   ld hl, board
   ld bc, board.end - board
@@ -146,7 +148,7 @@ game_step::
   ld h, a
   ld a, [drop_pos]
 
-  bit 4, h
+  bit PADB_RIGHT, h
   jr z, .no_right
 
   ;; Player pressed right
@@ -156,7 +158,7 @@ game_step::
   dec a
 
 .no_right:
-  bit 5, h
+  bit PADB_LEFT, h
   jr z, .done
 
   ;; Player pressed left
@@ -170,12 +172,30 @@ game_step::
 .done:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Perform a quick drop
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, [hPressedKeys]
+  bit PADB_DOWN, a
+  jr z, .no_down
+
+  ld [fast_dropping], a
+
+.no_down:
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update falling block Y pos
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, [fast_dropping]
+  or a
+  jr nz, .do_fall
 
   ld a, [falling_block_timer]
   dec a
   jr nz, .no_fall
+
+.do_fall:
 
   ;; Block needs to fall
   ld a, [falling_block_y]
@@ -215,13 +235,16 @@ game_step::
 .block_collision:
   ;; Block hit the bottom. Place there.
 
+  xor a
+  ld [fast_dropping], a
+
   ld a, [falling_block_y]
   sub 2
   ld c, a
   ld a, [drop_pos]
   ld b, a
 
-  call goto_xy_pos
+  call goto_xy_pos_with_vram
 
   ld a, $81
   ld [hl+], a
@@ -281,35 +304,46 @@ game_step::
   ;; Make blocks fall
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ld bc, BOARD_W
+  push bc
+
   ld b, 0
-  ld c, BOARD_W
+  ld c, BOARD_H
   call goto_xy_pos
 
   ld de, -ROW
 
-; .walk_right_row:
+.walk_right_row:
+  ld c, 9
+.walk_up_column:
+  ld a, [hl]
+  or a
+  jr nz, .cant_take
 
-;   ld c, 9
-; .walk_up_column:
-;   ld a, [hl]
-;   or a
-;   jr nz, .cant_take
+  push hl
+  add hl, de
+  ld a, [hl]
+  ld [hl], 0
+  pop hl
+  ld [hl], a
+.cant_take:
+  add hl, de
+  dec c
+  jr nz, .walk_up_column
 
-;   push hl
-;   add hl, de
-;   ld a, [hl]
-;   ld [hl], 0
-;   pop hl
-;   ld [hl], a
-; .cant_take:
-;   add hl, de
-;   dec c
-;   jr nz, .walk_up_column
+  pop bc
+  dec bc
+  ld a, b
+  or c
+  jr z, .walk_done
+  push bc
 
-;   inc hl
-;   ld a, ROW*9
-;   add_a_to_hl
-;   jr .walk_right_row
+  inc hl
+  ld a, ROW*9
+  add_a_to_hl
+  jr .walk_right_row
+
+.walk_done:
 
 update_graphics:
   ;; Radar position
@@ -375,7 +409,7 @@ update_graphics:
 
   ret
 
-goto_xy_pos:
+goto_xy_pos_with_vram:
 ;;; Sets some pointers to a block position in the board.
 ;;; Param: C = Y position on board
 ;;; Param: B = X position on board
@@ -402,6 +436,28 @@ goto_xy_pos:
   ld h, b
   ld l, c
   pop bc
+
+  ret
+
+goto_xy_pos:
+;;; Sets some pointers to a block position in the board.
+;;; Param: C = Y position on board
+;;; Param: B = X position on board
+;;; Return: BC = Pointer into VRAM of coord
+;;; Return: HL = Pointer into board of coord
+;;; Destroy: AF DE
+  dec c
+  xor a
+
+.mult:
+  add ROW
+  dec c
+  jr nz, .mult
+
+  add b
+
+  ld hl, board
+  add_a_to_hl
 
   ret
 

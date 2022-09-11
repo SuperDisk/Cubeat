@@ -491,7 +491,7 @@ game_step::
 .fall_loop:
   ld a, [hl]
   or a
-  jr nz, .no_take
+  jr nz, .try_find_match
 
   ld a, [bc]
   ld [hl], a
@@ -501,8 +501,40 @@ game_step::
 .no_take:
   dec hl
   dec bc
+.no_dec:
   dec d
   jr nz, .fall_loop
+  jr update_graphics
+
+.try_find_match:
+  ld e, a
+  ld a, [bc]
+  cp e
+  jr nz, .no_take
+
+  ;; First column matches
+  dec bc
+  dec hl
+
+  ld e, [hl]
+  cp e
+  jr nz, .no_dec
+
+  ld a, [bc]
+  cp e
+
+  jr nz, .no_dec
+
+  ;; Second column matches
+
+  xor a
+  ld [hl+], a
+  ld [bc], a
+  inc bc
+  ld [hl], a
+  ld [bc], a
+
+  jr .no_take
 
 update_graphics:
   ;; Dropping block tiles

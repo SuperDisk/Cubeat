@@ -67,9 +67,10 @@ falling_block_y: db
 
 dpad_frames: db
 
+animation: dw
+
 next_block1: ds 4
 next_block2: ds 4
-
 block: ds 4
 
 ;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
@@ -110,6 +111,11 @@ init_game::
   ld [block+2], a
   ld a, $80
   ld [block+3], a
+
+  ld a, LOW(anim_match_appear)
+  ld [animation], a
+  ld a, HIGH(anim_match_appear)
+  ld [animation+1], a
 
   ret
 
@@ -628,6 +634,55 @@ update_graphics:
   spriteY 23
   spriteY 24
 
+  ld a, [frame_counter]
+  and 1
+  jr z, .playfield_update
+
+  ;; Run animation
+  ld hl, animation
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+
+  ; ld hl, anim_match_appear
+.process_anim:
+  ld a, [hl+]
+
+  cp $FF
+  jr nz, .anim_continue
+
+  ld hl, anim_match_appear
+  jr .anim_finish
+
+.anim_continue:
+  cp $FE
+  jr z, .anim_finish
+
+  ; ld a, [hl+] ; sprite id
+  add a
+  add a
+  ld de, wShadowOAM2
+  add_a_to_de
+  ld a, [hl+] ; Y
+  ld [de], a
+  inc de
+  ld a, [hl+] ; X
+  ld [de], a
+  inc de
+  ld a, [hl+] ; tile
+  ld [de], a
+  inc de
+  ld a, [hl+] ; flip attrs
+  ld [de], a
+  inc de
+  jr .process_anim
+
+.anim_finish:
+  ld a, l
+  ld [animation], a
+  ld a, h
+  ld [animation+1], a
+
 .playfield_update:
   ld hl, board
   include "playfield_update.inc"
@@ -734,3 +789,56 @@ ENDR
 	ld a, b
 	ldh [hHeldKeys], a
   ret
+
+anim: MACRO
+  db \1+25      ; sprite ID
+  db \3 + 16 + 100 ; y
+  db \2 + 8 + 79 ; x
+  db (\4*2)+$3f+1      ; tile
+  db (\5 << 5) | (\6 << 6) ; flip flags
+ENDM
+
+framend: MACRO
+  db $FE
+ENDM
+
+animend: MACRO
+  db $FF
+ENDM
+
+anim_match_appear:
+  anim 0,0,0,0,0,0
+  anim 1,12,0,0,1,0
+  anim 2,4,-14,1,0,1
+  anim 3,0,4,0,0,1
+  anim 4,12,4,0,1,1
+  anim 5,6,18,1,0,0
+  framend
+
+  anim 0,1,1,0,0,0
+  anim 1,11,1,0,1,0
+  anim 2,5,-13,1,0,1
+  anim 3,1,3,0,0,1
+  anim 4,11,3,0,1,1
+  anim 5,7,17,1,0,0
+  framend
+
+  anim 0,2,2,2,0,0
+  anim 1,10,2,3,0,0
+  anim 2,-8,-120,0,0,0
+  anim 3,-8,-120,0,0,0
+  anim 4,-8,-120,0,0,0
+  anim 5,-8,-120,0,0,0
+  framend
+
+  anim 0,2,2,4,0,0
+  anim 1,10,2,5,0,0
+  framend
+
+  anim 0,2,2,6,0,0
+  anim 1,10,2,7,0,0
+  framend
+
+  anim 0,2,2,6,0,0
+  anim 1,10,2,8,0,0
+  animend

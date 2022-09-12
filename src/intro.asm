@@ -106,6 +106,17 @@ block_gfx:
 incbin "res/pices_8x8_Grid-Alpha-Bomb.2bppu"
 .end:
 
+block_match_anim:
+incbin "res/u1.2bpp"
+incbin "res/u2.2bpp"
+incbin "res/u3.2bpp"
+incbin "res/u4.2bpp"
+incbin "res/u5.2bpp"
+incbin "res/u6.2bpp"
+incbin "res/u7.2bpp"
+incbin "res/u8.2bpp"
+.end:
+
 SECTION "Playfield Buffer ROM", ROM0
 
 playfield_buffer_rom:
@@ -181,6 +192,15 @@ Intro::
 
   ld c, 16
   rst MemcpySmall
+
+  xor a
+  ld c, 16
+  rst MemsetSmall
+
+  ;; Copy block match animation to sprite area
+  ld de, block_match_anim
+  ld bc, block_match_anim.end - block_match_anim
+  call Memcpy
 
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)

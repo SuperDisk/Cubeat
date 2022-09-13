@@ -1,0 +1,176 @@
+object Form1: TForm1
+  Left = 1704
+  Height = 536
+  Top = 624
+  Width = 398
+  Caption = 'Form1'
+  ClientHeight = 536
+  ClientWidth = 398
+  LCLVersion = '2.2.3.0'
+  object PaintBox1: TPaintBox
+    Left = 16
+    Height = 239
+    Top = 16
+    Width = 367
+    OnPaint = PaintBox1Paint
+  end
+  object ListBox1: TListBox
+    Left = 226
+    Height = 184
+    Top = 264
+    Width = 157
+    ItemHeight = 0
+    OnSelectionChange = ListBox1SelectionChange
+    TabOrder = 0
+  end
+  object Button1: TButton
+    Left = 226
+    Height = 25
+    Top = 456
+    Width = 75
+    Caption = 'New'
+    OnClick = Button1Click
+    TabOrder = 1
+  end
+  object Button2: TButton
+    Left = 308
+    Height = 25
+    Top = 488
+    Width = 75
+    Caption = 'Delete'
+    OnClick = Button2Click
+    TabOrder = 2
+  end
+  object SpriteIdEdit: TSpinEdit
+    Left = 93
+    Height = 23
+    Top = 280
+    Width = 106
+    MaxValue = 8
+    OnChange = SpriteIdEditChange
+    TabOrder = 3
+  end
+  object XSpinEdit: TSpinEdit
+    Left = 93
+    Height = 23
+    Top = 312
+    Width = 106
+    OnChange = XSpinEditChange
+    TabOrder = 4
+  end
+  object YSpinEdit: TSpinEdit
+    Left = 93
+    Height = 23
+    Top = 344
+    Width = 106
+    OnChange = YSpinEditChange
+    TabOrder = 5
+  end
+  object TileSpinEdit: TSpinEdit
+    Left = 93
+    Height = 23
+    Top = 376
+    Width = 106
+    OnChange = TileSpinEditChange
+    TabOrder = 6
+  end
+  object Label1: TLabel
+    Left = 32
+    Height = 15
+    Top = 280
+    Width = 43
+    Caption = 'Sprite id'
+    ParentColor = False
+  end
+  object Label2: TLabel
+    Left = 32
+    Height = 15
+    Top = 312
+    Width = 7
+    Caption = 'X'
+    ParentColor = False
+  end
+  object Label3: TLabel
+    Left = 32
+    Height = 15
+    Top = 344
+    Width = 7
+    Caption = 'Y'
+    ParentColor = False
+  end
+  object Label4: TLabel
+    Left = 32
+    Height = 15
+    Top = 376
+    Width = 18
+    Caption = 'Tile'
+    ParentColor = False
+  end
+  object FlipXBox: TCheckBox
+    Left = 56
+    Height = 19
+    Top = 416
+    Width = 49
+    Caption = 'Flip X'
+    OnChange = FlipXBoxChange
+    TabOrder = 7
+  end
+  object FlipYBox: TCheckBox
+    Left = 56
+    Height = 19
+    Top = 448
+    Width = 49
+    Caption = 'Flip Y'
+    OnChange = FlipYBoxChange
+    TabOrder = 8
+  end
+  object Button3: TButton
+    Left = 96
+    Height = 25
+    Top = 496
+    Width = 75
+    Caption = 'Save'
+    OnClick = Button3Click
+    TabOrder = 9
+  end
+  object Button4: TButton
+    Left = 184
+    Height = 25
+    Top = 496
+    Width = 75
+    Caption = 'Load'
+    OnClick = Button4Click
+    TabOrder = 10
+  end
+  object Button5: TButton
+    Left = 308
+    Height = 25
+    Top = 456
+    Width = 75
+    Caption = 'Dupe'
+    OnClick = Button5Click
+    TabOrder = 11
+  end
+  object Button6: TButton
+    Left = 8
+    Height = 25
+    Top = 496
+    Width = 75
+    Caption = 'Dump'
+    OnClick = Button6Click
+    TabOrder = 12
+  end
+  object ImageList1: TImageList
+    Width = 8
+    Left = 8
+    Top = 448
+    Bitmap = {
+      4C7A0800000008000000100000009C0000000000000078DAED96610A80200C85
+      77A26ED0C93C5EC7E830D68F0493F7D60C45B2091F441F4831F75CD8B7181E58
+      56A1645E1035FE7C464CED472FADB6A9BE1AE2EBD32B18FA5FCB03E4D8FEA5CB
+      3D72C933E7FE969FAFFAB741F60BC1E44966BA37FA9EB51F8DF60FA9273487FC
+      ACF9D4FB0C687BA3EFCBCF279B3BB4F9C1BDCD37A8BD38BF263AF5770FF3D77B
+      61B331B8DF9193325F0BD7ACFF0FF5965FBB
+    }
+  end
+end

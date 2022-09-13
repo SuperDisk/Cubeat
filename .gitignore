@@ -7,4 +7,7 @@
 *.mp4
 *.exe
 *.dll
+*.lps
+
 animator/lib
+animator/backup

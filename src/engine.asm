@@ -524,11 +524,17 @@ game_step::
   jr .fall_loop
 
 .try_find_match:
-  cp 2
-  jr z, .no_take ; garbage block
+  ld d, 0
 
+  res 6, a
   ld e, a
+
   ld a, [bc]
+  bit 6, a
+  jr z, .top_right_not_marked
+  set 6, d
+  res 6, a
+.top_right_not_marked:
   cp e
   jr nz, .no_take
 
@@ -536,18 +542,24 @@ game_step::
   dec bc
   dec hl
 
-  ld e, [hl]
+  ld a, [bc]
+  bit 6, a
+  jr z, .top_left_not_marked
+  bit 6, d
+  res 6, a
+  jr nz, .no_dec
+.top_left_not_marked:
   cp e
   jr nz, .no_dec
 
-  ld a, [bc]
+  ld a, [hl]
+  res 6, a
   cp e
-
   jr nz, .no_dec
 
   ;; Second column matches
 
-  ld a, 2
+  set 6, a
   ld [hl+], a
   ld [bc], a
   inc bc
@@ -566,6 +578,7 @@ game_step::
   add a
   add a
   add a
+  dec a
   dec a
   ld e, a
 

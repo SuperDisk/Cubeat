@@ -113,11 +113,12 @@
   (flet ((wrap-playfield-location (x y)
            (+ (* (+ 6 y) 20) 1 x)))
     (with-output-to-string (out)
+      (format out "ld b, %10000011~%")
       (loop for y from 0 below 11 do
         (loop for x from 0 below 18
               for offs = (cdr (assoc (wrap-playfield-location x y) mapping)) do
                 (format out "ld a, [hl+]~%")
-                (format out "or a~%")
+                (format out "and a, b~%")
                 (format out "jr z, @+5~%")
                 (format out "ld [playfield_buffer+~a], a~%" offs))))))
 

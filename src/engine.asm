@@ -55,6 +55,14 @@ MACRO add_a_to_bc
     add_a_to_r16 b, c
 ENDM
 
+SECTION "Board", WRAM0[$C6FF]
+
+board_seek_end: db
+
+;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
+board: ds (18*11)
+.end:
+
 SECTION "Game vars", WRAM0
 drop_pos: db
 
@@ -78,9 +86,8 @@ db ; yoff
 dw ; animation
 ds 8 ; sprites to use
 
-;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
-board: ds (18*11)
-.end:
+anim_x_temp: db
+anim_y_temp: db
 
 SECTION "Engine code", ROM0
 
@@ -100,6 +107,9 @@ init_game::
   ld hl, board
   ld bc, board.end - board
   call Memset
+
+  ld a, $1
+  ld [board_seek_end], a
 
   ld a, 9
   ld [falling_block_rate], a
@@ -121,8 +131,9 @@ init_game::
   ld hl, animations
   ld a, 1
   ld [hl+], a
-  ld a, 0
+  ld a, 79
   ld [hl+], a
+  ld a, 100
   ld [hl+], a
   ld a, LOW(anim_match_appear)
   ld [hl+], a
@@ -517,14 +528,14 @@ game_step::
   ld l, ROW
   add hl, bc
 
-  ld d, (BOARD_W*BOARD_H)-ROW
-
 .fall_loop:
   ld a, [hl]
   or a
   jr nz, .try_find_match
 
   ld a, [bc]
+  cp $1 ; End board sentinel
+  jr z, update_graphics
   ld [hl], a
   xor a
   ld [bc], a
@@ -533,11 +544,12 @@ game_step::
   dec hl
   dec bc
 .no_dec:
-  dec d
-  jr nz, .fall_loop
-  jr update_graphics
+  jr .fall_loop
 
 .try_find_match:
+  cp 2
+  jr z, .no_take ; garbage block
+
   ld e, a
   ld a, [bc]
   cp e
@@ -558,12 +570,66 @@ game_step::
 
   ;; Second column matches
 
-  xor a
+  ld a, 2
   ld [hl+], a
   ld [bc], a
   inc bc
   ld [hl], a
   ld [bc], a
+
+  ;; Split out XY coords from board pos
+  ld d, 0
+  ld a, l
+.div_loop:
+  inc d
+  sub 18
+  jr nc, .div_loop
+
+  add 18
+  add a
+  add a
+  add a
+  dec a
+  ld e, a
+
+  dec d
+  ld a, d
+  add a
+  add a
+  add a
+  add 47-8-1
+  ld d, a
+
+  ; E = X
+  ; D = Y
+
+  push hl
+  ld hl, animations
+  ld a, 1
+  ld [hl+], a
+
+  ld a, e
+  ld [hl+], a ; x
+  ld a, d
+  ld [hl+], a ; y
+  ld a, LOW(anim_match_appear)
+  ld [hl+], a
+  ld a, HIGH(anim_match_appear)
+  ld [hl+], a
+
+  ld a, 19
+  ld [hl+], a
+  ld a, 20
+  ld [hl+], a
+  ld a, 21
+  ld [hl+], a
+  ld a, 22
+  ld [hl+], a
+  ld a, 23
+  ld [hl+], a
+  ld a, 24
+  ld [hl+], a
+  pop hl
 
   jr .no_take
 
@@ -679,9 +745,9 @@ update_graphics:
 
 .animate:
   ld a, [hl+]
-  ld d, a ; x
+  ld [anim_x_temp], a
   ld a, [hl+]
-  ld e, a ; y
+  ld [anim_y_temp], a
 
   push hl
 
@@ -726,12 +792,18 @@ update_graphics:
   ld de, wShadowOAM2
   add_a_to_de
 
-  ld a, [hl+] ; Y
+  ld a, [anim_y_temp]
+  add [hl] ; Y
+  inc hl
   ld [de], a
   inc de
-  ld a, [hl+] ; X
+
+  ld a, [anim_x_temp]
+  add [hl] ; X
+  inc hl
   ld [de], a
   inc de
+
   ld a, [hl+] ; tile
   ld [de], a
   inc de
@@ -868,8 +940,8 @@ ENDR
 
 MACRO anim
   db $0 ; real frame ; \1+25      ; sprite ID
-  db \3 + 16 + 100 ; y
-  db \2 + 8 + 79 ; x
+  db \3 + 16; y
+  db \2 + 8 ; x
   db (\4*2)+$3f+1      ; tile
   db (\5 << 5) | (\6 << 6) ; flip flags
 ENDM

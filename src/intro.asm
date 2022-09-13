@@ -292,19 +292,12 @@ endm
   update_sprite2 13, 64, 49+(16*4), $36
   update_sprite2 14, 64, 49+(16*5), $36
 
-  ; update_sprite2 15, 64-16, 49+(16*0), $36
-  ; update_sprite2 16, 64-16, 49+(16*1), $36
-  ; update_sprite2 17, 64-16, 49+(16*2), $36
-  ; update_sprite2 18, 64-16, 49+(16*3), $36
-  ; update_sprite2 19, 64-16, 49+(16*4), $36
-  ; update_sprite2 20, 64-16, 49+(16*5), $36
-
   ; Falling block
-  update_sprite2 21, 16, 48, $38
-  update_sprite2 22, 16+8, 48, $3A
+  update_sprite2 15, 16, 48, $38
+  update_sprite2 16, 16+8, 48, $3A
 
-  update_sprite2 23, 16, 48+8, $3A
-  update_sprite2 24, 16+8, 48+8, $38
+  update_sprite2 17, 16, 48+8, $3A
+  update_sprite2 18, 16+8, 48+8, $38
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA

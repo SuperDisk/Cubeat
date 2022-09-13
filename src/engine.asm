@@ -67,11 +67,16 @@ falling_block_y: db
 
 dpad_frames: db
 
-animation: dw
-
 next_block1: ds 4
 next_block2: ds 4
 block: ds 4
+
+animations:
+db ; running
+db ; xoff
+db ; yoff
+dw ; animation
+ds 8 ; sprites to use
 
 ;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
 board: ds (18*11)
@@ -112,10 +117,30 @@ init_game::
   ld a, $80
   ld [block+3], a
 
+
+  ld hl, animations
+  ld a, 1
+  ld [hl+], a
+  ld a, 0
+  ld [hl+], a
+  ld [hl+], a
   ld a, LOW(anim_match_appear)
-  ld [animation], a
+  ld [hl+], a
   ld a, HIGH(anim_match_appear)
-  ld [animation+1], a
+  ld [hl+], a
+
+  ld a, 25
+  ld [hl+], a
+  ld a, 26
+  ld [hl+], a
+  ld a, 27
+  ld [hl+], a
+  ld a, 28
+  ld [hl+], a
+  ld a, 29
+  ld [hl+], a
+  ld a, 30
+  ld [hl+], a
 
   ret
 
@@ -549,28 +574,28 @@ update_graphics:
   ; xor 1
   add a
   add $38
-  spriteTile2 21
+  spriteTile2 15
 
   ld a, [block+1]
   sub $80
   ; xor 1
   add a
   add $38
-  spriteTile2 22
+  spriteTile2 16
 
   ld a, [block+2]
   sub $80
   ; xor 1
   add a
   add $38
-  spriteTile2 23
+  spriteTile2 17
 
   ld a, [block+3]
   sub $80
   ; xor 1
   add a
   add $38
-  spriteTile2 24
+  spriteTile2 18
 
   ;; Radar position
 
@@ -617,52 +642,90 @@ update_graphics:
 
   ;; Falling block
   sub 16
-  spriteX 21
-  spriteX 23
+  spriteX 15
+  spriteX 17
   add 8
-  spriteX 22
-  spriteX 24
+  spriteX 16
+  spriteX 18
 
   ld a, [falling_block_y]
   add a
   add a
   add a
   add 48
-  spriteY 22
-  spriteY 21
+  spriteY 16
+  spriteY 15
   add 8
-  spriteY 23
-  spriteY 24
+  spriteY 17
+  spriteY 18
 
   ld a, [frame_counter]
   and 1
   jr z, .playfield_update
 
-  ;; Run animation
-  ld hl, animation
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Process running animations
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld hl, animations
+  ld a, [hl+]
+  or a
+  jr nz, .animate
+
+  ; TODO: go to the next one
+
+  jr .playfield_update
+
+.animate:
+  ld a, [hl+]
+  ld d, a ; x
+  ld a, [hl+]
+  ld e, a ; y
+
+  push hl
+
+  ld b, h
+  ld c, l
+  inc bc
+  inc bc ; sprites
+
   ld a, [hl+]
   ld h, [hl]
   ld l, a
 
-  ; ld hl, anim_match_appear
 .process_anim:
   ld a, [hl+]
 
-  cp $FF
+  cp $AE
   jr nz, .anim_continue
-
-  ld hl, anim_match_appear
-  jr .anim_finish
+  ;; animation is done
+  ld hl, -5
+  add hl, bc
+  ld [hl], 0
+  pop af
+  jr .playfield_update
 
 .anim_continue:
   cp $FE
-  jr z, .anim_finish
+  jr nz, .anim_continue2
+  ;; move to next frame
+  ld b, h
+  ld c, l
+  pop hl
+  ld [hl], c
+  inc hl
+  ld [hl], b
+  jr .playfield_update
 
-  ; ld a, [hl+] ; sprite id
+.anim_continue2:
+  ld a, [bc] ; sprite ID
+  inc bc
   add a
   add a
   ld de, wShadowOAM2
   add_a_to_de
+
   ld a, [hl+] ; Y
   ld [de], a
   inc de
@@ -674,14 +737,9 @@ update_graphics:
   inc de
   ld a, [hl+] ; flip attrs
   ld [de], a
-  inc de
-  jr .process_anim
 
-.anim_finish:
-  ld a, l
-  ld [animation], a
-  ld a, h
-  ld [animation+1], a
+  ld a, [hl+]
+  jr .anim_continue
 
 .playfield_update:
   ld hl, board
@@ -809,7 +867,7 @@ ENDR
   ret
 
 MACRO anim
-  db \1+25      ; sprite ID
+  db $0 ; real frame ; \1+25      ; sprite ID
   db \3 + 16 + 100 ; y
   db \2 + 8 + 79 ; x
   db (\4*2)+$3f+1      ; tile
@@ -821,7 +879,7 @@ MACRO framend
 ENDM
 
 MACRO animend
-  db $FF
+  db $AE
 ENDM
 
 anim_match_appear:
@@ -859,4 +917,6 @@ anim_match_appear:
 
   anim 0,2,2,6,0,0
   anim 1,10,2,6,0,0
+  framend
+
   animend

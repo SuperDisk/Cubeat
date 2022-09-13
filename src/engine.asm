@@ -127,32 +127,6 @@ init_game::
   ld a, $80
   ld [block+3], a
 
-
-  ld hl, animations
-  ld a, 1
-  ld [hl+], a
-  ld a, 79
-  ld [hl+], a
-  ld a, 100
-  ld [hl+], a
-  ld a, LOW(anim_match_appear)
-  ld [hl+], a
-  ld a, HIGH(anim_match_appear)
-  ld [hl+], a
-
-  ld a, 25
-  ld [hl+], a
-  ld a, 26
-  ld [hl+], a
-  ld a, 27
-  ld [hl+], a
-  ld a, 28
-  ld [hl+], a
-  ld a, 29
-  ld [hl+], a
-  ld a, 30
-  ld [hl+], a
-
   ret
 
 game_step::
@@ -233,9 +207,11 @@ game_step::
   ld b, a
   ld a, [falling_block_y]
   sub 2
+  jr c, .no_goto
   ld c, a
   call goto_xy_pos
   ld de, ROW
+.no_goto:
 
   ld a, [hHeldKeys]
   and %00110000
@@ -872,6 +848,10 @@ goto_xy_pos:
 ;;; Param: B = X position on board
 ;;; Return: HL = Pointer into board of coord
 ;;; Destroy: AF BC
+  ld a, c
+  or a
+  ld a, b
+  jr z, .done
   xor a
 
 .mult:
@@ -881,6 +861,7 @@ goto_xy_pos:
 
   add b
 
+.done:
   ld hl, board
   add_a_to_hl
 

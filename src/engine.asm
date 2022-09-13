@@ -1,6 +1,6 @@
 include "defines.asm"
 
-update_sprite2: macro ; which sprite, x, y, tile
+macro update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM2+(4*\1)], a
   ld a, \2+8
@@ -9,23 +9,23 @@ update_sprite2: macro ; which sprite, x, y, tile
   ld [wShadowOAM2+(4*\1)+2], a
 endm
 
-spriteX: MACRO ; which sprite
+MACRO spriteX ; which sprite
   ld [wShadowOAM2+(4*\1)+1], a
 ENDM
 
-spriteY: MACRO ; which sprite
+MACRO spriteY ; which sprite
   ld [wShadowOAM2+(4*\1)], a
 ENDM
 
-spriteTile1: macro ; tile
+MACRO spriteTile1 ; tile
   ld [wShadowOAM+(4*\1)+2], a
 endm
 
-spriteTile2: macro ; tile
+MACRO spriteTile2 ; tile
   ld [wShadowOAM2+(4*\1)+2], a
 endm
 
-add_a_to_r16: MACRO
+MACRO add_a_to_r16
     add \2
     ld \2, a
     adc \1
@@ -34,7 +34,7 @@ add_a_to_r16: MACRO
 ENDM
 
 ;; Thanks PinoBatch!
-sub_from_r16: MACRO ;; (high, low, value)
+MACRO sub_from_r16 ;; (high, low, value)
     ld a, \2
     sub \3
     ld \2, a
@@ -43,15 +43,15 @@ sub_from_r16: MACRO ;; (high, low, value)
     ld \1, a
 ENDM
 
-add_a_to_hl: MACRO
+MACRO add_a_to_hl
     add_a_to_r16 h, l
 ENDM
 
-add_a_to_de: MACRO
+MACRO add_a_to_de
     add_a_to_r16 d, e
 ENDM
 
-add_a_to_bc: MACRO
+MACRO add_a_to_bc
     add_a_to_r16 b, c
 ENDM
 
@@ -546,28 +546,28 @@ update_graphics:
   ;; Dropping block tiles
   ld a, [block+0]
   sub $80
-  xor 1
+  ; xor 1
   add a
   add $38
   spriteTile2 21
 
   ld a, [block+1]
   sub $80
-  xor 1
+  ; xor 1
   add a
   add $38
   spriteTile2 22
 
   ld a, [block+2]
   sub $80
-  xor 1
+  ; xor 1
   add a
   add $38
   spriteTile2 23
 
   ld a, [block+3]
   sub $80
-  xor 1
+  ; xor 1
   add a
   add $38
   spriteTile2 24
@@ -608,12 +608,12 @@ update_graphics:
 
   add 16
 
-  spriteX 15
-  spriteX 16
-  spriteX 17
-  spriteX 18
-  spriteX 19
-  spriteX 20
+  ; spriteX 15
+  ; spriteX 16
+  ; spriteX 17
+  ; spriteX 18
+  ; spriteX 19
+  ; spriteX 20
 
   ;; Falling block
   sub 16
@@ -686,6 +686,24 @@ update_graphics:
 .playfield_update:
   ld hl, board
   include "playfield_update.inc"
+
+  ret
+
+game_step2::
+  ld a, [drop_pos]
+  add 2
+  add a
+  add a
+  add a
+
+  add 16
+
+  spriteX 9
+  spriteX 10
+  spriteX 11
+  spriteX 12
+  spriteX 13
+  spriteX 14
 
   ret
 
@@ -790,7 +808,7 @@ ENDR
 	ldh [hHeldKeys], a
   ret
 
-anim: MACRO
+MACRO anim
   db \1+25      ; sprite ID
   db \3 + 16 + 100 ; y
   db \2 + 8 + 79 ; x
@@ -798,11 +816,11 @@ anim: MACRO
   db (\5 << 5) | (\6 << 6) ; flip flags
 ENDM
 
-framend: MACRO
+MACRO framend
   db $FE
 ENDM
 
-animend: MACRO
+MACRO animend
   db $FF
 ENDM
 
@@ -840,5 +858,5 @@ anim_match_appear:
   framend
 
   anim 0,2,2,6,0,0
-  anim 1,10,2,8,0,0
+  anim 1,10,2,6,0,0
   animend

@@ -121,6 +121,15 @@ $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@
 
+# Convert .png files using custom atfile arguments
+$(RESDIR)/%.2bpp: $(RESDIR)/%.arg $(RESDIR)/%.png
+	@mkdir -p $(@D)
+	$(RGBGFX) -o $(RESDIR)/$*.2bpp @$^
+
+$(RESDIR)/%.2bppu: $(RESDIR)/%.arg $(RESDIR)/%.png
+	@mkdir -p $(@D)
+	$(RGBGFX) -u -o $(RESDIR)/$*.2bppu @$^
+
 $(RESDIR)/%.2bppu $(RESDIR)/%.tilemapu: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(RGBGFX) -u -d 2 -o $(RESDIR)/$*.2bppu -t $(RESDIR)/$*.tilemapu $<

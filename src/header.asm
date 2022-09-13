@@ -72,11 +72,11 @@ Reset::
 	;; WARN "Edit to set palettes here"
 	; CGB palettes maybe, DMG ones always
 
-  ld a, %00100111
+  ld a, %00_10_01_11
   ld [hBGP], a
-  ld a, %10001101
+  ld a, %11_10_00_01
   ld [hOBP0], a
-  ld a, %00100111
+  ld a, %00_10_01_11
   ld [hOBP1], a
 
 	; You will also need to reset your handlers' variables below

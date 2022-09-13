@@ -1,6 +1,6 @@
 include "defines.asm"
 
-add_a_to_r16: MACRO
+MACRO add_a_to_r16
     add \2
     ld \2, a
     adc \1
@@ -9,7 +9,7 @@ add_a_to_r16: MACRO
 ENDM
 
 ;; Thanks PinoBatch!
-sub_from_r16: MACRO ;; (high, low, value)
+MACRO sub_from_r16  ;; (high, low, value)
     ld a, \2
     sub \3
     ld \2, a
@@ -18,11 +18,11 @@ sub_from_r16: MACRO ;; (high, low, value)
     ld \1, a
 ENDM
 
-add_a_to_hl: MACRO
+MACRO add_a_to_hl
     add_a_to_r16 h, l
 ENDM
 
-add_a_to_de: MACRO
+MACRO add_a_to_de
     add_a_to_r16 d, e
 ENDM
 
@@ -107,14 +107,7 @@ incbin "res/pices_8x8_Grid-Alpha-Bomb.2bppu"
 .end:
 
 block_match_anim:
-incbin "res/u1.2bpp"
-incbin "res/u2.2bpp"
-incbin "res/u3.2bpp"
-incbin "res/u4.2bpp"
-incbin "res/u5.2bpp"
-incbin "res/u6.2bpp"
-incbin "res/u7.2bpp"
-incbin "res/u8.2bpp"
+incbin "res/anim_match_found.2bpp"
 .end:
 
 SECTION "Playfield Buffer ROM", ROM0
@@ -220,7 +213,7 @@ Intro::
   ld a, 8
   ld [wShadowOAM+1], a
 
-update_sprite: macro ; which sprite, x, y, tile
+macro update_sprite  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM+(4*\1)], a
   ld a, \2+8
@@ -229,7 +222,7 @@ update_sprite: macro ; which sprite, x, y, tile
   ld [wShadowOAM+(4*\1)+2], a
 endm
 
-update_sprite2: macro ; which sprite, x, y, tile
+macro update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM2+(4*\1)], a
   ld a, \2+8
@@ -299,12 +292,12 @@ endm
   update_sprite2 13, 64, 49+(16*4), $36
   update_sprite2 14, 64, 49+(16*5), $36
 
-  update_sprite2 15, 64-16, 49+(16*0), $36
-  update_sprite2 16, 64-16, 49+(16*1), $36
-  update_sprite2 17, 64-16, 49+(16*2), $36
-  update_sprite2 18, 64-16, 49+(16*3), $36
-  update_sprite2 19, 64-16, 49+(16*4), $36
-  update_sprite2 20, 64-16, 49+(16*5), $36
+  ; update_sprite2 15, 64-16, 49+(16*0), $36
+  ; update_sprite2 16, 64-16, 49+(16*1), $36
+  ; update_sprite2 17, 64-16, 49+(16*2), $36
+  ; update_sprite2 18, 64-16, 49+(16*3), $36
+  ; update_sprite2 19, 64-16, 49+(16*4), $36
+  ; update_sprite2 20, 64-16, 49+(16*5), $36
 
   ; Falling block
   update_sprite2 21, 16, 48, $38
@@ -349,9 +342,9 @@ animation_loop:
 
   call update_playfield_buffer
 
-  ;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Run game logic update
-  ;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   call game_step
 
@@ -395,8 +388,6 @@ animation_loop:
 
   call playfield_buffer
 
-  ;; TODO: Shove more game logic in here. LY=8
-
 .wait_for_before_radar
   ld a, [rLY]
   cp 30
@@ -411,6 +402,12 @@ animation_loop:
   ld [rLCDC], a
   ld a, HIGH(wShadowOAM2)
   call hOAMDMA
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Run game logic update
+  ;; Anything we couldn't cram into the previous step...
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  call game_step2
 
 .wait_for_below_play_area0
   ld a, [rLY]

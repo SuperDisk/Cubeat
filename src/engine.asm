@@ -103,6 +103,7 @@ init_game::
   ld [radar_pos], a
   ld [drop_pos], a
   ld [falling_block_y], a
+  ld [animations], a
 
   ld hl, board
   ld bc, board.end - board

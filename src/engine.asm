@@ -55,9 +55,9 @@ MACRO add_a_to_bc
     add_a_to_r16 b, c
 ENDM
 
-SECTION "Board", WRAM0[$C6FF]
+SECTION "Board", WRAM0, ALIGN[8]
 
-board_seek_end: db
+db
 
 ;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
 board: ds (18*11)
@@ -108,9 +108,6 @@ init_game::
   ld hl, board
   ld bc, board.end - board
   call Memset
-
-  ld a, $1
-  ld [board_seek_end], a
 
   ld a, 9
   ld [falling_block_rate], a
@@ -504,22 +501,26 @@ game_step::
   ld h, 0
   ld l, ROW
   add hl, bc
+  jr .fall_loop
 
+.failed_match:
+  ld a, c
+  or a
+  jr z, update_graphics
 .fall_loop:
   ld a, [hl]
   or a
   jr nz, .try_find_match
 
   ld a, [bc]
-  cp $1 ; End board sentinel
-  jr z, update_graphics
   ld [hl], a
   xor a
   ld [bc], a
 
 .no_take:
-  dec hl
-  dec bc
+  dec l
+  dec c
+  jr z, update_graphics
 .no_dec:
   jr .fall_loop
 
@@ -539,30 +540,30 @@ game_step::
   jr nz, .no_take
 
   ;; First column matches
-  dec bc
-  dec hl
+  dec c
+  dec l
 
   ld a, [bc]
   bit 6, a
   jr z, .top_left_not_marked
   bit 6, d
   res 6, a
-  jr nz, .no_dec
+  jr nz, .failed_match
 .top_left_not_marked:
   cp e
-  jr nz, .no_dec
+  jr nz, .failed_match
 
   ld a, [hl]
   res 6, a
   cp e
-  jr nz, .no_dec
+  jr nz, .failed_match
 
   ;; Second column matches
 
   set 6, a
   ld [hl+], a
   ld [bc], a
-  inc bc
+  inc c
   ld [hl], a
   ld [bc], a
 
@@ -574,7 +575,7 @@ game_step::
   sub 18
   jr nc, .div_loop
 
-  add 18
+  add 17
   add a
   add a
   add a
@@ -582,12 +583,11 @@ game_step::
   dec a
   ld e, a
 
-  dec d
   ld a, d
   add a
   add a
   add a
-  add 47-8-1
+  add 47-8-1-8
   ld d, a
 
   ; E = X
@@ -627,28 +627,24 @@ update_graphics:
   ;; Dropping block tiles
   ld a, [block+0]
   sub $80
-  ; xor 1
   add a
   add $38
   spriteTile2 15
 
   ld a, [block+1]
   sub $80
-  ; xor 1
   add a
   add $38
   spriteTile2 16
 
   ld a, [block+2]
   sub $80
-  ; xor 1
   add a
   add $38
   spriteTile2 17
 
   ld a, [block+3]
   sub $80
-  ; xor 1
   add a
   add $38
   spriteTile2 18
@@ -753,7 +749,7 @@ update_graphics:
 .process_anim:
   ld a, [hl+]
 
-  cp $AE
+  cp $AE ; Animation End
   jr nz, .anim_continue
   ;; animation is done
   ld hl, -5
@@ -763,7 +759,7 @@ update_graphics:
   jr .playfield_update
 
 .anim_continue:
-  cp $FE
+  cp $FE ; Frame End
   jr nz, .anim_continue2
   ;; move to next frame
   ld b, h
@@ -775,6 +771,10 @@ update_graphics:
   jr .playfield_update
 
 .anim_continue2:
+  cp $C0 ; Code block
+  jr nz, .anim_continue3
+
+.anim_continue3:
   ld a, [bc] ; sprite ID
   inc bc
   add a
@@ -807,6 +807,7 @@ update_graphics:
   ld hl, board
   include "playfield_update.inc"
 
+game_step_done:
   ret
 
 game_step2::
@@ -933,57 +934,65 @@ ENDR
 	ldh [hHeldKeys], a
   ret
 
-MACRO anim
-  db $0 ; real frame ; \1+25      ; sprite ID
+MACRO anim_sprite
+  db $0 ; sprite update
   db \3 + 16; y
   db \2 + 8 ; x
   db (\4*2)+$3f+1      ; tile
   db (\5 << 5) | (\6 << 6) ; flip flags
 ENDM
 
-MACRO framend
+MACRO anim_frame_end
   db $FE
 ENDM
 
-MACRO animend
+MACRO anim_end
   db $AE
 ENDM
 
+MACRO anim_code
+  db $C0
+ENDM
+
 anim_match_appear:
-  anim 0,0,0,0,0,0
-  anim 1,12,0,0,1,0
-  anim 2,4,-14,1,0,1
-  anim 3,0,4,0,0,1
-  anim 4,12,4,0,1,1
-  anim 5,6,18,1,0,0
-  framend
+  anim_sprite 0,0,0,0,0,0
+  anim_sprite 1,12,0,0,1,0
+  anim_sprite 2,4,-14,1,0,1
+  anim_sprite 3,0,4,0,0,1
+  anim_sprite 4,12,4,0,1,1
+  anim_sprite 5,6,18,1,0,0
+  anim_frame_end
 
-  anim 0,1,1,0,0,0
-  anim 1,11,1,0,1,0
-  anim 2,5,-13,1,0,1
-  anim 3,1,3,0,0,1
-  anim 4,11,3,0,1,1
-  anim 5,7,17,1,0,0
-  framend
+  anim_sprite 0,1,1,0,0,0
+  anim_sprite 1,11,1,0,1,0
+  anim_sprite 2,5,-13,1,0,1
+  anim_sprite 3,1,3,0,0,1
+  anim_sprite 4,11,3,0,1,1
+  anim_sprite 5,7,17,1,0,0
+  anim_frame_end
 
-  anim 0,2,2,2,0,0
-  anim 1,10,2,3,0,0
-  anim 2,-8,-120,0,0,0
-  anim 3,-8,-120,0,0,0
-  anim 4,-8,-120,0,0,0
-  anim 5,-8,-120,0,0,0
-  framend
+  anim_sprite 0,2,2,2,0,0
+  anim_sprite 1,10,2,3,0,0
+  anim_sprite 2,-8,-120,0,0,0
+  anim_sprite 3,-8,-120,0,0,0
+  anim_sprite 4,-8,-120,0,0,0
+  anim_sprite 5,-8,-120,0,0,0
+  anim_frame_end
 
-  anim 0,2,2,4,0,0
-  anim 1,10,2,5,0,0
-  framend
+  anim_sprite 0,2,2,4,0,0
+  anim_sprite 1,10,2,5,0,0
+  anim_frame_end
 
-  anim 0,2,2,6,0,0
-  anim 1,10,2,7,0,0
-  framend
+  anim_sprite 0,2,2,6,0,0
+  anim_sprite 1,10,2,7,0,0
+  anim_frame_end
 
-  anim 0,2,2,6,0,0
-  anim 1,10,2,6,0,0
-  framend
+  anim_sprite 0,2,2,6,0,0
+  anim_sprite 1,10,2,6,0,0
+  anim_frame_end
 
-  animend
+  ; anim_code
+  ; ld a, 1
+
+
+  anim_end

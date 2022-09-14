@@ -1,4 +1,4 @@
-ld b, %10000011
+ld b, $FF ; %10000011
 ld a, [hl+]
 and a, b
 jr z, @+5

@@ -84,6 +84,7 @@ db ; running
 db ; xoff
 db ; yoff
 dw ; animation
+db ; info
 ds 8 ; sprites to use
 
 anim_x_temp: db
@@ -116,9 +117,9 @@ init_game::
   ld a, DPAD_HOLD_FRAMES
   ld [dpad_frames], a
 
-  ld a, $81
+  ld a, $80
   ld [block+0], a
-  ld a, $81
+  ld a, $80
   ld [block+1], a
   ld a, $80
   ld [block+2], a
@@ -506,7 +507,7 @@ game_step::
 .failed_match:
   ld a, c
   or a
-  jr z, update_graphics
+  jp z, update_graphics ; TODO: MAKE THIS A JR AGAIN!
 .fall_loop:
   ld a, [hl]
   or a
@@ -567,6 +568,9 @@ game_step::
   ld [hl], a
   ld [bc], a
 
+  ld a, c
+  ld [anim_x_temp], a
+
   ;; Split out XY coords from board pos
   ld d, 0
   ld a, l
@@ -606,6 +610,9 @@ game_step::
   ld [hl+], a
   ld a, HIGH(anim_match_appear)
   ld [hl+], a
+
+  ld a, [anim_x_temp]
+  ld [hl+], a ; info
 
   ld a, 19
   ld [hl+], a
@@ -739,6 +746,8 @@ update_graphics:
 
   ld b, h
   ld c, l
+
+  inc bc ; info
   inc bc
   inc bc ; sprites
 
@@ -751,8 +760,11 @@ update_graphics:
 
   cp $AE ; Animation End
   jr nz, .anim_continue
+
+  rst CallHL
+
   ;; animation is done
-  ld hl, -5
+  ld hl, -6
   add hl, bc
   ld [hl], 0
   pop af
@@ -771,10 +783,6 @@ update_graphics:
   jr .playfield_update
 
 .anim_continue2:
-  cp $C0 ; Code block
-  jr nz, .anim_continue3
-
-.anim_continue3:
   ld a, [bc] ; sprite ID
   inc bc
   add a
@@ -950,10 +958,6 @@ MACRO anim_end
   db $AE
 ENDM
 
-MACRO anim_code
-  db $C0
-ENDM
-
 anim_match_appear:
   anim_sprite 0,0,0,0,0,0
   anim_sprite 1,12,0,0,1,0
@@ -991,8 +995,26 @@ anim_match_appear:
   anim_sprite 1,10,2,6,0,0
   anim_frame_end
 
-  ; anim_code
-  ; ld a, 1
-
-
   anim_end
+.jorgus:
+  push bc
+  push hl
+
+  dec bc
+
+  ld h, HIGH(board)
+
+  ld a, [bc]
+  ld l, a
+  ld [hl], 0
+  dec l
+  ld [hl], 0
+  add a, 18
+  ld l, a
+  ld [hl], 0
+  dec l
+  ld [hl], 0
+
+  pop hl
+  pop bc
+  ret

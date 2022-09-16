@@ -106,6 +106,10 @@ block_gfx:
 incbin "res/pices_8x8_Grid-Alpha-Bomb.2bppu"
 .end:
 
+block_highlight:
+incbin "res/HighLight_blocks.2bpp"
+.end:
+
 block_match_anim:
 incbin "res/anim_match_found.2bpp"
 .end:
@@ -203,9 +207,13 @@ Intro::
   ld c, 32*2
   rst MemcpySmall
 
+  ld de, block_highlight
+  ld c, block_highlight.end - block_highlight
+  rst MemcpySmall
+
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
-  ld bc, (playfield_buffer_rom.end - playfield_buffer_rom)
+  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
   call Memcpy
 
   ld a, 16

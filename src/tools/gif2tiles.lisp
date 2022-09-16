@@ -1,6 +1,9 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload '(:skippy) :silent t))
 
+(defparameter *reserved-tiles-count* 8)
+
+
 (defun gif-data= (i1 i2)
   (equalp (skippy:image-data i1) (skippy:image-data i2)))
 
@@ -275,9 +278,9 @@
     (setf assignments
           (let* ((max-tiles (min (1- (hash-table-count tiles)) 255))
                  (initial-part (loop for tname being each hash-key of (car frame-sets)
-                                     for i from 4 ; reserved tiles
+                                     for i from *reserved-tiles-count*
                                      collect (cons i tname)))
-                 (first-assignment (loop for i from 4 to max-tiles
+                 (first-assignment (loop for i from *reserved-tiles-count* to max-tiles
                                          collect (or (assoc i initial-part) (cons i i))))
                  (current-assignment first-assignment)
                  (free-idxs (loop for i from (length initial-part) to max-tiles collect i)))

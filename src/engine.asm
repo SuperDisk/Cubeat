@@ -521,22 +521,24 @@ game_step::
 .no_take:
   dec l
   dec c
-  jr z, update_graphics
+  jp z, update_graphics
 .no_dec:
   jr .fall_loop
 
 .try_find_match:
   ld d, 0
 
-  res 6, a
+  and 1
   ld e, a
 
   ld a, [bc]
+  bit 7, a
+  jr z, .no_take
   bit 6, a
   jr z, .top_right_not_marked
   set 6, d
-  res 6, a
 .top_right_not_marked:
+  and 1
   cp e
   jr nz, .no_take
 
@@ -545,23 +547,26 @@ game_step::
   dec l
 
   ld a, [bc]
+  bit 7, a
+  jr z, .failed_match
   bit 6, a
   jr z, .top_left_not_marked
   bit 6, d
-  res 6, a
   jr nz, .failed_match
 .top_left_not_marked:
+  and 1
   cp e
   jr nz, .failed_match
 
   ld a, [hl]
-  res 6, a
+  and 1
   cp e
   jr nz, .failed_match
 
   ;; Second column matches
 
   set 6, a
+  or $80
   ld [hl+], a
   ld [bc], a
   inc c
@@ -628,7 +633,7 @@ game_step::
   ld [hl+], a
   pop hl
 
-  jr .no_take
+  jp .no_take
 
 update_graphics:
   ;; Dropping block tiles
@@ -1005,14 +1010,20 @@ anim_match_appear:
 
   ld a, [bc]
   ld l, a
-  ld [hl], 0
-  dec l
-  ld [hl], 0
-  add a, 18
+
+  ld a, [hl]
+  add 4
+
+  ld [hl-], a
+  ld [hl+], a
+  ld b, a
+
+  ld a, l
+  add 18
   ld l, a
-  ld [hl], 0
-  dec l
-  ld [hl], 0
+  ld a, b
+  ld [hl-], a
+  ld [hl], a
 
   pop hl
   pop bc

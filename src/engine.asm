@@ -996,7 +996,6 @@ anim_match_appear:
   anim_frame_end
 
   anim_end
-.jorgus:
   push bc
   push hl
 

@@ -6,7 +6,7 @@ include "defines.asm"
 
 DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
-DEF DBG_DONTANIMATE = 1
+; DEF DBG_DONTANIMATE = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constants
@@ -875,7 +875,7 @@ update_graphics:
   ;; animation is done
   ld hl, -7
   add hl, bc
-  ld [hl], 0
+  ld [hl], 2 ; cleanup flag
   pop af
   jr .playfield_update
 
@@ -896,8 +896,8 @@ update_graphics:
   inc bc
   add a
   add a
-  ld de, wShadowOAM2
-  add_a_to_de
+  ld d, HIGH(wShadowOAM2)
+  ld e, a
 
   ld a, [anim_y_temp]
   add [hl] ; Y
@@ -905,7 +905,7 @@ update_graphics:
   IF !DEF(DBG_DONTANIMATE)
   ld [de], a
   ENDC
-  inc de
+  inc e
 
   ld a, [anim_x_temp]
   add [hl] ; X
@@ -913,13 +913,13 @@ update_graphics:
   IF !DEF(DBG_DONTANIMATE)
   ld [de], a
   ENDC
-  inc de
+  inc e
 
   ld a, [hl+] ; tile
   IF !DEF(DBG_DONTANIMATE)
   ld [de], a
   ENDC
-  inc de
+  inc e
   ld a, [hl+] ; flip attrs and palette
   push hl
   ld hl, anim_palette_temp
@@ -978,6 +978,37 @@ update_graphics2:
   spriteX 12
   spriteX 13
   spriteX 14
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Clean up any animations that need it
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld hl, animations
+  ld a, [hl]
+  cp 2
+  ret nz
+
+  ld [hl], 0
+
+  ld a, 7
+  add l
+  ld l, a
+  ld b, HIGH(wShadowOAM2)
+
+  ;; TODO: Refactor the sprite indexes to be pre multiplied?
+  ld a, [hl+]
+  add a
+  add a
+  ld c, a
+  xor a
+  ld [bc], a
+
+  ld a, [hl+]
+  add a
+  add a
+  ld c, a
+  xor a
+  ld [bc], a
 
   ret
 

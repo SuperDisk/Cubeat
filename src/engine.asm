@@ -84,11 +84,13 @@ db ; running
 db ; xoff
 db ; yoff
 dw ; animation
+db ; palette
 db ; info
 ds 8 ; sprites to use
 
 anim_x_temp: db
 anim_y_temp: db
+anim_palette_temp: db
 
 SECTION "Engine code", ROM0
 
@@ -575,6 +577,8 @@ game_step::
 
   ld a, c
   ld [anim_x_temp], a
+  ld a, e
+  ld [anim_y_temp], a
 
   ;; Split out XY coords from board pos
   ld d, 0
@@ -616,6 +620,10 @@ game_step::
   ld a, HIGH(anim_match_appear)
   ld [hl+], a
 
+  ld a, [anim_y_temp]
+  and 1
+  swap a
+  ld [hl+], a ; palette
   ld a, [anim_x_temp]
   ld [hl+], a ; info
 
@@ -752,8 +760,14 @@ update_graphics:
   ld b, h
   ld c, l
 
-  inc bc ; info
   inc bc
+  inc bc ; get past animation var
+
+  ; now pointing at palette
+  ld a, [bc]
+  ld [anim_palette_temp], a
+
+  inc bc ; info
   inc bc ; sprites
 
   ld a, [hl+]
@@ -769,7 +783,7 @@ update_graphics:
   rst CallHL
 
   ;; animation is done
-  ld hl, -6
+  ld hl, -7
   add hl, bc
   ld [hl], 0
   pop af
@@ -810,7 +824,11 @@ update_graphics:
   ld a, [hl+] ; tile
   ld [de], a
   inc de
-  ld a, [hl+] ; flip attrs
+  ld a, [hl+] ; flip attrs and palette
+  push hl
+  ld hl, anim_palette_temp
+  or [hl]
+  pop hl
   ld [de], a
 
   ld a, [hl+]

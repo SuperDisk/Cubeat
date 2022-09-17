@@ -1155,13 +1155,13 @@ anim_match_appear:
 
   ld a, [hl]
   bit 6, a
-  ret z ; TODO: is this right?
+  jr z, .fail ; TODO: is this right?
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl-], a
 
   ld a, [hl]
   bit 6, a
-  ret z ; TODO: is this right?
+  jr z, .fail ; TODO: is this right?
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl+], a
 
@@ -1172,16 +1172,17 @@ anim_match_appear:
 
   ld a, [hl]
   bit 6, a
-  ret z ; TODO: is this right?
+  jr z, .fail ; TODO: is this right?
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl-], a
 
   ld a, [hl]
   bit 6, a
-  ret z ; TODO: is this right?
+  jr z, .fail ; TODO: is this right?
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl], a
 
+.fail:
   pop hl
   pop bc
   ret

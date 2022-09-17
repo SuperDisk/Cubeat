@@ -539,8 +539,7 @@ ENDC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
-  ld h, 0
-  ld l, ROW
+  ld hl, ROW
   add hl, bc
   jr .fall_loop
 
@@ -608,7 +607,7 @@ ENDC
   ;; Second column matches
 
   set 6, a
-  or $80
+  or $80 ; TODO: Make this use the actual block, not replace it with the standard
   ld [hl+], a
   ld [bc], a
   inc c
@@ -667,17 +666,17 @@ ENDC
   ld a, [anim_x_temp]
   ld [hl+], a ; info
 
-  ld a, 19
+  ld a, 19*4
   ld [hl+], a
-  ld a, 20
+  ld a, 20*4
   ld [hl+], a
-  ld a, 21
+  ld a, 21*4
   ld [hl+], a
-  ld a, 22
+  ld a, 22*4
   ld [hl+], a
-  ld a, 23
+  ld a, 23*4
   ld [hl+], a
-  ld a, 24
+  ld a, 24*4
   ld [hl+], a
   pop hl
 
@@ -894,8 +893,6 @@ update_graphics:
 .anim_continue2:
   ld a, [bc] ; sprite ID
   inc bc
-  add a
-  add a
   ld d, HIGH(wShadowOAM2)
   ld e, a
 
@@ -995,17 +992,12 @@ update_graphics2:
   ld l, a
   ld b, HIGH(wShadowOAM2)
 
-  ;; TODO: Refactor the sprite indexes to be pre multiplied?
   ld a, [hl+]
-  add a
-  add a
   ld c, a
   xor a
   ld [bc], a
 
   ld a, [hl+]
-  add a
-  add a
   ld c, a
   xor a
   ld [bc], a

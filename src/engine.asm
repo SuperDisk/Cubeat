@@ -1,8 +1,8 @@
 include "defines.asm"
 
 ; DEF DBG_BLOCK = $81
-; DEF DBG_DONTFALL = 1
-; DEF DBG_DONTANIMATE = 1
+DEF DBG_DONTFALL = 1
+DEF DBG_DONTANIMATE = 1
 
 macro update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
@@ -83,6 +83,11 @@ next_block1: ds 4
 next_block2: ds 4
 block: ds 4
 
+;; 0 = not marking
+;; 1 = marking
+;; 2 = just finished marking
+radar_marking_state: db
+
 animations:
 db ; running
 db ; xoff
@@ -111,6 +116,7 @@ init_game::
   ld [drop_pos], a
   ld [falling_block_y], a
   ld [animations], a
+  ld [radar_marking_state], a
 
   ld hl, board
   ld bc, board.end - board
@@ -152,9 +158,9 @@ game_step::
 
   ld a, [radar_pos]
   inc a
-  cp 153
+  cp 163-16-3
   jr nz, .no_reset_radar
-  ld a, 8
+  xor a
 .no_reset_radar:
   ld [radar_pos], a
 
@@ -516,9 +522,9 @@ ENDC
 
 .no_collide_other_block:
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Make blocks fall
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Make blocks fall and try to find matches
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
   ld h, 0
@@ -529,7 +535,7 @@ ENDC
 .failed_match:
   ld a, c
   or a
-  jp z, update_graphics ; TODO: MAKE THIS A JR AGAIN!
+  jp z, .radar_scan ; TODO: make JR
 .fall_loop:
   ld a, [hl]
   or a
@@ -543,7 +549,7 @@ ENDC
 .no_take:
   dec l
   dec c
-  jp z, update_graphics
+  jp z, .radar_scan ; TODO: make JR
 .no_dec:
   jr .fall_loop
 
@@ -607,7 +613,7 @@ ENDC
   ld a, l
 .div_loop:
   inc d
-  sub 18
+  sub ROW
   jr nc, .div_loop
 
   add 17
@@ -665,6 +671,37 @@ ENDC
 
   jp .no_take
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Mark tiles touching radar
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.radar_scan:
+  ld a, [radar_pos]
+  srl a
+  srl a
+  srl a
+  ld b, a  ; x
+  ld c, 0 ; y
+
+  call goto_xy_pos
+
+  ld c, BOARD_H
+  ld de, ROW
+.mark_loop:
+  ld a, [hl]
+  bit 6, a ; Check if it is a marked tile
+  jr z, .continue_scan
+  ld [hl], 0
+.continue_scan:
+  add hl, de
+  dec c
+  jr nz, .mark_loop
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Refresh the graphics buffers
+  ;; (shadow OAM and playfield buffer)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 update_graphics:
   ;; Dropping block tiles
   ld a, [block+0]
@@ -694,6 +731,7 @@ update_graphics:
   ;; Radar position
 
   ld a, [radar_pos]
+  add 10
   spriteX 3
   spriteX 4
   spriteX 5
@@ -889,13 +927,15 @@ game_step2::
 
   ret
 
-goto_xy_pos_with_vram:
+
+
 ;;; Sets some pointers to a block position in the board.
 ;;; Param: C = Y position on board
 ;;; Param: B = X position on board
 ;;; Return: BC = Pointer into VRAM of coord
 ;;; Return: HL = Pointer into board of coord
 ;;; Destroy: AF DE
+goto_xy_pos_with_vram:
   xor a
 
   ld hl, $9CC0
@@ -918,12 +958,12 @@ goto_xy_pos_with_vram:
 
   ret
 
-goto_xy_pos:
 ;;; Sets some pointers to a block position in the board.
 ;;; Param: C = Y position on board
 ;;; Param: B = X position on board
 ;;; Return: HL = Pointer into board of coord
 ;;; Destroy: AF BC
+goto_xy_pos:
   ld a, c
   or a
   ld a, b
@@ -1067,7 +1107,7 @@ anim_match_appear:
   ld b, a
 
   ld a, l
-  add 18
+  add ROW
   ld l, a
   ld a, b
   ld [hl-], a

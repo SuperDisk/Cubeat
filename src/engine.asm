@@ -85,7 +85,6 @@ block: ds 4
 
 ;; 0 = not marking
 ;; 1 = marking
-;; 2 = just finished marking
 radar_marking_state: db
 
 animations:
@@ -687,15 +686,32 @@ ENDC
 
   ld c, BOARD_H
   ld de, ROW
+
+  ld b, 0 ; marked a tile this loop?
 .mark_loop:
-  ld a, [hl]
-  bit 6, a ; Check if it is a marked tile
+  bit 6, [hl] ; Check if it is a marked tile
   jr z, .continue_scan
-  ld [hl], 0
+  set 1, [hl]
+  ld b, 1
 .continue_scan:
   add hl, de
   dec c
   jr nz, .mark_loop
+
+  ;; Check if we need to perform a destroy
+  ld a, [radar_marking_state]
+  cp b
+  jr z, .done_scanning
+  ;; Current marking state and B are different
+  cp 0
+  jr z, .done_scanning
+  ;; B is 0, which means we just stopped marking. Perform a destroy.
+
+  rst Crash
+
+.done_scanning:
+  ld a, b
+  ld [radar_marking_state], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Refresh the graphics buffers
@@ -1100,7 +1116,7 @@ anim_match_appear:
   ld l, a
 
   ld a, [hl]
-  add 4
+  add 4 ; make them the solid color (so it looks like the anim)
 
   ld [hl-], a
   ld [hl+], a

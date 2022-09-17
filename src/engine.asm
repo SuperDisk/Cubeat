@@ -1,17 +1,31 @@
 include "defines.asm"
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Debug toggles to make development easier
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 DEF DBG_DONTANIMATE = 1
 
-macro update_sprite2  ; which sprite, x, y, tile
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Constants
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+DEF DPAD_HOLD_FRAMES EQU 7
+
+DEF BOARD_W EQU 18
+DEF BOARD_H EQU 11
+DEF ROW EQU 18
+
+MACRO update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM2+(4*\1)], a
   ld a, \2+8
   ld [wShadowOAM2+(4*\1)+1], a
   ld a, \4
   ld [wShadowOAM2+(4*\1)+2], a
-endm
+ENDM
 
 MACRO spriteX ; which sprite
   ld [wShadowOAM2+(4*\1)+1], a
@@ -23,11 +37,11 @@ ENDM
 
 MACRO spriteTile1 ; tile
   ld [wShadowOAM+(4*\1)+2], a
-endm
+ENDM
 
 MACRO spriteTile2 ; tile
   ld [wShadowOAM2+(4*\1)+2], a
-endm
+ENDM
 
 MACRO add_a_to_r16
     add \2
@@ -61,6 +75,9 @@ ENDM
 
 SECTION "Board", WRAM0, ALIGN[8]
 
+;; We start the board at position $xxxx0001 so that we can
+;; just use a single register as the pointer essentially, and detect
+;; when we've bottomed out after an inc/dec, which only sets the Z flag.
 db
 
 ;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
@@ -86,6 +103,7 @@ block: ds 4
 ;; 0 = not marking
 ;; 1 = marking
 radar_marking_state: db
+need_to_destroy: db
 
 animations:
 db ; running
@@ -102,12 +120,6 @@ anim_palette_temp: db
 
 SECTION "Engine code", ROM0
 
-DEF DPAD_HOLD_FRAMES EQU 7
-DEF BOARD_W EQU 18
-DEF BOARD_H EQU 11
-
-DEF ROW EQU 18
-
 init_game::
   xor a
   ld [frame_counter], a
@@ -116,6 +128,7 @@ init_game::
   ld [falling_block_y], a
   ld [animations], a
   ld [radar_marking_state], a
+  ld [need_to_destroy], a
 
   ld hl, board
   ld bc, board.end - board
@@ -548,7 +561,7 @@ ENDC
 .no_take:
   dec l
   dec c
-  jp z, .radar_scan ; TODO: make JR
+  jp z, .radar_scan ; TODO: make JR (reorder this code in general to save double comparisons)
 .no_dec:
   jr .fall_loop
 
@@ -706,8 +719,7 @@ ENDC
   cp 0
   jr z, .done_scanning
   ;; B is 0, which means we just stopped marking. Perform a destroy.
-
-  rst Crash
+  ld [need_to_destroy], a ; A != B so A = 1
 
 .done_scanning:
   ld a, b
@@ -926,6 +938,29 @@ game_step_done:
   ret
 
 game_step2::
+
+  ld a, [need_to_destroy]
+  or a
+  jr z, update_graphics2
+
+  ld hl, board+(BOARD_W*BOARD_H)-1
+
+.destroy_loop:
+  ld a, [hl]
+  and %110
+  jr z, .no_destroy
+
+  ld [hl], 0
+
+.no_destroy:
+  dec l
+  jp nz, .destroy_loop
+.done_destroy_loop:
+  xor a
+  ld [need_to_destroy], a
+  jr z, update_graphics2
+
+update_graphics2:
   ld a, [drop_pos]
   add 2
   add a

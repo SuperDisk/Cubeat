@@ -1,6 +1,8 @@
 include "defines.asm"
 
-DEF DBG_BLOCK = $81
+; DEF DBG_BLOCK = $81
+; DEF DBG_DONTFALL = 1
+; DEF DBG_DONTANIMATE = 1
 
 macro update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
@@ -323,7 +325,11 @@ game_step::
 
   ld a, [falling_block_timer]
   dec a
+IF DEF(DBG_DONTFALL)
+  jr .no_fall
+ELSE
   jr nz, .no_fall
+ENDC
 
 .do_fall:
 
@@ -575,6 +581,8 @@ game_step::
   jr nz, .failed_match
 
   ld a, [hl]
+  bit 7, a
+  jr z, .failed_match
   and 1
   cp e
   jr nz, .failed_match
@@ -826,24 +834,32 @@ update_graphics:
   ld a, [anim_y_temp]
   add [hl] ; Y
   inc hl
+  IF !DEF(DBG_DONTANIMATE)
   ld [de], a
+  ENDC
   inc de
 
   ld a, [anim_x_temp]
   add [hl] ; X
   inc hl
+  IF !DEF(DBG_DONTANIMATE)
   ld [de], a
+  ENDC
   inc de
 
   ld a, [hl+] ; tile
+  IF !DEF(DBG_DONTANIMATE)
   ld [de], a
+  ENDC
   inc de
   ld a, [hl+] ; flip attrs and palette
   push hl
   ld hl, anim_palette_temp
   or [hl]
   pop hl
+  IF !DEF(DBG_DONTANIMATE)
   ld [de], a
+  ENDC
 
   ld a, [hl+]
   jr .anim_continue

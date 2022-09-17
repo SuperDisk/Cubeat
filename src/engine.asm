@@ -4,7 +4,7 @@ include "defines.asm"
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; DEF DBG_BLOCK = $81
+DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 DEF DBG_DONTANIMATE = 1
 
@@ -704,7 +704,9 @@ ENDC
 .mark_loop:
   bit 6, [hl] ; Check if it is a marked tile
   jr z, .continue_scan
-  set 1, [hl]
+  ld a, [hl]
+  or %110 ; turn it into the destroyable block
+  ld [hl], a
   ld b, 1
 .continue_scan:
   add hl, de
@@ -948,7 +950,8 @@ game_step2::
 .destroy_loop:
   ld a, [hl]
   and %110
-  jr z, .no_destroy
+  cp %110
+  jr nz, .no_destroy
 
   ld [hl], 0
 
@@ -1151,17 +1154,32 @@ anim_match_appear:
   ld l, a
 
   ld a, [hl]
-  add 4 ; make them the solid color (so it looks like the anim)
-
+  bit 6, a
+  ret z ; TODO: is this right?
+  or %100 ; make them the solid color (so it looks like the anim)
   ld [hl-], a
-  ld [hl+], a
-  ld b, a
 
+  ld a, [hl]
+  bit 6, a
+  ret z ; TODO: is this right?
+  or %100 ; make them the solid color (so it looks like the anim)
+  ld [hl+], a
+
+  ; move down one row
   ld a, l
   add ROW
   ld l, a
-  ld a, b
+
+  ld a, [hl]
+  bit 6, a
+  ret z ; TODO: is this right?
+  or %100 ; make them the solid color (so it looks like the anim)
   ld [hl-], a
+
+  ld a, [hl]
+  bit 6, a
+  ret z ; TODO: is this right?
+  or %100 ; make them the solid color (so it looks like the anim)
   ld [hl], a
 
   pop hl

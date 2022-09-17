@@ -1,5 +1,7 @@
 include "defines.asm"
 
+DEF DBG_BLOCK = $81
+
 macro update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM2+(4*\1)], a
@@ -473,24 +475,36 @@ game_step::
   ld a, c
   and 1
   add $80
+  IF DEF(DBG_BLOCK)
+  ld a, DBG_BLOCK
+  ENDC
   ld [block+0], a
   rrc c
 
   ld a, c
   and 1
   add $80
+  IF DEF(DBG_BLOCK)
+  ld a, DBG_BLOCK
+  ENDC
   ld [block+1], a
   rrc c
 
   ld a, c
   and 1
   add $80
+  IF DEF(DBG_BLOCK)
+  ld a, DBG_BLOCK
+  ENDC
   ld [block+2], a
   rrc c
 
   ld a, c
   and 1
   add $80
+  IF DEF(DBG_BLOCK)
+  ld a, DBG_BLOCK
+  ENDC
   ld [block+3], a
   rrc c
 

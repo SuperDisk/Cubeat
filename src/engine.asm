@@ -622,12 +622,13 @@ ENDC
   ;; Split out XY coords from board pos
   ld d, 0
   ld a, l
+  dec a
 .div_loop:
   inc d
   sub ROW
   jr nc, .div_loop
 
-  add 17
+  add 18
   add a
   add a
   add a

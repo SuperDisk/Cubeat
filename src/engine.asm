@@ -5,7 +5,7 @@ include "defines.asm"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DEF DBG_BLOCK = $81
-DEF DBG_DONTFALL = 1
+; DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
 
@@ -397,10 +397,6 @@ ENDC
   ;; If we're past the bottom of the board, we collided
   cp BOARD_H-1
   jr z, .block_collision
-
-  ; If we're sitting on the bottom row, don't check for collision
-  cp BOARD_H-2
-  jp z, .no_collide_other_block
 
   ; If we're on the first row, don't check for collision
   or a

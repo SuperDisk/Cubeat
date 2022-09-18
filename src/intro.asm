@@ -280,14 +280,14 @@ endm
   update_sprite 17, 28, 16+8, $38
 
   ; Score numbers
-  update_sprite 18, 115, 9, $12
-  update_sprite 19, 115+(6*1), 9, $12
-  update_sprite 20, 115+(6*2), 9, $12
-  update_sprite 21, 115+(6*3), 9, $12
-  update_sprite 22, 115+(6*4), 9, $12
-  update_sprite 23, 115+(6*5), 9, $12
-  update_sprite 24, 115+(6*6), 9, $12
-  update_sprite 25, 115+(6*7), 9, $12
+  update_sprite 18, 115-(6*1), 9, $12
+  update_sprite 19, 115+(6*0), 9, $12
+  update_sprite 20, 115+(6*1), 9, $12
+  update_sprite 21, 115+(6*2), 9, $12
+  update_sprite 22, 115+(6*3), 9, $12
+  update_sprite 23, 115+(6*4), 9, $12
+  update_sprite 24, 115+(6*5), 9, $12
+  update_sprite 25, 115+(6*6), 9, $12
 
   ; radar
   update_sprite2 0, 124+(8*0), 33, $30

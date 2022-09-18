@@ -86,6 +86,9 @@ board: ds (18*11)
 .end:
 
 SECTION "Game vars", WRAM0
+score: ds 4 ; 7 digits
+score_counter: db
+
 drop_pos: db
 
 frame_counter: db
@@ -134,13 +137,17 @@ init_game::
   ld [animations], a
   ld [radar_marking_state], a
   ld [need_to_destroy], a
+  ld [score+0], a
+  ld [score+1], a
+  ld [score+2], a
+  ld [score+3], a
 IF DEF(SELECT_PAUSES_RADAR)
   ld [radar_paused], a
 ENDC
 
   ld hl, board
-  ld bc, board.end - board
-  call Memset
+  ld c, board.end - board
+  rst MemsetSmall
 
   ld a, 9
   ld [falling_block_rate], a
@@ -693,7 +700,52 @@ update_graphics:
 
   ld a, [frame_counter]
   and 1
-  jr z, .playfield_update
+  jp z, .playfield_update
+
+  ;; Score
+  ld a, [score+0]
+  ld e, a
+  and $F
+  add $12
+  spriteTile1 25
+  ld a, e
+  and $F0
+  swap a
+  add $12
+  spriteTile1 24
+
+  ld a, [score+1]
+  ld e, a
+  and $F
+  add $12
+  spriteTile1 23
+  ld a, e
+  and $F0
+  swap a
+  add $12
+  spriteTile1 22
+
+  ld a, [score+2]
+  ld e, a
+  and $F
+  add $12
+  spriteTile1 21
+  ld a, e
+  and $F0
+  swap a
+  add $12
+  spriteTile1 20
+
+  ld a, [score+3]
+  ld e, a
+  and $F
+  add $12
+  spriteTile1 19
+  ld a, e
+  and $F0
+  swap a
+  add $12
+  spriteTile1 18
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

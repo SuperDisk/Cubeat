@@ -4,9 +4,10 @@ include "defines.asm"
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEF DBG_BLOCK = $81
+; DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
+DEF SELECT_PAUSES_RADAR = 1
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Constants
@@ -94,6 +95,10 @@ falling_block_rate: db
 falling_block_timer: db
 falling_block_y: db
 
+IF DEF(SELECT_PAUSES_RADAR)
+radar_paused: db
+ENDC
+
 dpad_frames: db
 
 next_block1: ds 4
@@ -129,6 +134,9 @@ init_game::
   ld [animations], a
   ld [radar_marking_state], a
   ld [need_to_destroy], a
+IF DEF(SELECT_PAUSES_RADAR)
+  ld [radar_paused], a
+ENDC
 
   ld hl, board
   ld bc, board.end - board
@@ -168,6 +176,20 @@ game_step::
   ;; Move radar right
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+IF DEF(SELECT_PAUSES_RADAR)
+  ld a, [hPressedKeys]
+  bit PADB_SELECT, a
+  jr z, .no_pause
+  ld a, [radar_paused]
+  xor 1
+  ld [radar_paused], a
+.no_pause:
+
+  ld a, [radar_paused]
+  or a
+  jr nz, .check_rotate_piece
+ENDC
+
   ld a, [radar_pos]
   inc a
   cp 163-16-3
@@ -180,6 +202,7 @@ game_step::
   ;; Rotate piece
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+.check_rotate_piece:
   ld a, [hPressedKeys]
   bit PADB_A, a
   jr z, .no_rotate_left

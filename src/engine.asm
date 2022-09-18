@@ -553,153 +553,6 @@ ENDC
 
 .no_collide_other_block:
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Make blocks fall and try to find matches
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
-  ld hl, ROW
-  add hl, bc
-  jr .fall_loop
-
-.failed_match:
-  ld a, c
-  or a
-  jp z, .radar_scan ; TODO: make JR
-.fall_loop:
-  ld a, [hl]
-  or a
-  jr nz, .try_find_match
-
-  ld a, [bc]
-  ld [hl], a
-  xor a
-  ld [bc], a
-
-.no_take:
-  dec l
-  dec c
-  jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
-  jp .radar_scan
-
-.try_find_match:
-  ld d, 0
-
-  and 1
-  ld e, a
-
-  ld a, [bc]
-  bit 7, a
-  jr z, .no_take
-  bit 6, a
-  jr z, .top_right_not_marked
-  set 6, d
-.top_right_not_marked:
-  and 1
-  cp e
-  jr nz, .no_take
-
-  ;; First column matches
-  dec c
-  dec l
-
-  ld a, [bc]
-  bit 7, a
-  jr z, .failed_match
-  bit 6, a
-  jr z, .top_left_not_marked
-  bit 6, d
-  jr nz, .failed_match
-.top_left_not_marked:
-  and 1
-  cp e
-  jr nz, .failed_match
-
-  ld a, [hl]
-  bit 7, a
-  jr z, .failed_match
-  and 1
-  cp e
-  jr nz, .failed_match
-
-  ;; Second column matches
-
-  set 6, a
-  or $80 ; TODO: Make this use the actual block, not replace it with the standard
-  ld [hl+], a
-  ld [bc], a
-  inc c
-  ld [hl], a
-  ld [bc], a
-
-  ld a, c
-  ld [anim_x_temp], a
-  ld a, e
-  ld [anim_y_temp], a
-
-  ;; Split out XY coords from board pos
-  ld d, 0
-  ld a, l
-  dec a
-.div_loop:
-  inc d
-  sub ROW
-  jr nc, .div_loop
-
-  add 18
-  add a
-  add a
-  add a
-  sub 2
-  ld e, a
-
-  ld a, d
-  add a
-  add a
-  add a
-  add 47-8-1-8
-  ld d, a
-
-  ; E = X
-  ; D = Y
-
-  push hl
-  ld hl, animations
-  ld a, 1 ; enabled
-  ld [hl+], a
-
-  ld a, e
-  ld [hl+], a ; x
-  ld a, d
-  ld [hl+], a ; y
-  ld a, LOW(anim_match_appear)
-  ld [hl+], a
-  ld a, HIGH(anim_match_appear)
-  ld [hl+], a
-
-  ld a, [anim_y_temp]
-  and 1
-  swap a
-  ld [hl+], a ; palette
-  ld a, [anim_x_temp]
-  ld [hl+], a ; info
-
-  ld a, 19*4
-  ld [hl+], a
-  ld a, 20*4
-  ld [hl+], a
-  ld a, 21*4
-  ld [hl+], a
-  ld a, 22*4
-  ld [hl+], a
-  ld a, 23*4
-  ld [hl+], a
-  ld a, 24*4
-  ld [hl+], a
-  pop hl
-
-  jp .no_take
-
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Mark tiles touching radar
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -956,6 +809,158 @@ game_step_done:
 
 game_step2::
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Make blocks fall and try to find matches
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
+  ld hl, ROW
+  add hl, bc
+  jr .fall_loop
+
+.failed_match:
+  ld a, c
+  or a
+  jp z, .perform_destroy ; TODO: make JR
+.fall_loop:
+  ld a, [hl]
+  or a
+  jr nz, .try_find_match
+
+  ld a, [bc]
+  ld [hl], a
+  xor a
+  ld [bc], a
+
+.no_take:
+  dec l
+  dec c
+  jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
+  jp .perform_destroy
+
+.try_find_match:
+  ld d, 0
+
+  and 1
+  ld e, a
+
+  ld a, [bc]
+  bit 7, a
+  jr z, .no_take
+  bit 6, a
+  jr z, .top_right_not_marked
+  set 6, d
+.top_right_not_marked:
+  and 1
+  cp e
+  jr nz, .no_take
+
+  ;; First column matches
+  dec c
+  dec l
+
+  ld a, [bc]
+  bit 7, a
+  jr z, .failed_match
+  bit 6, a
+  jr z, .top_left_not_marked
+  bit 6, d
+  jr nz, .failed_match
+.top_left_not_marked:
+  and 1
+  cp e
+  jr nz, .failed_match
+
+  ld a, [hl]
+  bit 7, a
+  jr z, .failed_match
+  and 1
+  cp e
+  jr nz, .failed_match
+
+  ;; Second column matches
+
+  set 6, a
+  or $80 ; TODO: Make this use the actual block, not replace it with the standard
+  ld [hl+], a
+  ld [bc], a
+  inc c
+  ld [hl], a
+  ld [bc], a
+
+  ld a, c
+  ld [anim_x_temp], a
+  ld a, e
+  ld [anim_y_temp], a
+
+  ;; Split out XY coords from board pos
+  ld d, 0
+  ld a, l
+  dec a
+.div_loop:
+  inc d
+  sub ROW
+  jr nc, .div_loop
+
+  add 18
+  add a
+  add a
+  add a
+  sub 2
+  ld e, a
+
+  ld a, d
+  add a
+  add a
+  add a
+  add 47-8-1-8
+  ld d, a
+
+  ; E = X
+  ; D = Y
+
+  push hl
+  ld hl, animations
+  ld a, 1 ; enabled
+  ld [hl+], a
+
+  ld a, e
+  ld [hl+], a ; x
+  ld a, d
+  ld [hl+], a ; y
+  ld a, LOW(anim_match_appear)
+  ld [hl+], a
+  ld a, HIGH(anim_match_appear)
+  ld [hl+], a
+
+  ld a, [anim_y_temp]
+  and 1
+  swap a
+  ld [hl+], a ; palette
+  ld a, [anim_x_temp]
+  ld [hl+], a ; info
+
+  ld a, 19*4
+  ld [hl+], a
+  ld a, 20*4
+  ld [hl+], a
+  ld a, 21*4
+  ld [hl+], a
+  ld a, 22*4
+  ld [hl+], a
+  ld a, 23*4
+  ld [hl+], a
+  ld a, 24*4
+  ld [hl+], a
+  pop hl
+
+  jp .no_take
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Perform a destroy if necessary
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+.perform_destroy:
   ld a, [need_to_destroy]
   or a
   jr z, update_graphics2

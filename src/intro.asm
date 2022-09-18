@@ -56,7 +56,7 @@ ptr_next_update_bg:
   ds 2 ; operand of above
 
 ;; These define their own sections
-include "res/backgrounds/bg01.asm"
+; include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"
 ; include "res/backgrounds/bg04.asm"
@@ -70,7 +70,7 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg12.asm"
 ; include "res/backgrounds/bg13.asm"
 ; include "res/backgrounds/bg14.asm"
-; include "res/backgrounds/bg15.asm"
+include "res/backgrounds/bg15.asm"
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
@@ -82,10 +82,10 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg24.asm"
 ; include "res/backgrounds/bg25.asm"
 
-; include "res/backgrounds/splash_screen.asm"
+include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg01_gfx_init"
-BRERB2 EQUS "bg01_map0"
+BRERB EQUS "bg15_gfx_init"
+BRERB2 EQUS "bg15_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:

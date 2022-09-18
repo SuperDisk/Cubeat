@@ -85,6 +85,17 @@ db
 board: ds (18*11)
 .end:
 
+SECTION "Board edge array", ROM0, ALIGN[8]
+
+edge_array:
+
+db 0
+
+REPT 11
+db 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+ENDR
+
+
 SECTION "Game vars", WRAM0
 score: ds 4 ; 7 digits
 score_counter: db
@@ -127,7 +138,6 @@ anim_y_temp: db
 anim_palette_temp: db
 
 SECTION "Engine code", ROM0
-
 init_game::
   xor a
   ld [frame_counter], a
@@ -891,6 +901,11 @@ game_step2::
   jp .perform_destroy
 
 .try_find_match:
+  ld h, HIGH(edge_array)
+  bit 0, [hl]
+  ld h, HIGH(board)
+  jr nz, .no_take
+
   ld d, 0
 
   and 1
@@ -931,6 +946,7 @@ game_step2::
   jr nz, .failed_match
 
   ;; Second column matches
+
 
   set 6, a
   or $80 ; TODO: Make this use the actual block, not replace it with the standard

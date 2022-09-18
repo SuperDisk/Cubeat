@@ -5,7 +5,7 @@ include "defines.asm"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DEF DBG_BLOCK = $81
-; DEF DBG_DONTFALL = 1
+DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
 
@@ -579,9 +579,8 @@ ENDC
 .no_take:
   dec l
   dec c
-  jp z, .radar_scan ; TODO: make JR (reorder this code in general to save double comparisons)
-.no_dec:
-  jr .fall_loop
+  jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
+  jp .radar_scan
 
 .try_find_match:
   ld d, 0
@@ -651,8 +650,7 @@ ENDC
   add a
   add a
   add a
-  dec a
-  dec a
+  sub 2
   ld e, a
 
   ld a, d
@@ -667,7 +665,7 @@ ENDC
 
   push hl
   ld hl, animations
-  ld a, 1
+  ld a, 1 ; enabled
   ld [hl+], a
 
   ld a, e
@@ -974,7 +972,7 @@ game_step2::
 
 .no_destroy:
   dec l
-  jp nz, .destroy_loop
+  jr nz, .destroy_loop
 .done_destroy_loop:
   xor a
   ld [need_to_destroy], a

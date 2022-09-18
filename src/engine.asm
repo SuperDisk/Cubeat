@@ -975,6 +975,63 @@ game_step2::
 
   ld [hl], 0
 
+  ;; Split out XY coords from board pos
+  ld d, 0
+  ld a, l
+  dec a
+.div_loop2:
+  inc d
+  sub ROW
+  jr nc, .div_loop2
+
+  add 18
+  add a
+  add a
+  add a
+  add 9
+  ld e, a
+
+  ld a, d
+  add a
+  add a
+  add a
+  add 47-8-1-8
+  add 11
+  ld d, a
+
+  push hl
+  ld hl, animations
+  ld a, 1 ; enabled
+  ld [hl+], a
+
+  ld a, e
+  ld [hl+], a ; x
+  ld a, d
+  ld [hl+], a ; y
+  ld a, LOW(anim_explosion)
+  ld [hl+], a
+  ld a, HIGH(anim_explosion)
+  ld [hl+], a
+
+  xor a
+  ld [hl+], a ; palette
+  ld a, [anim_x_temp]
+  ld [hl+], a ; info
+
+  ld a, 19*4
+  ld [hl+], a
+  ld a, 20*4
+  ld [hl+], a
+  ld a, 21*4
+  ld [hl+], a
+  ld a, 22*4
+  ld [hl+], a
+  ld a, 23*4
+  ld [hl+], a
+  ld a, 24*4
+  ld [hl+], a
+  pop hl
+
 .no_destroy:
   dec l
   jr nz, .destroy_loop
@@ -1150,6 +1207,30 @@ ENDM
 MACRO anim_end
   db $AE
 ENDM
+
+anim_explosion:
+  anim_sprite 0,0,0,8,0,0
+  anim_sprite 1,7,0,8,1,0
+  anim_frame_end
+
+  anim_sprite 0,0,0,9,0,0
+  anim_sprite 1,7,0,9,1,0
+  anim_frame_end
+
+  anim_sprite 0,0,0,10,0,0
+  anim_sprite 1,7,0,10,1,0
+  anim_frame_end
+
+  anim_sprite 0,0,0,11,0,0
+  anim_sprite 1,7,0,11,1,0
+  anim_frame_end
+
+  anim_sprite 0,0,0,12,0,0
+  anim_sprite 1,7,0,12,1,0
+  anim_frame_end
+
+  anim_end
+  ret
 
 anim_match_appear:
   anim_sprite 0,0,0,0,0,0

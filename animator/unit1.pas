@@ -210,17 +210,19 @@ begin
     for Spr in f do begin
       if spr.x >= 0 then begin
         visi[I] := True;
-        writeln(I, ',', spr.x, ',', spr.y, ',', spr.image, ',', integer(spr.FlipX), ',', integer(spr.flipY));
+        writeln('anim_sprite ', I, ',', spr.x, ',', spr.y, ',', spr.image, ',', integer(spr.FlipX), ',', integer(spr.flipY));
       end else begin
         if visi[I] then begin
-          writeln(I, ',', spr.x, ',', spr.y, ',', spr.image, ',', integer(spr.FlipX), ',', integer(spr.flipY));
+          writeln('anim_sprite ', I, ',', spr.x, ',', -120, ',', spr.image, ',', integer(spr.FlipX), ',', integer(spr.flipY));
           visi[I] := False;
         end;
       end;
       Inc(I);
     end;
+    writeln('anim_frame_end');
     writeln;
   end;
+  writeln('anim_end');
 end;
 
 procedure TForm1.FlipXBoxChange(Sender: TObject);

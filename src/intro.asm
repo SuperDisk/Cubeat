@@ -56,7 +56,7 @@ ptr_next_update_bg:
   ds 2 ; operand of above
 
 ;; These define their own sections
-; include "res/backgrounds/bg01.asm"
+include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"
 ; include "res/backgrounds/bg04.asm"
@@ -70,7 +70,7 @@ ptr_next_update_bg:
 ; include "res/backgrounds/bg12.asm"
 ; include "res/backgrounds/bg13.asm"
 ; include "res/backgrounds/bg14.asm"
-include "res/backgrounds/bg15.asm"
+; include "res/backgrounds/bg15.asm"
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
@@ -84,8 +84,8 @@ include "res/backgrounds/bg15.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg15_gfx_init"
-BRERB2 EQUS "bg15_map0"
+BRERB EQUS "bg01_gfx_init"
+BRERB2 EQUS "bg01_map0"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -112,6 +112,10 @@ incbin "res/HighLight_blocks.2bpp"
 
 block_match_anim:
 incbin "res/anim_match_found.2bpp"
+.end:
+
+explosion_anim:
+incbin "res/anim_explosion.2bpp"
 .end:
 
 SECTION "Playfield Buffer ROM", ROM0
@@ -198,6 +202,12 @@ Intro::
   ld de, block_match_anim
   ld bc, block_match_anim.end - block_match_anim
   call Memcpy
+
+
+  ;; Copy explosion animation to sprite area
+  ld de, explosion_anim
+  ld c, explosion_anim.end - explosion_anim
+  rst MemcpySmall
 
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)

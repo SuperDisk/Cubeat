@@ -222,7 +222,6 @@ game_step::
   inc a
   ld [frame_counter], a
 
-
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Move radar right
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -742,10 +741,6 @@ update_graphics:
   spriteY 17
   spriteY 18
 
-  ld a, [frame_counter]
-  and 1
-  jp z, .playfield_update
-
   ;; Score
   ld a, [score+0]
   ld e, a
@@ -796,7 +791,14 @@ update_graphics:
   ;; Process running animations
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-FOR OFS, 0, 8*16, 16
+  ;; Only run animations every other frame
+  ld a, [frame_counter]
+  and 1
+  jp z, .playfield_update
+
+.animation_stuff:
+
+FOR OFS, 0, 7*16, 16
   ld hl, animations+OFS
   call .animate
 ENDR
@@ -805,8 +807,8 @@ ENDR
 
 .animate:
   ld a, [hl+] ; enabled
-  or a
-  ret z
+  dec a
+  ret nz
 
   ld a, [hl+]
   ld [anim_x_temp], a
@@ -846,7 +848,7 @@ ENDR
   add hl, bc
   ld [hl], 3 ; cleanup flag
   pop af
-  jr .playfield_update
+  ret
 
 .anim_continue:
   cp $FE ; Frame End
@@ -858,7 +860,7 @@ ENDR
   ld [hl], c
   inc hl
   ld [hl], b
-  jr .playfield_update
+  ret
 
 .anim_continue2:
   ld a, [bc] ; sprite ID
@@ -1253,7 +1255,6 @@ create_animation:
   ld [hl+], a
   dec d
   jr nz, .fetch_sprites
-
   ret
 
 ;;; Sets some pointers to a block position in the board.

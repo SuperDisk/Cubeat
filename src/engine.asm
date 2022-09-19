@@ -844,7 +844,7 @@ ENDR
   ;; animation is done
   ld hl, -8
   add hl, bc
-  ld [hl], 2 ; cleanup flag
+  ld [hl], 3 ; cleanup flag
   pop af
   jr .playfield_update
 
@@ -1186,16 +1186,15 @@ create_animation:
   ld de, 16
 .seek_anim_loop:
   add hl, de
-  bit 0, [hl]
+
+  bit 0, [hl] ; either currently running, or needs cleanup
   jr nz, .seek_anim_loop
 
   pop de
 
-  bit 1, [hl]
-  ret nz ; this anim slot needs to be cleaned up first
-
+  ;; Cancel creating the animation if we are at the sentinel-- no free slots.
   bit 7, [hl]
-  ret nz ; reached the end sentinel. this animation can't be created.
+  ret nz
 
   ld [hl], 1 ; enabled
   inc hl

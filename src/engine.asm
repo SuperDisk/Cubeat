@@ -1220,41 +1220,19 @@ create_animation:
   ld d, a
 
   ld a, [free_sprites_count]
-  sub d
-
-  jr nc, .enough_sprites
-
-  cpl
-  inc a
   ld e, a
+  sub d
+  push af
+  push hl
 
-  ld a, d
-  sub e
-  ld d, a
-  ld [hl+], a
-  ld a, e
+  jr nc, .no_correct
+  xor a
 
-.fetch_zero:
-  ld [hl], $A0
-  inc hl
-  dec a
-  jr nz, .fetch_zero
-  ld [free_sprites_count], a ; a = 0
-
-  ld a, d
-  or d
-  ret z ; no need to even get real sprites
-
-  dec a
-
-  jr .start_getting_some
-
-.enough_sprites:
+.no_correct:
   ld [free_sprites_count], a
   ld [hl], d
   inc hl
 
-.start_getting_some:
   ld bc, free_sprites
   add_a_to_bc
 
@@ -1264,6 +1242,26 @@ create_animation:
   ld [hl+], a
   dec d
   jr nz, .fetch_sprites
+
+.nullify_invalid:
+  pop de
+  pop af
+  ret nc
+
+  cpl
+  inc a
+  ld c, a
+  inc a
+
+.nullify_loop:
+  ld [hl], $A0
+  dec hl
+  dec a
+  jr nz, .nullify_loop
+
+  ld a, [anim_sprites_needed]
+  sub c
+  ld [de], a
 
   ret
 

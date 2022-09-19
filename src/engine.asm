@@ -734,6 +734,9 @@ update_graphics:
   add a
   add a
   add a
+  jr nz, .no_correct
+  inc a
+.no_correct
   add 48
   spriteY 16
   spriteY 15
@@ -798,7 +801,7 @@ update_graphics:
 
 .animation_stuff:
 
-FOR OFS, 0, 7*16, 16
+FOR OFS, 0, 8*16, 16
   ld hl, animations+OFS
   call .animate
 ENDR
@@ -1124,7 +1127,7 @@ update_graphics2:
   ;; Clean up any animations that need it
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-FOR OFS, 0, 7*16, 16
+FOR OFS, 0, 8*16, 16
   ld hl, animations+OFS
   call .cleanup_anim
 ENDR

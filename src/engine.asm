@@ -186,11 +186,11 @@ ENDC
   ld c, a
   rst MemcpySmall
 
-  ld a, $FF
+  ld a, $F0
   ld [anim_end_sentinel], a
 
   ; simulate out of sprites condition
-  ; ld a, 2
+  ; ld a, 6
   ; ld [free_sprites_count], a
 
   ld a, 9
@@ -1190,6 +1190,9 @@ create_animation:
   jr nz, .seek_anim_loop
 
   pop de
+
+  bit 1, [hl]
+  ret nz ; this anim slot needs to be cleaned up first
 
   bit 7, [hl]
   ret nz ; reached the end sentinel. this animation can't be created.

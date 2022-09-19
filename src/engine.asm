@@ -143,6 +143,7 @@ db ; info
 db ; how many sprites used
 ds 8 ; sprites to use
 ENDR
+anim_end_sentinel: db
 
 anim_x_temp: db
 anim_y_temp: db
@@ -179,13 +180,18 @@ ENDC
   rst MemsetSmall
 
   ld a, initial_free_sprites.end - initial_free_sprites
+  ld [free_sprites_count], a
   ld hl, free_sprites
   ld de, initial_free_sprites
   ld c, a
   rst MemcpySmall
 
-  ld a, 2
-  ld [free_sprites_count], a
+  ld a, $FF
+  ld [anim_end_sentinel], a
+
+  ; simulate out of sprites condition
+  ; ld a, 2
+  ; ld [free_sprites_count], a
 
   ld a, 9
   ld [falling_block_rate], a
@@ -1132,20 +1138,11 @@ ENDR
   ld de, 7
   add hl, de
 
-  ld a, [free_sprites_count]
-  ld d, [hl]
-
-  inc d
-  dec d
-  ret z
-
-  ld e, d
-  add d
-  ld [free_sprites_count], a
-
   ld b, HIGH(wShadowOAM2)
   xor a
 
+  ld d, [hl]
+  ld e, d
   inc hl
 .hide_spr:
   ld c, [hl]
@@ -1155,21 +1152,29 @@ ENDR
   dec d
   jr nz, .hide_spr
 
+  ld c, d ; c = d = 0
   ld b, e
 
   ;; Put the claimed sprites back in the free sprites list
   ld de, free_sprites
   ld a, [free_sprites_count]
-  dec a
   add_a_to_de
 
   dec hl
 .free_sprite_loop:
   ld a, [hl-]
+  cp $A0
+  jr z, .skipA0 ; don't put dummy sprites back in the pool
   ld [de], a
-  dec de
+  inc de
+  inc c
+.skipA0:
   dec b
   jr nz, .free_sprite_loop
+
+  ld a, [free_sprites_count]
+  add c
+  ld [free_sprites_count], a
 
   ret
 
@@ -1182,9 +1187,12 @@ create_animation:
 .seek_anim_loop:
   add hl, de
   bit 0, [hl]
-  jr nz, .seek_anim_loop ; TODO: Overflow
+  jr nz, .seek_anim_loop
 
   pop de
+
+  bit 7, [hl]
+  ret nz ; reached the end sentinel. this animation can't be created.
 
   ld [hl], 1 ; enabled
   inc hl
@@ -1207,6 +1215,7 @@ create_animation:
   ;; find free sprites
   ld a, [anim_sprites_needed]
   ld d, a
+  ld [hl+], a
 
   ld a, [free_sprites_count]
   sub d
@@ -1215,17 +1224,11 @@ create_animation:
 
   cpl
   inc a
-  ld e, a
-
-  ld a, d
-  sub e
-  ld d, a
-  ld [hl+], a
-  ld a, e
 
 .fetch_zero:
   ld [hl], $A0
   inc hl
+  dec d
   dec a
   jr nz, .fetch_zero
   ld [free_sprites_count], a ; a = 0
@@ -1234,16 +1237,11 @@ create_animation:
   or d
   ret z ; no need to even get real sprites
 
-  dec a
-
-  jr .start_getting_some
+  ld bc, free_sprites
+  jr .fetch_sprites
 
 .enough_sprites:
   ld [free_sprites_count], a
-  ld [hl], d
-  inc hl
-
-.start_getting_some:
   ld bc, free_sprites
   add_a_to_bc
 

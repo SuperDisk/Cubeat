@@ -182,6 +182,10 @@ SECTION UNION "Shadow OAM 2", WRAM0,ALIGN[8]
 wShadowOAM2::
 	ds NB_SPRITES * 4
 
+;; this is a dummy "sprite" that is used when we're out
+;; of real sprites. It doesn't appear.
+ds 4
+
 SECTION "Stack", WRAM0
 
 wStack:

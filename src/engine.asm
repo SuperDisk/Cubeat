@@ -4,7 +4,7 @@ include "defines.asm"
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; DEF DBG_BLOCK = $81
+DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
@@ -85,6 +85,14 @@ db
 board: ds (18*11)
 .end:
 
+SECTION "Other constant data", ROM0
+
+initial_free_sprites:
+FOR SPR, $4C, $9C+4, 4
+  db SPR
+ENDR
+.end:
+
 SECTION "Board edge array", ROM0, ALIGN[8]
 
 edge_array:
@@ -125,17 +133,25 @@ radar_marking_state: db
 need_to_destroy: db
 
 animations:
+REPT 8 ; number of animation slots
 db ; running
 db ; xoff
 db ; yoff
 dw ; animation
 db ; palette
 db ; info
+db ; how many sprites used
 ds 8 ; sprites to use
+ENDR
 
 anim_x_temp: db
 anim_y_temp: db
 anim_palette_temp: db
+
+anim_sprites_needed: db
+
+free_sprites: ds initial_free_sprites.end - initial_free_sprites
+free_sprites_count: db
 
 SECTION "Engine code", ROM0
 init_game::
@@ -144,7 +160,6 @@ init_game::
   ld [radar_pos], a
   ld [drop_pos], a
   ld [falling_block_y], a
-  ld [animations], a
   ld [radar_marking_state], a
   ld [need_to_destroy], a
   ld [score+0], a
@@ -158,6 +173,19 @@ ENDC
   ld hl, board
   ld c, board.end - board
   rst MemsetSmall
+
+  ld hl, animations
+  ld c, 16*8
+  rst MemsetSmall
+
+  ld a, initial_free_sprites.end - initial_free_sprites
+  ld hl, free_sprites
+  ld de, initial_free_sprites
+  ld c, a
+  rst MemcpySmall
+
+  ld a, 2
+  ld [free_sprites_count], a
 
   ld a, 9
   ld [falling_block_rate], a
@@ -762,16 +790,18 @@ update_graphics:
   ;; Process running animations
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld hl, animations
-  ld a, [hl+]
-  or a
-  jr nz, .animate
-
-  ; TODO: go to the next one
+FOR OFS, 0, 8*16, 16
+  ld hl, animations+OFS
+  call .animate
+ENDR
 
   jr .playfield_update
 
 .animate:
+  ld a, [hl+] ; enabled
+  or a
+  ret z
+
   ld a, [hl+]
   ld [anim_x_temp], a
   ld a, [hl+]
@@ -790,6 +820,7 @@ update_graphics:
   ld [anim_palette_temp], a
 
   inc bc ; info
+  inc bc ; num sprites used
   inc bc ; sprites
 
   ld a, [hl+]
@@ -805,7 +836,7 @@ update_graphics:
   rst CallHL
 
   ;; animation is done
-  ld hl, -7
+  ld hl, -8
   add hl, bc
   ld [hl], 2 ; cleanup flag
   pop af
@@ -988,38 +1019,14 @@ game_step2::
   ; D = Y
 
   push hl
-  ld hl, animations
-  ld a, 1 ; enabled
-  ld [hl+], a
+  push bc
 
-  ld a, e
-  ld [hl+], a ; x
-  ld a, d
-  ld [hl+], a ; y
-  ld a, LOW(anim_match_appear)
-  ld [hl+], a
-  ld a, HIGH(anim_match_appear)
-  ld [hl+], a
+  ld a, 6
+  ld [anim_sprites_needed], a
+  ld bc, anim_match_appear
+  call create_animation
 
-  ld a, [anim_y_temp]
-  and 1
-  swap a
-  ld [hl+], a ; palette
-  ld a, [anim_x_temp]
-  ld [hl+], a ; info
-
-  ld a, 19*4
-  ld [hl+], a
-  ld a, 20*4
-  ld [hl+], a
-  ld a, 21*4
-  ld [hl+], a
-  ld a, 22*4
-  ld [hl+], a
-  ld a, 23*4
-  ld [hl+], a
-  ld a, 24*4
-  ld [hl+], a
+  pop bc
   pop hl
 
   jp .no_take
@@ -1068,36 +1075,17 @@ game_step2::
   ld d, a
 
   push hl
-  ld hl, animations
-  ld a, 1 ; enabled
-  ld [hl+], a
+  push bc
 
-  ld a, e
-  ld [hl+], a ; x
-  ld a, d
-  ld [hl+], a ; y
-  ld a, LOW(anim_explosion)
-  ld [hl+], a
-  ld a, HIGH(anim_explosion)
-  ld [hl+], a
-
+  ld a, 2
+  ld [anim_sprites_needed], a
+  ld bc, anim_explosion
   xor a
-  ld [hl+], a ; palette
-  ld a, [anim_x_temp]
-  ld [hl+], a ; info
+  ld [anim_y_temp], a
 
-  ld a, 19*4
-  ld [hl+], a
-  ld a, 20*4
-  ld [hl+], a
-  ld a, 21*4
-  ld [hl+], a
-  ld a, 22*4
-  ld [hl+], a
-  ld a, 23*4
-  ld [hl+], a
-  ld a, 24*4
-  ld [hl+], a
+  call create_animation
+
+  pop bc
   pop hl
 
 .no_destroy:
@@ -1128,31 +1116,145 @@ update_graphics2:
   ;; Clean up any animations that need it
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld hl, animations
-  ld a, [hl]
-  cp 2
-  ret nz
+FOR OFS, 0, 7*16, 16
+  ld hl, animations+OFS
+  call .cleanup_anim
+ENDR
+
+  ld hl, animations+(7*16)
+
+.cleanup_anim:
+  bit 1, [hl]
+  ret z
 
   ld [hl], 0
 
-  ld a, 7
-  add l
-  ld l, a
+  ld de, 7
+  add hl, de
+
+  ld a, [free_sprites_count]
+  ld d, [hl]
+
+  inc d
+  dec d
+  ret z
+
+  ld e, d
+  add d
+  ld [free_sprites_count], a
+
   ld b, HIGH(wShadowOAM2)
-
-  ld a, [hl+]
-  ld c, a
   xor a
+
+  inc hl
+.hide_spr:
+  ld c, [hl]
+  inc hl
   ld [bc], a
 
-  ld a, [hl+]
-  ld c, a
-  xor a
-  ld [bc], a
+  dec d
+  jr nz, .hide_spr
+
+  ld b, e
+
+  ;; Put the claimed sprites back in the free sprites list
+  ld de, free_sprites
+  ld a, [free_sprites_count]
+  dec a
+  add_a_to_de
+
+  dec hl
+.free_sprite_loop:
+  ld a, [hl-]
+  ld [de], a
+  dec de
+  dec b
+  jr nz, .free_sprite_loop
 
   ret
 
+create_animation:
+  push de
 
+  ;; Find an empty animation slot
+  ld hl, animations-16
+  ld de, 16
+.seek_anim_loop:
+  add hl, de
+  bit 0, [hl]
+  jr nz, .seek_anim_loop ; TODO: Overflow
+
+  pop de
+
+  ld [hl], 1 ; enabled
+  inc hl
+  ld [hl], e ; x
+  inc hl
+  ld [hl], d ; y
+  inc hl
+  ld [hl], c ; LOW(the anim)
+  inc hl
+  ld [hl], b ; HIGH(the anim)
+  inc hl
+
+  ld a, [anim_y_temp]
+  and 1
+  swap a
+  ld [hl+], a ; palette
+  ld a, [anim_x_temp]
+  ld [hl+], a ; info
+
+  ;; find free sprites
+  ld a, [anim_sprites_needed]
+  ld d, a
+
+  ld a, [free_sprites_count]
+  sub d
+
+  jr nc, .enough_sprites
+
+  cpl
+  inc a
+  ld e, a
+
+  ld a, d
+  sub e
+  ld d, a
+  ld [hl+], a
+  ld a, e
+
+.fetch_zero:
+  ld [hl], $A0
+  inc hl
+  dec a
+  jr nz, .fetch_zero
+  ld [free_sprites_count], a ; a = 0
+
+  ld a, d
+  or d
+  ret z ; no need to even get real sprites
+
+  dec a
+
+  jr .start_getting_some
+
+.enough_sprites:
+  ld [free_sprites_count], a
+  ld [hl], d
+  inc hl
+
+.start_getting_some:
+  ld bc, free_sprites
+  add_a_to_bc
+
+.fetch_sprites:
+  ld a, [bc]
+  inc bc
+  ld [hl+], a
+  dec d
+  jr nz, .fetch_sprites
+
+  ret
 
 ;;; Sets some pointers to a block position in the board.
 ;;; Param: C = Y position on board
@@ -1341,6 +1443,7 @@ anim_match_appear:
   push bc
   push hl
 
+  dec bc
   dec bc
 
   ld h, HIGH(board)

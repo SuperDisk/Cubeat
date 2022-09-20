@@ -19,6 +19,8 @@ DEF BOARD_W EQU 18
 DEF BOARD_H EQU 11
 DEF ROW EQU 18
 
+DEF NUM_ANIMS = 8
+
 MACRO update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM2+(4*\1)], a
@@ -133,7 +135,7 @@ radar_marking_state: db
 need_to_destroy: db
 
 animations:
-REPT 8 ; number of animation slots
+REPT NUM_ANIMS ; number of animation slots
 db ; running
 db ; xoff
 db ; yoff
@@ -167,6 +169,7 @@ init_game::
   ld [score+1], a
   ld [score+2], a
   ld [score+3], a
+  ld [score_counter], a
 IF DEF(SELECT_PAUSES_RADAR)
   ld [radar_paused], a
 ENDC
@@ -189,9 +192,13 @@ ENDC
   ld a, $F0
   ld [anim_end_sentinel], a
 
-  ; simulate out of sprites condition
+  ; Simulate out of sprites condition
   ; ld a, 6
   ; ld [free_sprites_count], a
+
+  ; Simluate score to add
+  ; ld a, 1
+  ; ld [score_counter], a
 
   ld a, 9
   ld [falling_block_rate], a
@@ -648,6 +655,44 @@ ENDC
   ld [radar_marking_state], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Update score count
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld hl, score_counter
+  ld a, [hl]
+  sub 2
+  ld d, 2
+  jr nc, .no_carry
+  add 2
+  ld d, a
+  xor a
+.no_carry:
+  ld [hl], a
+
+  ld hl, score
+  ld a, d
+
+  add [hl]
+  daa
+  ld [hl+], a
+
+  ld a, 0
+  adc [hl]
+  daa
+  ld [hl+], a
+
+  ld a, 0
+  adc [hl]
+  daa
+  ld [hl+], a
+
+  ld a, 0
+  adc [hl]
+  daa
+  ld [hl+], a
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Refresh the graphics buffers
   ;; (shadow OAM and playfield buffer)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -801,7 +846,7 @@ update_graphics:
 
 .animation_stuff:
 
-FOR OFS, 0, 8*16, 16
+FOR OFS, 0, NUM_ANIMS*16, 16
   ld hl, animations+OFS
   call .animate
 ENDR
@@ -1127,7 +1172,7 @@ update_graphics2:
   ;; Clean up any animations that need it
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-FOR OFS, 0, 8*16, 16
+FOR OFS, 0, NUM_ANIMS*16, 16
   ld hl, animations+OFS
   call .cleanup_anim
 ENDR

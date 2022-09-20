@@ -208,11 +208,6 @@ ENDC
   ld a, DPAD_HOLD_FRAMES
   ld [dpad_frames], a
 
-  ld hl, blocks
-  ld a, $80
-  ld c, 4*3
-  rst MemsetSmall
-
   ;; Seed the random number generator
   ld hl, randstate
   ld a, [rDIV]
@@ -223,6 +218,11 @@ ENDC
   ld [hl+], a
   ld a, [rDIV]
   ld [hl], a
+
+  ld hl, blocks
+  call generate_block
+  call generate_block
+  call generate_block
 
   ret
 
@@ -577,43 +577,9 @@ ENDC
   ld c, 4*2
   rst MemcpySmall
 
-  call rand
-
-  ld a, c
-  and 1
-  add $80
-  IF DEF(DBG_BLOCK)
-  ld a, DBG_BLOCK
-  ENDC
-  ld [next_block2+0], a
-  rrc c
-
-  ld a, c
-  and 1
-  add $80
-  IF DEF(DBG_BLOCK)
-  ld a, DBG_BLOCK
-  ENDC
-  ld [next_block2+1], a
-  rrc c
-
-  ld a, c
-  and 1
-  add $80
-  IF DEF(DBG_BLOCK)
-  ld a, DBG_BLOCK
-  ENDC
-  ld [next_block2+2], a
-  rrc c
-
-  ld a, c
-  and 1
-  add $80
-  IF DEF(DBG_BLOCK)
-  ld a, DBG_BLOCK
-  ENDC
-  ld [next_block2+3], a
-  rrc c
+  ;; Generate a new random block
+  ld hl, next_block2
+  call generate_block
 
 .no_collide_other_block:
 
@@ -1312,6 +1278,30 @@ create_animation:
   ld [hl+], a
   dec d
   jr nz, .fetch_sprites
+  ret
+
+
+;;; Generates a new block at the pointer in HL
+;;; Param: HL = Pointer where you want the new block
+;;; Return: [HL] = The new block
+;;; Return: HL = HL+4
+;;; Destroy: AF DE BC
+generate_block:
+  push hl
+  call rand
+  pop hl
+
+REPT 4
+  ld a, c
+  and 1
+  add $80
+  IF DEF(DBG_BLOCK)
+  ld a, DBG_BLOCK
+  ENDC
+  ld [hl+], a
+  rrc c
+ENDR
+
   ret
 
 ;;; Sets some pointers to a block position in the board.

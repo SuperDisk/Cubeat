@@ -4,7 +4,7 @@ include "defines.asm"
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEF DBG_BLOCK = $81
+; DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
@@ -31,19 +31,19 @@ MACRO update_sprite2  ; which sprite, x, y, tile
 ENDM
 
 MACRO spriteX ; which sprite
-  ld [wShadowOAM2+(4*\1)+1], a
+  ld [wShadowOAM2+(4*(\1))+1], a
 ENDM
 
 MACRO spriteY ; which sprite
-  ld [wShadowOAM2+(4*\1)], a
+  ld [wShadowOAM2+(4*(\1))], a
 ENDM
 
 MACRO spriteTile1 ; tile
-  ld [wShadowOAM+(4*\1)+2], a
+  ld [wShadowOAM+(4*(\1))+2], a
 ENDM
 
 MACRO spriteTile2 ; tile
-  ld [wShadowOAM2+(4*\1)+2], a
+  ld [wShadowOAM2+(4*(\1))+2], a
 ENDM
 
 MACRO add_a_to_r16
@@ -125,9 +125,10 @@ ENDC
 
 dpad_frames: db
 
+blocks:
+block: ds 4
 next_block1: ds 4
 next_block2: ds 4
-block: ds 4
 
 ;; 0 = not marking
 ;; 1 = marking
@@ -207,14 +208,21 @@ ENDC
   ld a, DPAD_HOLD_FRAMES
   ld [dpad_frames], a
 
+  ld hl, blocks
   ld a, $80
-  ld [block+0], a
-  ld a, $80
-  ld [block+1], a
-  ld a, $80
-  ld [block+2], a
-  ld a, $80
-  ld [block+3], a
+  ld c, 4*3
+  rst MemsetSmall
+
+  ;; Seed the random number generator
+  ld hl, randstate
+  ld a, [rDIV]
+  ld [hl+], a
+  ld a, [rDIV]
+  ld [hl+], a
+  ld a, [rDIV]
+  ld [hl+], a
+  ld a, [rDIV]
+  ld [hl], a
 
   ret
 
@@ -562,14 +570,11 @@ ENDC
   ld [bc], a
   ld [hl+], a
 
-  ;; Generate random new block (TODO: queue)
-  ld a, [rDIV]
-  ld hl, randstate
-  ld [hl+], a
-  ld [hl+], a
-  ld a, [frame_counter]
-  ld [hl+], a
-  ld [hl], a
+  ld hl, block
+  ld de, next_block1
+  ld c, 4*2
+  rst MemcpySmall
+
   call rand
 
   ld a, c
@@ -578,7 +583,7 @@ ENDC
   IF DEF(DBG_BLOCK)
   ld a, DBG_BLOCK
   ENDC
-  ld [block+0], a
+  ld [next_block2+0], a
   rrc c
 
   ld a, c
@@ -587,7 +592,7 @@ ENDC
   IF DEF(DBG_BLOCK)
   ld a, DBG_BLOCK
   ENDC
-  ld [block+1], a
+  ld [next_block2+1], a
   rrc c
 
   ld a, c
@@ -596,7 +601,7 @@ ENDC
   IF DEF(DBG_BLOCK)
   ld a, DBG_BLOCK
   ENDC
-  ld [block+2], a
+  ld [next_block2+2], a
   rrc c
 
   ld a, c
@@ -605,7 +610,7 @@ ENDC
   IF DEF(DBG_BLOCK)
   ld a, DBG_BLOCK
   ENDC
-  ld [block+3], a
+  ld [next_block2+3], a
   rrc c
 
 .no_collide_other_block:
@@ -699,29 +704,30 @@ ENDC
 
 update_graphics:
   ;; Dropping block tiles
-  ld a, [block+0]
+FOR OFS,4
+  ld a, [block+OFS]
   sub $80
   add a
   add $38
-  spriteTile2 15
+  spriteTile2 15+OFS
+ENDR
 
-  ld a, [block+1]
+  ;; Upcoming block tiles
+FOR OFS, 4
+  ld a, [next_block1+OFS]
   sub $80
   add a
   add $38
-  spriteTile2 16
+  spriteTile1 10+OFS
+ENDR
 
-  ld a, [block+2]
+FOR OFS, 4
+  ld a, [next_block2+OFS]
   sub $80
   add a
   add $38
-  spriteTile2 17
-
-  ld a, [block+3]
-  sub $80
-  add a
-  add $38
-  spriteTile2 18
+  spriteTile1 14+OFS
+ENDR
 
   ;; Radar position
 

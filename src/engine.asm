@@ -19,7 +19,7 @@ DEF BOARD_W EQU 18
 DEF BOARD_H EQU 11
 DEF ROW EQU 18
 
-DEF NUM_ANIMS = 8
+DEF NUM_ANIMS = 11
 
 MACRO update_sprite2  ; which sprite, x, y, tile
   ld a, \3+16
@@ -180,7 +180,7 @@ ENDC
   rst MemsetSmall
 
   ld hl, animations
-  ld c, 16*8
+  ld c, 16*NUM_ANIMS
   rst MemsetSmall
 
   ld a, initial_free_sprites.end - initial_free_sprites
@@ -1072,6 +1072,7 @@ game_step2::
   jr z, update_graphics2
 
   ld hl, board+(BOARD_W*BOARD_H)-1
+  ld bc, board+(BOARD_W*BOARD_H)-1-ROW-1
 
 .destroy_loop:
   ld a, [hl]
@@ -1079,7 +1080,10 @@ game_step2::
   cp %110
   jr nz, .no_destroy
 
+  ld a, [bc]
+  cp [hl]
   ld [hl], 0
+  jr nz, .no_destroy
 
   ;; Split out XY coords from board pos
   ld d, 0
@@ -1089,6 +1093,9 @@ game_step2::
   inc d
   sub ROW
   jr nc, .div_loop2
+
+  dec d
+  dec a
 
   add 18
   add a
@@ -1121,11 +1128,11 @@ game_step2::
 
 .no_destroy:
   dec l
+  dec c
   jr nz, .destroy_loop
 .done_destroy_loop:
   xor a
   ld [need_to_destroy], a
-  jr z, update_graphics2
 
 update_graphics2:
   ld a, [drop_pos]

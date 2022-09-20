@@ -259,6 +259,8 @@ ENDC
   inc a
   cp 163-16-3
   jr nz, .no_reset_radar
+  ld a, 1
+  ld [need_to_destroy], a
   xor a
 .no_reset_radar:
   ld [radar_pos], a
@@ -622,6 +624,7 @@ ENDC
 .radar_scan:
   ld a, [radar_pos]
   srl a
+  jr z, update_graphics ; don't scan if radar is 0
   srl a
   srl a
   ld b, a  ; x

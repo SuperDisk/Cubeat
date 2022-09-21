@@ -5,7 +5,7 @@ include "defines.asm"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DEF DBG_BLOCK = $81
-DEF DBG_DONTFALL = 1
+; DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
 

@@ -88,7 +88,7 @@ BRERB EQUS "bg01_gfx_init"
 BRERB2 EQUS "bg01_map0"
 
 ;; Defines its own sections
-include "res/sprite_block_gfx.2bpp.asm"
+include "res/sprite_block_gfx.sep1.2bpp.asm"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -101,7 +101,7 @@ incbin "res/pice_fall_highlight.2bpp"
 .end:
 
 block_sprite_gfx::
-incbin "res/sprite_block_gfx.2bpp"
+incbin "res/sprite_block_gfx.sep1.2bpp"
 .end:
 
 block_gfx::

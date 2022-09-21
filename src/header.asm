@@ -76,7 +76,7 @@ Reset::
   ld [hBGP], a
   ld a, %11_10_00_01
   ld [hOBP0], a
-  ld a, %00_10_11_01
+  ld a, %00_01_11_10
   ld [hOBP1], a
 
 	; You will also need to reset your handlers' variables below

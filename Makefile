@@ -126,6 +126,14 @@ $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@
 
+$(RESDIR)/%.sep1.png $(RESDIR)/%.sep2.png: $(RESDIR)/%.png
+	@$(MKDIR_P) $(@D)
+	$(PY) $(SRCDIR)/tools/colaz.py $< $@
+
+$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
+	@$(MKDIR_P) $(@D)
+	$(GIF2TILES) $< $@
+
 # Convert .png files using custom atfile arguments
 $(RESDIR)/%.2bpp: $(RESDIR)/%.arg $(RESDIR)/%.png
 	@mkdir -p $(@D)

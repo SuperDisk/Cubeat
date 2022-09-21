@@ -1,6 +1,6 @@
 (defun conv-2bpp (filename)
   (with-open-file (in filename :element-type '(unsigned-byte 8))
-    (loop for q from 0 to 4
+    (loop repeat 24
           for blockset = (loop repeat 64 collect (read-byte in))
           for bs-count from 0 do
             (format t "SECTION \"Blockset ~a\",ROMX~%" bs-count)

@@ -87,7 +87,7 @@ include "res/backgrounds/splash_screen.asm"
 BRERB EQUS "bg01_gfx_init"
 BRERB2 EQUS "bg01_map0"
 
-;; Defines its own sections
+;; This defines its own sections
 include "res/sprite_block_gfx.sep1.2bpp.asm"
 
 SECTION "Sprite Graphics", ROMX
@@ -98,6 +98,13 @@ incbin "res/numbers_8x8_only.2bppu"
 
 incbin "res/radar.2bpp"
 incbin "res/pice_fall_highlight.2bpp"
+.end:
+
+block_underlay:
+REPT 7
+dw `02222222
+ENDR
+dw `00000000
 .end:
 
 block_sprite_gfx::
@@ -176,9 +183,17 @@ Intro::
   ld c, 32
   rst MemcpySmall
 
-  ;; Leave 4 sprites of empty space in sprite area for block graphics
-  ld a, (16*8)
+  ;; Leave 2 sprites of empty space in sprite area for block graphics
+  ld a, (16*4)
   add_a_to_hl
+
+  ;; Put 2 copies of the block underlay
+  ld de, block_underlay
+  ld c, 16
+  rst MemcpySmall
+  ld de, block_underlay
+  ld c, 16
+  rst MemcpySmall
 
   ;; Copy block match animation to sprite area
   ld de, block_match_anim
@@ -229,6 +244,11 @@ macro update_sprite2  ; which sprite, x, y, tile
   ld [wShadowOAM2+(4*\1)+1], a
   ld a, \4
   ld [wShadowOAM2+(4*\1)+2], a
+endm
+
+macro alt_palette2
+  ld a, 1 << 4
+  ld [wShadowOAM2+(4*\1)+3], a
 endm
 
   ; lvl
@@ -295,6 +315,10 @@ endm
   ; Falling block
   update_sprite2 15, 16, 48, $3A
   update_sprite2 16, 16+8, 48, $3C
+  update_sprite2 17, 16, 48, $3E
+  update_sprite2 18, 16+8, 48, $3E
+  alt_palette2 17
+  alt_palette2 18
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA

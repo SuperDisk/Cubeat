@@ -5,7 +5,7 @@ include "defines.asm"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DEF DBG_BLOCK = $81
-; DEF DBG_DONTFALL = 1
+DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
 
@@ -679,7 +679,7 @@ update_graphics:
   ld a, STATF_MODE00
   ldh [rSTAT], a
 
-  ld a, BANK(blockset_0_0)
+  ld a, BANK(blockset_17_0)
   ld [rROMB0], a
 
 .paintBlack:
@@ -687,23 +687,23 @@ update_graphics:
 
   ld a, [block+0]
   and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  call z, blockset_17_0
+  call nz, blockset_17_1
 
   ld a, [block+2]
   and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  call z, blockset_17_0
+  call nz, blockset_17_1
 
   ld a, [block+1]
   and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  call z, blockset_17_0
+  call nz, blockset_17_1
 
   ld a, [block+3]
   and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  call z, blockset_17_0
+  call nz, blockset_17_1
 
   ;; Upcoming block tiles
 FOR OFS, 4
@@ -741,7 +741,6 @@ ENDR
   spriteX 1
 
   ;; Drop pos
-
   ld a, [drop_pos]
   add 2
   add a
@@ -757,18 +756,13 @@ ENDR
 
   add 16
 
-  ; spriteX 15
-  ; spriteX 16
-  ; spriteX 17
-  ; spriteX 18
-  ; spriteX 19
-  ; spriteX 20
-
   ;; Falling block
   sub 16
   spriteX 15
+  spriteX 17
   add 8
   spriteX 16
+  spriteX 18
 
   ld a, [falling_block_y]
   add a
@@ -778,8 +772,10 @@ ENDR
   inc a
 .no_correct
   add 48
-  spriteY 16
   spriteY 15
+  spriteY 16
+  spriteY 17
+  spriteY 18
 
   ;; Score
   ld a, [score+0]
@@ -1438,7 +1434,7 @@ MACRO anim_sprite
   db $0 ; sprite update
   db \3 + 16; y
   db \2 + 8 ; x
-  db (\4*2)+$42      ; tile
+  db (\4*2)+$40      ; tile
   db (\5 << 5) | (\6 << 6) ; flip flags
 ENDM
 

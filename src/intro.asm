@@ -87,6 +87,9 @@ include "res/backgrounds/splash_screen.asm"
 BRERB EQUS "bg01_gfx_init"
 BRERB2 EQUS "bg01_map0"
 
+;; Defines its own sections
+include "res/sprite_block_gfx.2bpp.asm"
+
 SECTION "Sprite Graphics", ROMX
 all_graphics:
 incbin "res/leveltimescore.2bppu"
@@ -97,13 +100,12 @@ incbin "res/radar.2bpp"
 incbin "res/pice_fall_highlight.2bpp"
 .end:
 
-sprite_block_gfx:
-incbin "res/pices_8x8_sprite/pice_sprite_0.2bpp"
-incbin "res/pices_8x8_sprite/pice_sprite_1.2bpp"
+block_sprite_gfx::
+incbin "res/sprite_block_gfx.2bpp"
 .end:
 
-block_gfx:
-incbin "res/pices_8x8_Grid-Alpha-Bomb.2bppu"
+block_gfx::
+incbin "res/pices_8x8_Grid-Alpha-Bomb.2bpp"
 .end:
 
 block_highlight:
@@ -169,34 +171,14 @@ Intro::
   ld bc, (all_graphics.end - all_graphics)
   call Memcpy
 
-  ;; Copy "pice" graphics to sprite area
-  ld c, 16
+  ;; Copy block graphics to sprite area (for preview)
+  ld de, block_sprite_gfx
+  ld c, 32
   rst MemcpySmall
 
-  xor a
-  ld c, 16
-  rst MemsetSmall
-
-  ld c, 16
-  rst MemcpySmall
-
-  xor a
-  ld c, 16
-  rst MemsetSmall
-
-  ld c, 16
-  rst MemcpySmall
-
-  xor a
-  ld c, 16
-  rst MemsetSmall
-
-  ld c, 16
-  rst MemcpySmall
-
-  xor a
-  ld c, 16
-  rst MemsetSmall
+  ;; Leave 4 sprites of empty space in sprite area for block graphics
+  ld a, (16*8)
+  add_a_to_hl
 
   ;; Copy block match animation to sprite area
   ld de, block_match_anim
@@ -270,13 +252,13 @@ endm
 
   ; Pice preview
   update_sprite 10, 2, 16, $38
-  update_sprite 11, 10, 16, $3A
-  update_sprite 12, 2, 16+8, $3A
+  update_sprite 11, 10, 16, $39
+  update_sprite 12, 2, 16+8, $39
   update_sprite 13, 10, 16+8, $38
 
   update_sprite 14, 20, 16, $38
-  update_sprite 15, 28, 16, $3A
-  update_sprite 16, 20, 16+8, $3A
+  update_sprite 15, 28, 16, $39
+  update_sprite 16, 20, 16+8, $39
   update_sprite 17, 28, 16+8, $38
 
   ; Score numbers
@@ -311,11 +293,8 @@ endm
   update_sprite2 14, 64, 49+(16*5), $36
 
   ; Falling block
-  update_sprite2 15, 16, 48, $38
-  update_sprite2 16, 16+8, 48, $3A
-
-  update_sprite2 17, 16, 48+8, $3A
-  update_sprite2 18, 16+8, 48+8, $38
+  update_sprite2 15, 16, 48, $3A
+  update_sprite2 16, 16+8, 48, $3C
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA

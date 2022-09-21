@@ -40,6 +40,7 @@ RGBGFX  := $(RGBDS)rgbgfx
 
 SBCL := sbcl.exe
 GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
+TWOBPP2CODE := $(SBCL) --noinform --load src/tools/2bpp2code.lisp --eval "(main)"
 
 ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
@@ -116,6 +117,10 @@ $(RESDIR)/%.1bpp: $(RESDIR)/%.png
 $(RESDIR)/%.deop.gif: $(RESDIR)/%.gif
 	@$(MKDIR_P) $(@D)
 	gifsicle --unoptimize < $< > $@
+
+$(RESDIR)/%.2bpp.asm: $(RESDIR)/%.2bpp
+	@$(MKDIR_P) $(@D)
+	$(TWOBPP2CODE) $< > $@
 
 $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
 	@$(MKDIR_P) $(@D)

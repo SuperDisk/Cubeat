@@ -672,28 +672,50 @@ ENDC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 update_graphics:
-  ;; Dropping block tiles
-FOR OFS,4
-  ld a, [block+OFS]
-  sub $80
-  add a
-  add $38
-  spriteTile2 15+OFS
-ENDR
+  di
+
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a
+
+  ld a, BANK(blockset_0_0)
+  ld [rROMB0], a
+
+.paintBlack:
+  ld hl, $83A0
+
+  ld a, [block+0]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
+  ld a, [block+2]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
+  ld a, [block+1]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
+  ld a, [block+3]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
 
   ;; Upcoming block tiles
 FOR OFS, 4
   ld a, [next_block1+OFS]
-  sub $80
-  add a
+  and 1
   add $38
   spriteTile1 10+OFS
 ENDR
 
 FOR OFS, 4
   ld a, [next_block2+OFS]
-  sub $80
-  add a
+  and 1
   add $38
   spriteTile1 14+OFS
 ENDR
@@ -745,10 +767,8 @@ ENDR
   ;; Falling block
   sub 16
   spriteX 15
-  spriteX 17
   add 8
   spriteX 16
-  spriteX 18
 
   ld a, [falling_block_y]
   add a
@@ -760,9 +780,6 @@ ENDR
   add 48
   spriteY 16
   spriteY 15
-  add 8
-  spriteY 17
-  spriteY 18
 
   ;; Score
   ld a, [score+0]
@@ -1421,7 +1438,7 @@ MACRO anim_sprite
   db $0 ; sprite update
   db \3 + 16; y
   db \2 + 8 ; x
-  db (\4*2)+$3f+1      ; tile
+  db (\4*2)+$42      ; tile
   db (\5 << 5) | (\6 << 6) ; flip flags
 ENDM
 

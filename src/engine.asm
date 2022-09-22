@@ -140,6 +140,7 @@ next_block2: ds 4
 ;; 1 = marking
 radar_marking_state: db
 need_to_destroy: db
+num_destroyed: db
 
 animations:
 REPT NUM_ANIMS ; number of animation slots
@@ -178,6 +179,7 @@ init_game::
   ld [score+3], a
   ld [score_counter], a
   ld [level_num], a
+  ld [num_destroyed], a
 IF DEF(SELECT_PAUSES_RADAR)
   ld [radar_paused], a
 ENDC
@@ -272,6 +274,7 @@ ENDC
   ld a, 1
   ld [need_to_destroy], a
   xor a
+  ld [num_destroyed], a
 .no_reset_radar:
   ld [radar_pos], a
 
@@ -750,6 +753,16 @@ ENDR
   add 8
   spriteX 1
 
+  ;; Radar head number
+  ld a, [num_destroyed]
+  cp 9
+  jr c, .no_cap
+  ld a, 9
+.no_cap: ; fr fr
+  add a
+  add $1C
+  spriteTile2 2
+
   ;; Drop pos
   ld a, [drop_pos]
   add 2
@@ -1167,6 +1180,9 @@ game_step2::
   ld [anim_y_temp], a
 
   call create_animation
+
+  ld hl, num_destroyed
+  inc [hl]
 
   pop bc
   pop hl

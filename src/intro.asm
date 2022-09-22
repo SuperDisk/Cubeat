@@ -92,7 +92,9 @@ include "res/sprite_block_gfx.sep1.2bpp.asm"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
-incbin "res/leveltimescore.2bppu"
+incbin "res/levelscore.2bppu"
+incbin "res/Clock_Icon.2bppu"
+ds 16 ; alignment
 incbin "res/numbers_big_8x8.2bppu"
 incbin "res/numbers_8x8_only.2bppu"
 
@@ -252,23 +254,21 @@ macro alt_palette2
 endm
 
   ; lvl
-  update_sprite 0, 2+(8*0), 4-3, 0
-  update_sprite 1, 2+(8*1), 4-3, 1
+  update_sprite 0, 2+(8*0), 2, 0
+  update_sprite 1, 2+(8*1), 2, 1
 
   ; 01
-  update_sprite 9, 19+(8*0), 2, 8
-  ; update_sprite 10, 18+(8*1), 2, 9
+  update_sprite 2, 19+(7*0), 2, 8
+  update_sprite 3, 19+(7*1), 2, 9
 
   ; time
-  update_sprite 2, 70+(8*0), 4-3, 2
-  update_sprite 3, 70+(8*1), 4-3, 3
-  update_sprite 4, 70+(8*2), 4-3, 4
+  update_sprite 4, 70+(8*1)-2, 4-3, 6
 
   ; score
-  update_sprite 5, 125+(8*0), 4-3, 5
-  update_sprite 6, 125+(8*1), 4-3, 6
-  update_sprite 7, 125+(8*2), 4-3, 7
-  update_sprite 8, 125+(8*3), 4-3, 4
+  update_sprite 5, 125+(8*0), 4-3, 2
+  update_sprite 6, 125+(8*1), 4-3, 3
+  update_sprite 7, 125+(8*2), 4-3, 4
+  update_sprite 8, 125+(8*3), 4-3, 5
 
   ; Pice preview
   update_sprite 10, 2, 16, $38

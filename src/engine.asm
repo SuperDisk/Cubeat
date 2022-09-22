@@ -46,6 +46,10 @@ MACRO spriteTile2 ; tile
   ld [wShadowOAM2+(4*(\1))+2], a
 ENDM
 
+MACRO spriteX1 ; which sprite
+  ld [wShadowOAM+(4*(\1))+1], a
+ENDM
+
 MACRO add_a_to_r16
     add \2
     ld \2, a
@@ -110,6 +114,8 @@ SECTION "Game vars", WRAM0
 score: ds 4 ; 7 digits
 score_counter: db
 
+level_num: db
+
 drop_pos: db
 
 frame_counter: db
@@ -171,6 +177,7 @@ init_game::
   ld [score+2], a
   ld [score+3], a
   ld [score_counter], a
+  ld [level_num], a
 IF DEF(SELECT_PAUSES_RADAR)
   ld [radar_paused], a
 ENDC
@@ -200,6 +207,9 @@ ENDC
   ; Simluate score to add
   ; ld a, 1
   ; ld [score_counter], a
+
+  ld a, $02
+  ld [level_num], a
 
   ld a, 9
   ld [falling_block_rate], a
@@ -816,12 +826,34 @@ ENDR
   and $F
   add $12
   spriteTile1 19
+  ; ld a, e
+  ; and $F0
+  ; swap a
+  ; add $12
+  ; spriteTile1 18
+
+  ;; Level
+  ld a, 19+(7*1)+8
+  spriteX1 3
+
+  ld a, [level_num]
+  ld e, a
+
+  and $F
+  add 8
+  cp 9
+  spriteTile1 3
+  jr nz, .normal_num
+
+  ld a, 19+(7*1)+8-1
+  spriteX1 3
+
+.normal_num:
   ld a, e
   and $F0
   swap a
-  add $12
-  spriteTile1 18
-
+  add 8
+  spriteTile1 2
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Process running animations

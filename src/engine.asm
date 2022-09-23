@@ -134,7 +134,7 @@ ENDC
 dpad_frames: db
 
 blocks:
-block: ds 4
+block:: ds 4
 next_block1: ds 4
 next_block2: ds 4
 
@@ -713,39 +713,6 @@ ENDC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 update_graphics:
-  di
-
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a
-
-  ld a, BANK(blockset_0_0)
-  ld [rROMB0], a
-
-.paintBlack:
-  ld hl, $83A0
-
-  ld a, [block+0]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
-
-  ld a, [block+2]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
-
-  ld a, [block+1]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
-
-  ld a, [block+3]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
-
   ;; Upcoming block tiles
 FOR OFS, 4
   ld a, [next_block1+OFS]

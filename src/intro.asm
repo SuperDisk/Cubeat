@@ -409,6 +409,36 @@ animation_loop:
 
   call playfield_buffer
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Update falling block GFX
+  ;; (happens during downtime waiting for the OAM scanline)
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, BANK(blockset_0_0)
+  ld [rROMB0], a
+
+  ld hl, $83A0
+
+  ld a, [block+0]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
+  ld a, [block+2]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
+  ld a, [block+1]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
+  ld a, [block+3]
+  and 1
+  call z, blockset_0_0
+  call nz, blockset_0_1
+
 .wait_for_before_radar
   ld a, [rLY]
   cp 30

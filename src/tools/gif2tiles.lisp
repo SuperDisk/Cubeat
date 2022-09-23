@@ -242,9 +242,23 @@
   (funcall f val)
   val)
 
+(defparameter *shite*
+  (elt (skippy:images (skippy:load-data-stream "HUD_strip.gif")) 0))
+
+(defun fuckup (frame)
+  (let* ((d1 (skippy:image-data frame))
+         (d2 (skippy:image-data *shite*))
+         (d-out (loop for q across d1
+                      for w across d2
+                      collect (if (= w 2) q w)))
+         (newimg (skippy:make-image :width (skippy:width *shite*)
+                                    :height (skippy:height *shite*)
+                                    :image-data (skippy:make-image-data (skippy:width *shite*) (skippy:height *shite*) :initial-contents d-out))))
+    (skippy:composite newimg frame :sx 0 :sy 0 :dx 0 :dy 0)))
 
 (defun gif->tiles (filename out-filename)
   (let* ((frames (coerce (skippy:images (skippy:load-data-stream filename)) 'list))
+         (_ (loop for frame in frames do (fuckup frame)))
          (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
          (indexes->tiles (make-hash-table)) ; map of tile name -> tile data
@@ -274,7 +288,7 @@
       (let ((name (gethash tile tiles)))
         (setf (gethash name indexes->tiles) tile)))
 
-    ; An "assignment" is a mapping from tile index -> tile name
+                                        ; An "assignment" is a mapping from tile index -> tile name
     (setf assignments
           (let* ((max-tiles (min (1- (hash-table-count tiles)) 255))
                  (initial-part (loop for tname being each hash-key of (car frame-sets)
@@ -317,7 +331,7 @@
                   (loop for (i1 . n1) in before
                         for (i2 . n2) in after
                         when (not (equalp i1 i2)) do (format t "Critical error~%")
-                        when (not (equalp n1 n2)) collect (cons i2 n2))))
+                          when (not (equalp n1 n2)) collect (cons i2 n2))))
 
     (setf tilemaps
           (loop for split-img in split-frames

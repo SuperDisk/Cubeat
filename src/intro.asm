@@ -56,7 +56,7 @@ ptr_next_update_bg:
   ds 2 ; operand of above
 
 ;; These define their own sections
-include "res/backgrounds/bg01.asm"
+; include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"
 ; include "res/backgrounds/bg04.asm"
@@ -74,7 +74,7 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
-; include "res/backgrounds/bg19.asm"
+include "res/backgrounds/bg19.asm"
 ; include "res/backgrounds/bg20.asm"
 ; include "res/backgrounds/bg21.asm"
 ; include "res/backgrounds/bg22.asm"
@@ -84,8 +84,8 @@ include "res/backgrounds/bg01.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg01_gfx_init"
-BRERB2 EQUS "bg01_map0"
+BRERB EQUS "bg19_gfx_init"
+BRERB2 EQUS "bg19_map0"
 
 ;; This defines its own sections
 include "res/sprite_block_gfx.sep1.2bpp.asm"

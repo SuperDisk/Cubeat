@@ -56,7 +56,7 @@ ptr_next_update_bg:
   ds 2 ; operand of above
 
 ;; These define their own sections
-; include "res/backgrounds/bg01.asm"
+include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"
 ; include "res/backgrounds/bg04.asm"
@@ -74,7 +74,7 @@ ptr_next_update_bg:
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
-include "res/backgrounds/bg19.asm"
+; include "res/backgrounds/bg19.asm"
 ; include "res/backgrounds/bg20.asm"
 ; include "res/backgrounds/bg21.asm"
 ; include "res/backgrounds/bg22.asm"
@@ -84,8 +84,8 @@ include "res/backgrounds/bg19.asm"
 
 include "res/backgrounds/splash_screen.asm"
 
-BRERB EQUS "bg19_gfx_init"
-BRERB2 EQUS "bg19_map0"
+BRERB EQUS "bg01_gfx_init"
+BRERB2 EQUS "bg01_map0"
 
 ;; This defines its own sections
 include "res/sprite_block_gfx.sep1.2bpp.asm"
@@ -261,14 +261,14 @@ endm
   update_sprite 2, 19+(7*0), 2, 8
   update_sprite 3, 19+(7*1), 2, 9
 
-  ; time
-  update_sprite 4, 70+(8*1)-2, 4-3, 6
+  ; clock
+  update_sprite 4, 70+(8*1)-1, 4-3, 6
 
   ; score
-  update_sprite 5, 125+(8*0), 4-3, 2
-  update_sprite 6, 125+(8*1), 4-3, 3
-  update_sprite 7, 125+(8*2), 4-3, 4
-  update_sprite 8, 125+(8*3), 4-3, 5
+  update_sprite 5, 128+(8*0), 4-3, 2
+  update_sprite 6, 128+(8*1), 4-3, 3
+  update_sprite 7, 128+(8*2), 4-3, 4
+  update_sprite 8, 128+(8*3), 4-3, 5
 
   ; Pice preview
   update_sprite 10, 2, 16, $38
@@ -282,14 +282,21 @@ endm
   update_sprite 17, 28, 16+8, $38
 
   ; Score numbers
-  update_sprite 18, 115-(6*1), 9, $12
-  update_sprite 19, 115+(6*0), 9, $12
-  update_sprite 20, 115+(6*1), 9, $12
-  update_sprite 21, 115+(6*2), 9, $12
-  update_sprite 22, 115+(6*3), 9, $12
-  update_sprite 23, 115+(6*4), 9, $12
-  update_sprite 24, 115+(6*5), 9, $12
-  update_sprite 25, 115+(6*6), 9, $12
+  ; update_sprite 18, 115-(6*1), 9, $12
+  ; update_sprite 19, 115+(6*0), 9, $12
+  update_sprite 20, 115+(6*1)-1, 9, $12
+  update_sprite 21, 115+(6*2)-1, 9, $12
+  update_sprite 22, 115+(6*3)-1, 9, $12
+  update_sprite 23, 115+(6*4)-1, 9, $12
+  update_sprite 24, 115+(6*5)-1, 9, $12
+  update_sprite 25, 115+(6*6)-1, 9, $12
+
+  ; time numbers
+  update_sprite 26, 80-15, 9, $12
+  update_sprite 27, 80-15+6, 9, $12
+  ; :
+  update_sprite 28, 80-15+11+4, 9, $12
+  update_sprite 29, 80-15+11+4+6, 9, $12
 
   ; radar
   update_sprite2 0, 124+(8*0), 33, $30

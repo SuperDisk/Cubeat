@@ -118,7 +118,9 @@ level_num: db
 
 drop_pos: db
 
+time: dw
 frame_counter: db
+second_counter: db
 radar_pos: db
 
 falling_block_rate: db
@@ -168,6 +170,7 @@ SECTION "Engine code", ROM0
 init_game::
   xor a
   ld [frame_counter], a
+  ld [second_counter], a
   ld [radar_pos], a
   ld [drop_pos], a
   ld [falling_block_y], a
@@ -180,6 +183,8 @@ init_game::
   ld [score_counter], a
   ld [level_num], a
   ld [num_destroyed], a
+  ld [time+0], a
+  ld [time+1], a
 IF DEF(SELECT_PAUSES_RADAR)
   ld [radar_paused], a
 ENDC
@@ -641,6 +646,29 @@ ENDC
   ld a, b
   ld [radar_marking_state], a
 
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Update time
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ld a, [second_counter]
+  inc a
+  cp 30
+  jr c, .no_wrap_second
+
+  ld hl, time
+  ld a, [hl]
+  add 1
+  daa
+  ld [hl+], a
+  ld a, [hl]
+  adc 0
+  daa
+  ld [hl], a
+
+  xor a
+.no_wrap_second:
+  ld [second_counter], a
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update score count
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -800,6 +828,32 @@ ENDR
   spriteY 17
   spriteY 18
 
+
+  ;; Time
+  ld a, [time+1]
+  ld e, a
+  and $F0
+  swap a
+  add $12
+  spriteTile1 26
+
+  ld a, e
+  and $F
+  add $12
+  spriteTile1 27
+
+  ld a, [time+0]
+  ld e, a
+  and $F0
+  swap a
+  add $12
+  spriteTile1 28
+
+  ld a, e
+  and $F
+  add $12
+  spriteTile1 29
+
   ;; Score
   ld a, [score+0]
   ld e, a
@@ -834,11 +888,12 @@ ENDR
   add $12
   spriteTile1 20
 
-  ld a, [score+3]
-  ld e, a
-  and $F
-  add $12
-  spriteTile1 19
+  ;; RIP
+  ; ld a, [score+3]
+  ; ld e, a
+  ; and $F
+  ; add $12
+  ; spriteTile1 19
   ; ld a, e
   ; and $F0
   ; swap a

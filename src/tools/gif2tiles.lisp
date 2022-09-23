@@ -3,6 +3,10 @@
 
 (defparameter *reserved-tiles-count* 8)
 
+(defparameter *colon*
+  (skippy:make-image :width 2
+                     :height 4
+                     :image-data (skippy:make-image-data 2 4 :initial-contents '(3 3 0 0 3 3 0 0))))
 
 (defun gif-data= (i1 i2)
   (equalp (skippy:image-data i1) (skippy:image-data i2)))
@@ -242,23 +246,12 @@
   (funcall f val)
   val)
 
-(defparameter *shite*
-  (elt (skippy:images (skippy:load-data-stream "HUD_strip.gif")) 0))
-
-(defun fuckup (frame)
-  (let* ((d1 (skippy:image-data frame))
-         (d2 (skippy:image-data *shite*))
-         (d-out (loop for q across d1
-                      for w across d2
-                      collect (if (= w 2) q w)))
-         (newimg (skippy:make-image :width (skippy:width *shite*)
-                                    :height (skippy:height *shite*)
-                                    :image-data (skippy:make-image-data (skippy:width *shite*) (skippy:height *shite*) :initial-contents d-out))))
-    (skippy:composite newimg frame :sx 0 :sy 0 :dx 0 :dy 0)))
+(defun apply-colon (frame)
+  (skippy:composite *colon* frame :sx 0 :sy 0 :dx 80 :dy 11))
 
 (defun gif->tiles (filename out-filename)
-  (let* ((frames (coerce (skippy:images (skippy:load-data-stream filename)) 'list))
-         (_ (loop for frame in frames do (fuckup frame)))
+  (let* ((frames (mapcar #'apply-colon
+                         (coerce (skippy:images (skippy:load-data-stream filename)) 'list)))
          (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
          (indexes->tiles (make-hash-table)) ; map of tile name -> tile data

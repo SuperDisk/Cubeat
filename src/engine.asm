@@ -720,7 +720,7 @@ update_graphics:
   ld a, STATF_MODE00
   ldh [rSTAT], a
 
-  ld a, BANK(blockset_17_0)
+  ld a, BANK(blockset_0_0)
   ld [rROMB0], a
 
 .paintBlack:
@@ -728,23 +728,23 @@ update_graphics:
 
   ld a, [block+0]
   and 1
-  call z, blockset_17_0
-  call nz, blockset_17_1
+  call z, blockset_0_0
+  call nz, blockset_0_1
 
   ld a, [block+2]
   and 1
-  call z, blockset_17_0
-  call nz, blockset_17_1
+  call z, blockset_0_0
+  call nz, blockset_0_1
 
   ld a, [block+1]
   and 1
-  call z, blockset_17_0
-  call nz, blockset_17_1
+  call z, blockset_0_0
+  call nz, blockset_0_1
 
   ld a, [block+3]
   and 1
-  call z, blockset_17_0
-  call nz, blockset_17_1
+  call z, blockset_0_0
+  call nz, blockset_0_1
 
   ;; Upcoming block tiles
 FOR OFS, 4

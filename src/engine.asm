@@ -210,7 +210,7 @@ ENDC
   ; ld a, 1
   ; ld [score_counter], a
 
-  ld a, $02
+  ld a, $01
   ld [level_num], a
 
   ld a, 9

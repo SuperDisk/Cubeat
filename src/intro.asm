@@ -70,7 +70,7 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg12.asm"
 ; include "res/backgrounds/bg13.asm"
 ; include "res/backgrounds/bg14.asm"
-; include "res/backgrounds/bg15.asm"
+include "res/backgrounds/bg15.asm"
 ; include "res/backgrounds/bg16.asm"
 ; include "res/backgrounds/bg17.asm"
 ; include "res/backgrounds/bg18.asm"
@@ -368,6 +368,172 @@ animation_loop:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   call game_step
+
+  ld a, [hPressedKeys]
+  bit PADB_START, a
+  jp z, .no_lvl_up
+
+.wait_for_below_play_areaXX
+  ld a, [rLY]
+  cp 135 ; free to do OAM DMA here (past the play area)
+  jr nz, .wait_for_below_play_areaXX
+
+  ld a, [rLCDC]
+  push af
+
+  res 1, a
+  ld [rLCDC], a
+
+  di
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+
+DEF BLACK = %11
+DEF WHITE = %00
+DEF LIGHT = %01
+DEF DARK = %10
+
+MACRO BGColor
+  ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
+ENDM
+
+.asdf:
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  BGColor DARK, WHITE, LIGHT, WHITE
+  ld [rBGP], a
+
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  BGColor LIGHT, WHITE, WHITE, WHITE
+  ld [rBGP], a
+
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  BGColor WHITE, WHITE, WHITE, WHITE
+  ld [rBGP], a
+
+  xor a
+  ldh [rLCDC], a
+
+  ld a, $98
+  ld [current_bg], a
+
+  ld a, BANK(bg15_gfx_init)
+  ld [rROMB0], a
+
+  ld a, LOW(bg15_gfx_init)
+  ld [ptr_next_update_bg], a
+  ld a, HIGH(bg15_gfx_init)
+  ld [ptr_next_update_bg+1], a
+  call update_bg
+  di
+
+  ld a, BANK(bg15_map0)
+  ld [next_map_bank], a
+  ld a, LOW(bg15_map0)
+  ld [update_playfield_buffer+1], a
+  ld a, HIGH(bg15_map0)
+  ld [update_playfield_buffer+2], a
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800
+	ld [hLCDC], a
+  ld [rLCDC], a
+
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  BGColor LIGHT, WHITE, WHITE, WHITE
+  ld [rBGP], a
+
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  BGColor DARK, WHITE, LIGHT, WHITE
+  ld [rBGP], a
+
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  BGColor BLACK, LIGHT, DARK, WHITE
+  ld [rBGP], a
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+  ld [rLCDC], a
+
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
+  call playfield_buffer
+
+  jp animation_loop
+
+; .a: jr .a
+.no_lvl_up:
+
 
 .wait_for_below_play_area
   ld a, [rLY]

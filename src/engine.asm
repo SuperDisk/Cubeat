@@ -4,7 +4,7 @@ include "defines.asm"
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; DEF DBG_BLOCK = $81
+DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
@@ -1235,12 +1235,12 @@ update_graphics2:
   ;; Clean up any animations that need it
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-FOR OFS, 0, NUM_ANIMS*16, 16
+FOR OFS, 0, (NUM_ANIMS)*16, 16
   ld hl, animations+OFS
   call .cleanup_anim
 ENDR
 
-  ld hl, animations+(7*16)
+  ret
 
 .cleanup_anim:
   bit 1, [hl]

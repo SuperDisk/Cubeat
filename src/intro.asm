@@ -163,7 +163,6 @@ Intro::
   ;; Set up initial block set
   ld hl, skins
   ld a, [hl+]
-  inc hl
   ld [current_blockset_bank], a
 
   ld a, $C3 ; JP
@@ -660,30 +659,30 @@ animation_step:
   ;; (happens during downtime waiting for the OAM scanline)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; ld a, [current_blockset_bank]
-  ; ld [rROMB0], a
+  ld a, [current_blockset_bank]
+  ld [rROMB0], a
 
-  ; ld hl, $83A0
+  ld hl, $83A0
 
-  ; ld a, [block+0]
-  ; and 1
-  ; call z, draw_block0
-  ; call nz, draw_block1
+  ld a, [block+0]
+  and 1
+  call z, draw_block0
+  call nz, draw_block1
 
-  ; ld a, [block+2]
-  ; and 1
-  ; call z, draw_block0
-  ; call nz, draw_block1
+  ld a, [block+2]
+  and 1
+  call z, draw_block0
+  call nz, draw_block1
 
-  ; ld a, [block+1]
-  ; and 1
-  ; call z, draw_block0
-  ; call nz, draw_block1
+  ld a, [block+1]
+  and 1
+  call z, draw_block0
+  call nz, draw_block1
 
-  ; ld a, [block+3]
-  ; and 1
-  ; call z, draw_block0
-  ; call nz, draw_block1
+  ld a, [block+3]
+  and 1
+  call z, draw_block0
+  call nz, draw_block1
 
 .wait_for_before_radar
   ld a, [rLY]

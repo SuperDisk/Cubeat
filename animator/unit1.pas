@@ -18,7 +18,7 @@ type
     FlipY: Boolean;
   end;
 
-  TAnimationFrame = array[0..8] of TSprite;
+  TAnimationFrame = array[0..10] of TSprite;
 
   TAnimation = array of TAnimationFrame;
 
@@ -53,6 +53,12 @@ type
     procedure FlipXBoxChange(Sender: TObject);
     procedure FlipYBoxChange(Sender: TObject);
     procedure ListBox1SelectionChange(Sender: TObject; User: boolean);
+    procedure PaintBox1MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure PaintBox1MouseMove(Sender: TObject; Shift: TShiftState; X,
+      Y: Integer);
+    procedure PaintBox1MouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
     procedure PaintBox1Paint(Sender: TObject);
     procedure SpriteIdEditChange(Sender: TObject);
     procedure TileSpinEditChange(Sender: TObject);
@@ -60,6 +66,7 @@ type
     procedure YSpinEditChange(Sender: TObject);
   private
     Frames: TAnimation;
+    MDown: Boolean;
   public
 
   end;
@@ -240,6 +247,28 @@ end;
 procedure TForm1.ListBox1SelectionChange(Sender: TObject; User: boolean);
 begin
   SpriteIdEditChange(nil);
+end;
+
+procedure TForm1.PaintBox1MouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  mdown := true;
+end;
+
+procedure TForm1.PaintBox1MouseMove(Sender: TObject; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  if mdown then begin
+    Frames[ListBox1.ItemIndex][SpriteIdEdit.Value].X := x div 4;
+    Frames[ListBox1.ItemIndex][SpriteIdEdit.Value].y := y div 4;
+    PaintBox1.Invalidate;
+  end;
+end;
+
+procedure TForm1.PaintBox1MouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  mdown := false;
 end;
 
 end.

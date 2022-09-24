@@ -1514,6 +1514,70 @@ MACRO anim_end
   db $AE
 ENDM
 
+anim_bonus:
+  anim_sprite 0,0,0,13,0,0
+  anim_sprite 1,8,0,14,0,0
+  anim_sprite 2,14,0,15,0,0
+  anim_sprite 3,22,0,16,0,0
+  anim_sprite 4,26,0,17,0,0
+  anim_sprite 5,34,0,18,0,0
+  anim_sprite 6,40,0,19,0,0
+  anim_sprite 7,48,0,20,0,0
+  anim_sprite 8,53,0,21,0,0
+  anim_sprite 9,61,0,22,0,0
+  anim_frame_end
+
+  anim_sprite 0,2,0,13,0,0
+  anim_sprite 1,10,0,14,0,0
+  anim_sprite 2,15,0,15,0,0
+  anim_sprite 3,23,0,16,0,0
+  anim_sprite 4,26,0,17,0,0
+  anim_sprite 5,34,0,18,0,0
+  anim_sprite 6,39,0,19,0,0
+  anim_sprite 7,47,0,20,0,0
+  anim_sprite 8,51,0,21,0,0
+  anim_sprite 9,59,0,22,0,0
+  anim_frame_end
+
+  anim_sprite 0,7,0,13,0,0
+  anim_sprite 1,15,0,14,0,0
+  anim_sprite 2,18,0,15,0,0
+  anim_sprite 3,26,0,16,0,0
+  anim_sprite 4,26,0,17,0,0
+  anim_sprite 5,34,0,18,0,0
+  anim_sprite 6,36,0,19,0,0
+  anim_sprite 7,44,0,20,0,0
+  anim_sprite 8,46,0,21,0,0
+  anim_sprite 9,54,0,22,0,0
+  anim_frame_end
+
+  anim_sprite 0,16,0,13,0,0
+  anim_sprite 1,24,0,14,0,0
+  anim_sprite 2,22,0,15,0,0
+  anim_sprite 3,30,0,16,0,0
+  anim_sprite 4,26,0,17,0,0
+  anim_sprite 5,34,0,18,0,0
+  anim_sprite 6,32,0,19,0,0
+  anim_sprite 7,40,0,20,0,0
+  anim_sprite 8,36,0,21,0,0
+  anim_sprite 9,44,0,22,0,0
+  anim_frame_end
+
+  anim_sprite 0,24,0,13,0,0
+  anim_sprite 1,33,0,14,0,0
+  anim_sprite 2,26,0,15,0,0
+  anim_sprite 3,34,0,16,0,0
+  anim_sprite 4,26,0,17,0,0
+  anim_sprite 5,34,0,18,0,0
+  anim_sprite 6,26,0,19,0,0
+  anim_sprite 7,34,0,20,0,0
+  anim_sprite 8,26,0,21,0,0
+  anim_sprite 9,34,0,22,0,0
+  anim_frame_end
+
+  anim_end
+  ret
+
 anim_explosion:
   anim_sprite 0,0,0,8,0,0
   anim_sprite 1,7,0,8,1,0

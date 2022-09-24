@@ -36,10 +36,16 @@ MACRO BGColor
 ENDM
 
 SECTION "Animation vars", WRAM0
-current_bg: db
-next_gfx_bank: db
-next_map_bank: db
-update_playfield_buffer: ds 3 ; includes jump opcode
+current_bg:: db
+next_gfx_bank:: db
+next_map_bank:: db
+update_playfield_buffer:: ds 3 ; includes jump opcode
+
+
+SECTION "Blockset drawing ram code", WRAM0
+current_blockset_bank: db
+draw_block0: ds 3
+draw_block1: ds 3
 
 SECTION "Static RAM Code", ROM0
 static_ram_code:
@@ -55,49 +61,16 @@ static_ram_code:
 .end:
 
 SECTION "RAM Code", WRAM0
-update_bg_done: ds 1 ; ld sp, xxxx
+update_bg_done:: ds 1 ; ld sp, xxxx
 orig_sp: ds 2 ; operand of above
 ram_code:
   ds static_ram_code.update_bg - static_ram_code
 update_bg:
   ds static_ram_code.end - static_ram_code.update_bg
-ptr_next_update_bg:
+ptr_next_update_bg::
   ds 2 ; operand of above
 
-;; These define their own sections
-include "res/backgrounds/bg01.asm"
-; include "res/backgrounds/bg02.asm"
-; include "res/backgrounds/bg03.asm"
-; include "res/backgrounds/bg04.asm"
-; include "res/backgrounds/bg05.asm"
-; include "res/backgrounds/bg06.asm"
-; include "res/backgrounds/bg07.asm"
-; include "res/backgrounds/bg08.asm"
-; include "res/backgrounds/bg09.asm"
-; include "res/backgrounds/bg10.asm"
-; include "res/backgrounds/bg11.asm"
-; include "res/backgrounds/bg12.asm"
-; include "res/backgrounds/bg13.asm"
-; include "res/backgrounds/bg14.asm"
-include "res/backgrounds/bg15.asm"
-; include "res/backgrounds/bg16.asm"
-; include "res/backgrounds/bg17.asm"
-; include "res/backgrounds/bg18.asm"
-; include "res/backgrounds/bg19.asm"
-; include "res/backgrounds/bg20.asm"
-; include "res/backgrounds/bg21.asm"
-; include "res/backgrounds/bg22.asm"
-; include "res/backgrounds/bg23.asm"
-; include "res/backgrounds/bg24.asm"
-; include "res/backgrounds/bg25.asm"
-
-include "res/backgrounds/splash_screen.asm"
-
-BRERB EQUS "bg01_gfx_init"
-BRERB2 EQUS "bg01_map0"
-
 ;; This defines its own sections
-include "res/sprite_block_gfx.sep1.2bpp.asm"
 
 SECTION "Sprite Graphics", ROMX
 all_graphics:
@@ -123,7 +96,7 @@ incbin "res/sprite_block_gfx.sep1.2bpp"
 .end:
 
 block_gfx::
-incbin "res/pices_8x8_Grid-Alpha-Bomb.2bpp"
+incbin "res/bg_block_gfx.2bpp"
 .end:
 
 block_highlight:
@@ -187,6 +160,26 @@ Intro::
   ld a, $98
   ld [current_bg], a
 
+  ;; Set up initial block set
+  ld hl, skins
+  ld a, [hl+]
+  inc hl
+  ld [current_blockset_bank], a
+
+  ld a, $C3 ; JP
+  ld [draw_block0], a
+  ld [draw_block1], a
+
+  ld a, [hl+]
+  ld [draw_block0+1], a
+  ld a, [hl+]
+  ld [draw_block0+2], a
+
+  ld a, [hl+]
+  ld [draw_block1+1], a
+  ld a, [hl+]
+  ld [draw_block1+2], a
+
   ;; Copy sprite graphics
   ld a, BANK(all_graphics)
   ld [rROMB0], a
@@ -216,7 +209,6 @@ Intro::
   ld de, block_match_anim
   ld bc, block_match_anim.end - block_match_anim
   call Memcpy
-
 
   ;; Copy explosion animation to sprite area
   ld de, explosion_anim
@@ -342,23 +334,34 @@ endm
   alt_palette2 17
   alt_palette2 18
 
+BRERB EQUS "bg01_gfx_init"
+BRERB2 EQUS "bg01_map0"
+
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
+  ld hl, skin0+6
+
   ;; Copy initial tile data
+  ld a, [hl+]
   ld a, BANK(BRERB)
   ld [rROMB0], a
 
+  ld a, [hl+]
   ld a, LOW(BRERB)
   ld [ptr_next_update_bg], a
+  ld a, [hl+]
   ld a, HIGH(BRERB)
   ld [ptr_next_update_bg+1], a
   call update_bg
 
+  ld a, [hl+]
   ld a, BANK(BRERB2)
   ld [next_map_bank], a
+  ld a, [hl+]
   ld a, LOW(BRERB2)
   ld [update_playfield_buffer+1], a
+  ld a, [hl+]
   ld a, HIGH(BRERB2)
   ld [update_playfield_buffer+2], a
 
@@ -475,23 +478,69 @@ ENDR
   xor a
   ldh [rLCDC], a
 
+  ;; Set up initial block set
+  ld hl, skin1
+  ld a, [hl+]
+  ld [current_blockset_bank], a
+
+  ld a, $C3 ; JP
+  ld [draw_block0], a
+  ld [draw_block1], a
+
+  ld a, [hl+]
+  ld [draw_block0+1], a
+  ld a, [hl+]
+  ld [draw_block0+2], a
+
+  ld a, [hl+]
+  ld [draw_block1+1], a
+  ld a, [hl+]
+  ld [draw_block1+2], a
+
+  ld a, BANK(block_sprite_gfx)
+  ld [rROMB0], a
+
+  ld a, [hl]
+  push hl
+
+  ;; Copy block graphics to sprite area (for preview)
+  ld hl, $8380
+  ld de, block_sprite_gfx
+  add_a_to_de
+  ld c, 32
+  rst MemcpySmall
+
   ld a, $98
   ld [current_bg], a
 
-  ld a, BANK(bg15_gfx_init)
+  pop hl
+
+  ld a, BANK(block_gfx)
   ld [rROMB0], a
 
-  ld a, LOW(bg15_gfx_init)
+  ld a, [hl+]
+  push hl
+  ld de, block_gfx
+  add_a_to_de
+  ld hl, $8800
+  ld c, 32*2
+  rst MemcpySmall
+
+  pop hl
+  ld a, [hl+] ; gfx init bank
+  ld [rROMB0], a
+
+  ld a, [hl+]
   ld [ptr_next_update_bg], a
-  ld a, HIGH(bg15_gfx_init)
+  ld a, [hl+]
   ld [ptr_next_update_bg+1], a
   call update_bg
 
-  ld a, BANK(bg15_map0)
+  ld a, [hl+]
   ld [next_map_bank], a
-  ld a, LOW(bg15_map0)
+  ld a, [hl+]
   ld [update_playfield_buffer+1], a
-  ld a, HIGH(bg15_map0)
+  ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
   ld a, [current_bg]
@@ -611,30 +660,30 @@ animation_step:
   ;; (happens during downtime waiting for the OAM scanline)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld a, BANK(blockset_0_0)
-  ld [rROMB0], a
+  ; ld a, [current_blockset_bank]
+  ; ld [rROMB0], a
 
-  ld hl, $83A0
+  ; ld hl, $83A0
 
-  ld a, [block+0]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  ; ld a, [block+0]
+  ; and 1
+  ; call z, draw_block0
+  ; call nz, draw_block1
 
-  ld a, [block+2]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  ; ld a, [block+2]
+  ; and 1
+  ; call z, draw_block0
+  ; call nz, draw_block1
 
-  ld a, [block+1]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  ; ld a, [block+1]
+  ; and 1
+  ; call z, draw_block0
+  ; call nz, draw_block1
 
-  ld a, [block+3]
-  and 1
-  call z, blockset_0_0
-  call nz, blockset_0_1
+  ; ld a, [block+3]
+  ; and 1
+  ; call z, draw_block0
+  ; call nz, draw_block1
 
 .wait_for_before_radar
   ld a, [rLY]

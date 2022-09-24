@@ -4,7 +4,7 @@ include "defines.asm"
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEF DBG_BLOCK = $81
+; DEF DBG_BLOCK = $81
 DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
@@ -895,7 +895,7 @@ ENDR
   ;; Only run animations every other frame
   ld a, [frame_counter]
   and 1
-  jp z, .playfield_update
+  jp z, playfield_update
 
 .animation_stuff:
 
@@ -904,7 +904,7 @@ FOR OFS, 0, NUM_ANIMS*16, 16
   call .animate
 ENDR
 
-  jr .playfield_update
+  jr playfield_update
 
 .animate:
   ld a, [hl+] ; enabled
@@ -1002,7 +1002,7 @@ ENDR
   ld a, [hl+]
   jr .anim_continue
 
-.playfield_update:
+playfield_update::
   ld hl, board
   include "playfield_update.inc"
 

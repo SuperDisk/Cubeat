@@ -26,6 +26,15 @@ MACRO add_a_to_de
     add_a_to_r16 d, e
 ENDM
 
+DEF BLACK = %11
+DEF WHITE = %00
+DEF LIGHT = %01
+DEF DARK = %10
+
+MACRO BGColor
+  ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
+ENDM
+
 SECTION "Animation vars", WRAM0
 current_bg: db
 next_gfx_bank: db
@@ -158,6 +167,9 @@ Intro::
   jr nz, .wait_lcdc_off
 
   di
+
+  xor a
+  ld [hPressedKeys], a
 
   ;; Beyond this point, IME never comes back on
 
@@ -355,108 +367,111 @@ endm
 
   call init_game
 
-animation_loop:
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Load buffer with new tile data
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ld a, [next_map_bank]
-  ld [rROMB0], a
-
-  call update_playfield_buffer
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Run game logic update
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  call game_step
-
+kernel_loop:
   ld a, [hPressedKeys]
   bit PADB_START, a
-  jp z, .no_lvl_up
+  call nz, transition_stage
 
-.wait_for_below_play_areaXX
-  ld a, [rLY]
-  cp 135 ; free to do OAM DMA here (past the play area)
-  jr nz, .wait_for_below_play_areaXX
+  call animation_step
 
-  ld a, [rLCDC]
-  res 1, a
-  ld [rLCDC], a
+  jr kernel_loop
+
+gfx_part:
+  ld a, [next_gfx_bank]
+  ld [rROMB0], a
 
   ld a, IEF_VBLANK
   ldh [rIE], a
   xor a
   ld [rIF], a
   halt ; wait for VBlank
+  nop
 
-DEF BLACK = %11
-DEF WHITE = %00
-DEF LIGHT = %01
-DEF DARK = %10
+  ; swap map
+  ldh a, [rLCDC]
+  xor %00001000
+  ldh [rLCDC], a
 
-MACRO BGColor
-  ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
-ENDM
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
-.asdf:
+  call update_bg
+
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+
+  jp update_playfield_buffer
+
+map_part:
+  ld a, [current_bg]
+  xor %00000100
+  ld [current_bg], a
+  ld h, a
+  ld l, 0
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
   xor a
   ld [rIF], a
   halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+  nop
+
+  assert IEF_VBLANK + 1 == IEF_STAT
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
+  jp playfield_buffer
+
+transition_stage:
+  ;; Wait until we're below the play area to transition, to avoid
+  ;; sprite bugginess
+.wait_for_below_play_area
+  ld a, [rLY]
+  cp 135
+  jr nz, .wait_for_below_play_area
+
+  ;; Turn off sprites
+  ld a, [rLCDC]
+  res 1, a
+  ld [rLCDC], a
+
+  ;; Fade out
 
   BGColor DARK, WHITE, LIGHT, WHITE
   ld [rBGP], a
 
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
+
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
   BGColor LIGHT, WHITE, WHITE, WHITE
   ld [rBGP], a
 
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
   BGColor WHITE, WHITE, WHITE, WHITE
   ld [rBGP], a
 
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
+  call wait_vblank
+
+  ;; Turn the LCD off
   xor a
   ldh [rLCDC], a
 
@@ -479,17 +494,6 @@ ENDM
   ld a, HIGH(bg15_map0)
   ld [update_playfield_buffer+2], a
 
-  ld a, [next_map_bank]
-  ld [rROMB0], a
-  call update_playfield_buffer
-
-  ld a, BANK(bg15_map0)
-  ld [next_map_bank], a
-  ld a, LOW(bg15_map0)
-  ld [update_playfield_buffer+1], a
-  ld a, HIGH(bg15_map0)
-  ld [update_playfield_buffer+2], a
-
   ld a, [current_bg]
   ld h, a
   ld l, 0
@@ -497,95 +501,70 @@ ENDM
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800
   ld [rLCDC], a
 
-  xor a
-  ld [rIF], a
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  halt ; wait for VBlank
-  nop
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
 
-  xor a
-  ld [rIF], a
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
-
-  call playfield_buffer
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
   BGColor LIGHT, WHITE, WHITE, WHITE
   ld [rBGP], a
 
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
   BGColor DARK, WHITE, LIGHT, WHITE
   ld [rBGP], a
 
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
   BGColor BLACK, LIGHT, DARK, WHITE
   ld [rBGP], a
 
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
-  ld [rIF], a
-  halt ; wait for VBlank
+REPT 2
+  call map_part
+  call gfx_part
+ENDR
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
+  jp animation_step.already_updated_playfield_buffer
 
-; .wait_for_below_play_area00
-;   ld a, [rLY]
-;   cp 135 ; free to do OAM DMA here (past the play area)
-;   jr nz, .wait_for_below_play_area00
+  ;; Fall through
+wait_vblank:
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ret
 
-  jp animation_loop
+animation_step:
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Load buffer with new tile data
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; .a: jr .a
-.no_lvl_up:
+  ld a, [next_map_bank]
+  ld [rROMB0], a
 
+  call update_playfield_buffer
+
+.already_updated_playfield_buffer:
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Run game logic update
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  call game_step
 
 .wait_for_below_play_area
   ld a, [rLY]
@@ -720,4 +699,4 @@ ENDM
 
   call update_bg
 
-  jp animation_loop
+  ret

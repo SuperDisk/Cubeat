@@ -547,8 +547,6 @@ ENDC
 
   ld de, $20
 
-  di
-
   ld a, IEF_STAT
   ldh [rIE], a
   ld a, STATF_MODE00

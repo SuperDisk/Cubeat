@@ -39,7 +39,7 @@ static_ram_code:
   assert IEF_VBLANK == 1
   inc a ; ld a, IEF_VBLANK
   ldh [rIE], a
-  reti
+  ret
 .update_bg:
   ld [orig_sp], sp
   db $C3 ; jp xxxx
@@ -152,6 +152,14 @@ Intro::
   ; Turn the LCD off
 	ld a, 0
 	ld [hLCDC], a
+.wait_lcdc_off:
+  ld a, [rLCDC]
+  and %10000000
+  jr nz, .wait_lcdc_off
+
+  di
+
+  ;; Beyond this point, IME never comes back on
 
   ld de, static_ram_code
   ld hl, ram_code
@@ -166,11 +174,6 @@ Intro::
 
   ld a, $98
   ld [current_bg], a
-
-.wait_lcdc_off:
-  ld a, [rLCDC]
-  and %10000000
-  jr nz, .wait_lcdc_off
 
   ;; Copy sprite graphics
   ld a, BANK(all_graphics)
@@ -348,7 +351,6 @@ endm
   ld [update_playfield_buffer+2], a
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [hLCDC], a
 	ld [rLCDC], a
 
   call init_game
@@ -379,12 +381,8 @@ animation_loop:
   jr nz, .wait_for_below_play_areaXX
 
   ld a, [rLCDC]
-  push af
-
   res 1, a
   ld [rLCDC], a
-
-  di
 
   ld a, IEF_VBLANK
   ldh [rIE], a
@@ -448,6 +446,18 @@ ENDM
   ld [rBGP], a
 
   xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  xor a
   ldh [rLCDC], a
 
   ld a, $98
@@ -461,7 +471,6 @@ ENDM
   ld a, HIGH(bg15_gfx_init)
   ld [ptr_next_update_bg+1], a
   call update_bg
-  di
 
   ld a, BANK(bg15_map0)
   ld [next_map_bank], a
@@ -470,10 +479,42 @@ ENDM
   ld a, HIGH(bg15_map0)
   ld [update_playfield_buffer+2], a
 
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
+
+  ld a, BANK(bg15_map0)
+  ld [next_map_bank], a
+  ld a, LOW(bg15_map0)
+  ld [update_playfield_buffer+1], a
+  ld a, HIGH(bg15_map0)
+  ld [update_playfield_buffer+2], a
+
+  ld a, [current_bg]
+  ld h, a
+  ld l, 0
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800
-	ld [hLCDC], a
   ld [rLCDC], a
 
+  xor a
+  ld [rIF], a
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  halt ; wait for VBlank
+  nop
+
+  xor a
+  ld [rIF], a
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
+  call playfield_buffer
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
   xor a
   ld [rIF], a
   halt ; wait for VBlank
@@ -519,15 +560,26 @@ ENDM
   BGColor BLACK, LIGHT, DARK, WHITE
   ld [rBGP], a
 
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+  ld [rIF], a
+  halt ; wait for VBlank
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
-  call playfield_buffer
+; .wait_for_below_play_area00
+;   ld a, [rLY]
+;   cp 135 ; free to do OAM DMA here (past the play area)
+;   jr nz, .wait_for_below_play_area00
 
   jp animation_loop
 
@@ -560,15 +612,15 @@ ENDM
   ld h, a
   ld l, 0
 
-  di
-
   ld a, IEF_VBLANK
   ldh [rIE], a
+  xor a
+  ld [rIF], a
   halt ; wait for VBlank
   nop
 
   assert IEF_VBLANK + 1 == IEF_STAT
-  inc a ; ld a, IEF_STAT
+  ld a, IEF_STAT
   ldh [rIE], a
   ld a, STATF_MODE00
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
@@ -624,6 +676,7 @@ ENDM
   ;; Run game logic update
   ;; Anything we couldn't cram into the previous step...
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   call game_step2
 
 .wait_for_below_play_area0
@@ -648,10 +701,10 @@ ENDM
   ld a, [next_gfx_bank]
   ld [rROMB0], a
 
-  di
-
   ld a, IEF_VBLANK
   ldh [rIE], a
+  xor a
+  ld [rIF], a
   halt ; wait for VBlank
   nop
 
@@ -659,7 +712,6 @@ ENDM
   ldh a, [rLCDC]
   xor %00001000
   ldh [rLCDC], a
-  ld [hLCDC], a
 
   ld a, IEF_STAT
   ldh [rIE], a
@@ -667,6 +719,5 @@ ENDM
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   call update_bg
-  ;; Code to update graphics returns with RETI so interrupts are enabled.
 
   jp animation_loop

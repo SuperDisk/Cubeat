@@ -287,6 +287,17 @@ endm
   update_sprite 16, 20, 16+8, $39
   update_sprite 17, 28, 16+8, $38
 
+  ; Pice preview underlay
+  update_sprite 26, 2, 16, $3E
+  update_sprite 27, 10, 16, $3E
+  update_sprite 28, 2, 16+8, $3E
+  update_sprite 29, 10, 16+8, $3E
+
+  update_sprite 30, 20, 16, $3E
+  update_sprite 31, 28, 16, $3E
+  update_sprite 32, 20, 16+8, $3E
+  update_sprite 33, 28, 16+8, $3E
+
   ; Score numbers
   ; update_sprite 18, 115-(6*1), 9, $12
   ; update_sprite 19, 115+(6*0), 9, $12

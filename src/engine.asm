@@ -99,6 +99,35 @@ FOR SPR, $4C, $9C+4, 4
 ENDR
 .end:
 
+__test_board:
+; db $00,$80,$80,$80,$80,$80,$00,$00,$00,$00,$00,$00,$00,$80,$80,$80,$80,$80
+; db $00,$80,$00,$00,$00,$80,$00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$80
+; db $00,$80,$00,$00,$00,$80,$00,$80,$80,$00,$00,$00,$00,$80,$00,$00,$00,$80
+; db $00,$80,$00,$00,$00,$80,$80,$80,$80,$00,$00,$80,$80,$80,$00,$00,$00,$80
+; db $00,$80,$00,$00,$00,$00,$00,$00,$80,$80,$00,$80,$00,$00,$00,$00,$00,$80
+; db $00,$80,$00,$00,$00,$00,$00,$00,$00,$80,$00,$80,$00,$00,$00,$00,$00,$80
+; db $00,$80,$80,$80,$80,$00,$00,$00,$00,$80,$00,$80,$00,$00,$00,$00,$00,$80
+; db $00,$80,$80,$00,$80,$00,$80,$00,$80,$80,$00,$80,$00,$00,$00,$00,$00,$80
+; db $00,$80,$80,$00,$80,$00,$80,$00,$80,$00,$00,$80,$00,$00,$00,$00,$00,$80
+; db $00,$00,$00,$00,$80,$00,$80,$00,$80,$00,$00,$80,$00,$00,$00,$00,$00,$80
+; db $00,$00,$00,$80,$80,$00,$80,$00,$80,$80,$80,$82,$00,$00,$00,$00,$00,$00
+
+db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$80,$80
+db $80,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$80,$80,$00
+db $00,$80,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$80,$80,$00,$00
+db $00,$00,$80,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$80,$80,$00,$00,$00
+db $00,$00,$00,$80,$80,$00,$00,$00,$00,$00,$00,$00,$80,$80,$00,$00,$00,$00
+db $00,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00
+db $00,$00,$00,$00,$00,$80,$80,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00,$00
+db $00,$00,$00,$00,$00,$00,$80,$80,$00,$80,$80,$00,$00,$00,$00,$00,$00,$00
+db $00,$00,$00,$00,$00,$00,$00,$80,$80,$80,$00,$00,$00,$00,$00,$00,$00,$00
+db $00,$00,$00,$00,$00,$00,$00,$00,$82,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
+; REPT 11
+; db $80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
+; ENDR
+
 SECTION "Board edge array", ROM0, ALIGN[8]
 
 edge_array:
@@ -189,9 +218,10 @@ IF DEF(SELECT_PAUSES_RADAR)
   ld [radar_paused], a
 ENDC
 
+  ld de, __test_board
   ld hl, board
   ld c, board.end - board
-  rst MemsetSmall
+  rst MemcpySmall
 
   ld hl, animations
   ld c, 16*NUM_ANIMS
@@ -258,30 +288,30 @@ game_step::
   ;; Move radar right
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-IF DEF(SELECT_PAUSES_RADAR)
-  ld a, [hPressedKeys]
-  bit PADB_SELECT, a
-  jr z, .no_pause
-  ld a, [radar_paused]
-  xor 1
-  ld [radar_paused], a
-.no_pause:
+; IF DEF(SELECT_PAUSES_RADAR)
+;   ld a, [hPressedKeys]
+;   bit PADB_SELECT, a
+;   jr z, .no_pause
+;   ld a, [radar_paused]
+;   xor 1
+;   ld [radar_paused], a
+; .no_pause:
 
-  ld a, [radar_paused]
-  or a
-  jr nz, .check_rotate_piece
-ENDC
+;   ld a, [radar_paused]
+;   or a
+;   jr nz, .check_rotate_piece
+; ENDC
 
-  ld a, [radar_pos]
-  inc a
-  cp 163-16-3
-  jr nz, .no_reset_radar
-  ld a, 1
-  ld [need_to_destroy], a
-  xor a
-  ld [num_destroyed], a
-.no_reset_radar:
-  ld [radar_pos], a
+;   ld a, [radar_pos]
+;   inc a
+;   cp 163-16-3
+;   jr nz, .no_reset_radar
+;   ld a, 1
+;   ld [need_to_destroy], a
+;   xor a
+;   ld [num_destroyed], a
+; .no_reset_radar:
+;   ld [radar_pos], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Rotate piece
@@ -1018,9 +1048,62 @@ game_step_done:
 
 game_step2::
 
+  ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
+  ld hl, ROW
+  add hl, bc
+
+.bomb_loop:
+  ld a, [hl]
+  bit 1, a
+  jr nz, .found_bomb
+
+.done_spreading:
+  dec l
+  dec c
+  jr nz, .bomb_loop
+  jr .bomb_done
+
+.found_bomb:
+  ld h, HIGH(edge_array)
+  bit 0, [hl]
+  ld h, HIGH(board)
+  jr nz, .no_take
+
+  ld d, a
+  and 1
+  ld e, a
+
+  dec l
+  ld a, [hl]
+  bit 7, a
+  jr z, .no_left
+  and 1
+  cp e
+  jr nz, .no_left
+  ld [hl], d
+
+.no_left:
+  inc l
+
+  ld a, [bc]
+  bit 7, a
+  jr z, .done_spreading
+  and 1
+  cp e
+  jr nz, .done_spreading
+
+  ld a, d
+  ld [bc], a
+
+  jr .done_spreading
+
+.bomb_done:
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Make blocks fall and try to find matches
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  jp .perform_destroy
 
   ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
   ld hl, ROW

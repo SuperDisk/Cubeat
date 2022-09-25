@@ -41,6 +41,7 @@ next_gfx_bank:: db
 next_map_bank:: db
 update_playfield_buffer:: ds 3 ; includes jump opcode
 
+transition_state: db
 
 SECTION "Blockset drawing ram code", WRAM0
 current_blockset_bank: db
@@ -132,7 +133,7 @@ Intro::
   ld [rAUDVOL], a
 
   ; Turn the LCD off
-	ld a, 0
+	xor a
 	ld [hLCDC], a
 .wait_lcdc_off:
   ld a, [rLCDC]
@@ -159,6 +160,10 @@ Intro::
 
   ld a, $98
   ld [current_bg], a
+
+  ;; Set transition state
+  ld a, 1
+  ld [transition_state], a
 
   ;; Set up initial block set
   ld hl, skins
@@ -344,9 +349,6 @@ endm
   alt_palette2 17
   alt_palette2 18
 
-BRERB EQUS "bg01_gfx_init"
-BRERB2 EQUS "bg01_map0"
-
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
@@ -354,25 +356,19 @@ BRERB2 EQUS "bg01_map0"
 
   ;; Copy initial tile data
   ld a, [hl+]
-  ld a, BANK(BRERB)
   ld [rROMB0], a
 
   ld a, [hl+]
-  ld a, LOW(BRERB)
   ld [ptr_next_update_bg], a
   ld a, [hl+]
-  ld a, HIGH(BRERB)
   ld [ptr_next_update_bg+1], a
   call update_bg
 
   ld a, [hl+]
-  ld a, BANK(BRERB2)
   ld [next_map_bank], a
   ld a, [hl+]
-  ld a, LOW(BRERB2)
   ld [update_playfield_buffer+1], a
   ld a, [hl+]
-  ld a, HIGH(BRERB2)
   ld [update_playfield_buffer+2], a
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
@@ -380,116 +376,76 @@ BRERB2 EQUS "bg01_map0"
 
   call init_game
 
+  ;; Fall through
+
 kernel_loop:
   ld a, [hPressedKeys]
   bit PADB_START, a
+  jr z, .no_begin_transition
+  ld a, 16
+  ld [transition_state], a
+
+.no_begin_transition:
+  ld a, [transition_state]
+  dec a
   call nz, transition_stage
 
   call animation_step
 
   jr kernel_loop
 
-gfx_part:
-  ld a, [next_gfx_bank]
-  ld [rROMB0], a
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  nop
-
-  ; swap map
-  ldh a, [rLCDC]
-  xor %00001000
-  ldh [rLCDC], a
-
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
-
-  call update_bg
-
-  ld a, [next_map_bank]
-  ld [rROMB0], a
-
-  jp update_playfield_buffer
-
-map_part:
-  ld a, [current_bg]
-  xor %00000100
-  ld [current_bg], a
-  ld h, a
-  ld l, 0
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  nop
-
-  assert IEF_VBLANK + 1 == IEF_STAT
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
-
-  jp playfield_buffer
-
 transition_stage:
-  ;; Wait until we're below the play area to transition, to avoid
-  ;; sprite bugginess
-.wait_for_below_play_area
-  ld a, [rLY]
-  cp 135
-  jr nz, .wait_for_below_play_area
-
-  ;; Turn off sprites
-  ld a, [rLCDC]
-  res 1, a
-  ld [rLCDC], a
-
   ;; Fade out
+  ld [transition_state], a
+  cp 16
+  jr nz, .no_step1
 
   BGColor DARK, WHITE, LIGHT, WHITE
   ld [rBGP], a
+  BGColor WHITE, WHITE, LIGHT, DARK
+  ld [rOBP0], a
+  BGColor LIGHT, DARK, WHITE, WHITE
+  ld [rOBP1], a
+  ret
 
-  ld a, [next_map_bank]
-  ld [rROMB0], a
-  call update_playfield_buffer
-
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step1:
+  cp 14
+  jr nz, .no_step2
 
   BGColor LIGHT, WHITE, WHITE, WHITE
   ld [rBGP], a
+  BGColor WHITE, WHITE, WHITE, LIGHT
+  ld [rOBP0], a
+  BGColor WHITE, LIGHT, WHITE, WHITE
+  ld [rOBP1], a
+  ret
 
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step2:
+  cp 12
+  jr nz, .no_step3
 
   BGColor WHITE, WHITE, WHITE, WHITE
   ld [rBGP], a
+  ld [rOBP0], a
+  ld [rOBP1], a
+  ret
 
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step3:
+  cp 10
+  jp nz, .no_step4
 
-  call wait_vblank
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
 
   ;; Turn the LCD off
   xor a
   ldh [rLCDC], a
 
   ;; Set up initial block set
-  ld hl, skin1
+  ld hl, skin0
   ld a, [hl+]
   ld [current_blockset_bank], a
 
@@ -553,59 +509,55 @@ ENDR
   ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
-  ld a, [current_bg]
-  ld h, a
-  ld l, 0
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+	ld [rLCDC], a
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800
-  ld [rLCDC], a
+  pop af
+  jp kernel_loop
 
-  ld a, [next_map_bank]
-  ld [rROMB0], a
-  call update_playfield_buffer
-
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step4:
+  cp 8
+  jr nz, .no_step5
 
   BGColor LIGHT, WHITE, WHITE, WHITE
   ld [rBGP], a
+  BGColor WHITE, WHITE, WHITE, LIGHT
+  ld [rOBP0], a
+  BGColor WHITE, LIGHT, WHITE, WHITE
+  ld [rOBP1], a
+  ret
 
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step5:
+  cp 6
+  jr nz, .no_step6
 
   BGColor DARK, WHITE, LIGHT, WHITE
   ld [rBGP], a
+  BGColor WHITE, WHITE, LIGHT, DARK
+  ld [rOBP0], a
+  BGColor LIGHT, DARK, WHITE, WHITE
+  ld [rOBP1], a
+  ret
 
-
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step6:
+  cp 4
+  jr nz, .no_step7
 
   BGColor BLACK, LIGHT, DARK, WHITE
   ld [rBGP], a
+  BGColor LIGHT, WHITE, DARK, BLACK
+  ld [rOBP0], a
+  BGColor DARK, BLACK, LIGHT, WHITE
+  ld [rOBP1], a
+  ret
 
-REPT 2
-  call map_part
-  call gfx_part
-ENDR
+.no_step7:
+  cp 2
+  ret nz
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-  ld [rLCDC], a
+  ld a, 1
+  ld [transition_state], a
 
-  jp animation_step.already_updated_playfield_buffer
-
-  ;; Fall through
-wait_vblank:
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
   ret
 
 animation_step:
@@ -618,7 +570,6 @@ animation_step:
 
   call update_playfield_buffer
 
-.already_updated_playfield_buffer:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

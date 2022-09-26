@@ -117,17 +117,17 @@ __test_board:
 ; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
 ; Maze
-; db $00,$80,$80,$80,$80,$80,$00,$00,$00,$00,$00,$00,$00,$80,$80,$80,$80,$80
-; db $00,$80,$00,$00,$00,$80,$00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$80
-; db $00,$80,$00,$00,$00,$80,$00,$80,$80,$00,$00,$00,$00,$80,$00,$00,$00,$80
-; db $00,$80,$00,$00,$00,$80,$80,$80,$80,$00,$00,$80,$80,$80,$00,$00,$00,$80
-; db $00,$80,$00,$00,$00,$00,$00,$00,$80,$80,$00,$80,$00,$00,$00,$00,$00,$80
-; db $00,$80,$00,$00,$00,$00,$00,$00,$00,$80,$00,$80,$00,$00,$00,$00,$00,$80
-; db $00,$80,$80,$80,$80,$00,$00,$00,$00,$80,$00,$80,$00,$00,$00,$00,$00,$80
-; db $00,$80,$80,$00,$80,$00,$80,$00,$80,$80,$00,$80,$00,$00,$00,$00,$00,$80
-; db $00,$80,$80,$00,$80,$00,$80,$00,$80,$00,$00,$80,$00,$00,$00,$00,$00,$80
-; db $00,$00,$00,$00,$80,$00,$80,$00,$80,$00,$00,$80,$00,$00,$00,$00,$00,$80
-; db $00,$00,$00,$80,$80,$00,$80,$00,$80,$80,$80,$82,$80,$80,$80,$00,$00,$00
+db $00,$80,$80,$80,$80,$80,$00,$00,$00,$00,$00,$00,$00,$80,$80,$80,$80,$80
+db $00,$80,$00,$00,$00,$80,$00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$80
+db $00,$80,$00,$00,$00,$80,$00,$80,$80,$00,$00,$00,$00,$80,$00,$00,$00,$80
+db $00,$80,$00,$00,$00,$80,$80,$80,$80,$00,$00,$80,$80,$80,$00,$00,$00,$80
+db $00,$80,$00,$00,$00,$00,$00,$00,$80,$80,$00,$80,$00,$00,$00,$00,$00,$80
+db $00,$80,$00,$00,$00,$00,$00,$00,$00,$80,$00,$80,$00,$00,$00,$00,$00,$80
+db $00,$80,$80,$80,$80,$00,$00,$00,$00,$80,$00,$80,$00,$00,$00,$00,$00,$80
+db $00,$80,$80,$00,$80,$00,$80,$00,$80,$80,$00,$80,$00,$00,$00,$00,$00,$80
+db $00,$80,$80,$00,$80,$00,$80,$00,$80,$00,$00,$80,$00,$00,$00,$00,$00,$80
+db $00,$00,$00,$00,$80,$00,$80,$00,$80,$00,$00,$82,$00,$00,$00,$00,$00,$80
+db $00,$00,$00,$80,$80,$00,$80,$00,$80,$80,$80,$82,$80,$80,$80,$00,$00,$00
 
 ; V
 ; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -139,7 +139,7 @@ __test_board:
 ; db $00,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00
 ; db $00,$00,$00,$00,$00,$80,$80,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00,$00
 ; db $00,$00,$00,$00,$00,$00,$80,$80,$00,$80,$80,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$80,$80,$80,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$00,$80,$82,$80,$00,$00,$00,$00,$00,$00,$00,$00
 ; db $00,$00,$00,$00,$00,$00,$00,$00,$82,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
 ; X
@@ -169,9 +169,9 @@ __test_board:
 ; db $80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80,$80
 
 ;; All bomb
-REPT 11
-db $80,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$80
-ENDR
+; REPT 11
+; db $80,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$82,$80
+; ENDR
 
 ;; All white
 ; REPT 11
@@ -250,6 +250,9 @@ anim_sprites_needed: db
 free_sprites: ds initial_free_sprites.end - initial_free_sprites
 free_sprites_count: db
 
+bomb_row1: db
+bomb_row2: db
+
 SECTION "Engine code", ROM0
 init_game::
   xor a
@@ -288,6 +291,11 @@ ENDC
   ld de, initial_free_sprites
   ld c, a
   rst MemcpySmall
+
+  ld a, LOW(board.end)-1
+  ld [bomb_row1], a
+  ld a, LOW(board) + (ROW-1)
+  ld [bomb_row2], a
 
   ld a, $F0
   ld [anim_end_sentinel], a
@@ -1106,9 +1114,26 @@ game_step_done:
   ret
 
 game_step2::
+  ld a, [bomb_row1]
   call bomb1
+  ld a, [bomb_row1]
+  sub ROW
+  jr nz, .no_reset_row1
+  ld a, LOW(board.end)-1
+.no_reset_row1:
+  ld [bomb_row1], a
+
+  ld a, [bomb_row2]
+  call bomb1
+  ld a, [bomb_row2]
+  add ROW
+  cp LOW(board.end-1)
+  jr c, .no_reset_row2
+  ld a, LOW(board) + (ROW-1)
+.no_reset_row2:
+  ld [bomb_row2], a
+
 .b1done:
-  ; call bomb2
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Make blocks fall and try to find matches
@@ -1470,120 +1495,98 @@ create_animation:
   ret
 
 bomb1:
-  ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
-  ld hl, board.end - 1
-
+  ld h, HIGH(board)
+  ld l, a
+  ld c, BOARD_W
+  ld e, $80
+  ld d, $82
 .bomb_loop:
   ld a, [hl]
-  bit 1, a
-  jr nz, .found_bomb
+  and %10000011
+  cp d
+  jr nz, .continue_scan
 
-.done_spreading:
-  dec l
-  dec c
-  jr nz, .bomb_loop
-
-  ld a, l
-  cp c
-  ret z ; actually done
-
-  ld c, l
-  jr .bomb_loop
-
-.found_bomb:
+  ;; put bomb
   ld h, HIGH(edge_array)
   bit 0, [hl]
   ld h, HIGH(board)
-  jr nz, .done_spreading ; can't spread, we're at the border.
-
-  ld d, a
-  and 1
-  ld e, a
+  jr nz, .continue_scan
 
   dec l
   ld a, [hl]
-  bit 7, a
-  jr z, .no_left
-  and 1
   cp e
   jr nz, .no_left
   ld [hl], d
 
 .no_left:
   inc l
+.continue_scan:
+  dec l
+  dec c
+  jr nz, .bomb_loop
 
-  ld a, [bc]
-  bit 7, a
-  jr z, .done_spreading
-  and 1
-  cp e
-  jr nz, .done_spreading
-
-  ld a, d
-  ld [bc], a
-
-  jr .done_spreading
-
-bomb2:
-  ld bc, board+ROW
-  ld hl, board
-
-.bomb_loop:
-  ld a, [bc]
-  cp $FF
-  jr nz, .no_sentinel
-
-  ld a, l
-  cp c
-  ret z
-
-  ld c, l
-  jr .bomb_loop
-
-.no_sentinel:
-  ld a, [hl]
-  bit 1, a
-  jr nz, .found_bomb
-
-.done_spreading:
+part2:
   inc l
-  inc c
-  jr .bomb_loop
+  ld c, BOARD_W
+  ld e, $80
+  ld d, $82
+.bomb_loop:
+  ld a, [hl]
+  and %10000011
+  cp d
+  jr nz, .continue_scan
 
-.found_bomb:
+  ;; put bomb
+
   ld h, HIGH(edge_array2)
   bit 0, [hl]
   ld h, HIGH(board)
-  jr nz, .done_spreading
-
-  ld d, a
-  and 1
-  ld e, a
+  jr nz, .skip_right
 
   inc l
   ld a, [hl]
-  bit 7, a
-  jr z, .no_right
-  and 1
   cp e
   jr nz, .no_right
-  ld a, d
-  ld [hl], a
-
+  ld [hl], d
 .no_right:
   dec l
+.skip_right:
 
-  ld a, [bc]
-  bit 7, a
-  jr z, .done_spreading
-  and 1
+  ld a, l
+  sub ROW
+  ld l, a
+  jr z, .no_up
+  jr c, .no_up
+
+  ld a, [hl]
   cp e
-  jr nz, .done_spreading
+  jr nz, .no_up
+  ld [hl], d
 
-  ld a, d
-  ld [bc], a
+.no_up:
+  ld a, l
+  add ROW*2
+  ld l, a
 
-  jr .done_spreading
+  cp LOW(board.end-1)
+  jr nc, .no_down
+
+  ld a, [hl]
+  cp e
+  jr nz, .no_down
+  ld [hl], d
+
+.no_down:
+  ld a, -ROW
+  add l
+  ld l, a
+
+.continue_scan:
+  inc l
+  dec c
+  jr nz, .bomb_loop
+
+  ret
 
 ;;; Generates a new block at the pointer in HL
 ;;; Param: HL = Pointer where you want the new block

@@ -1243,14 +1243,6 @@ game_step2::
 
   ;; Second column matches
 
-  ;; Check that the starting block itself is not a bomb
-  ; inc l
-  ; inc c
-  ; bit 5, [hl]
-  ; jr .no_take
-  ; dec l
-  ; dec c
-
   or $80 | (1 << 6) ; TODO: Make this use the actual block, not replace it with the standard
   ld [hl+], a
   ld [bc], a

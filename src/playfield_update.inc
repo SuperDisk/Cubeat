@@ -1,4 +1,4 @@
-ld b, %10111111
+ld b, %10000111
 ld a, [hl+]
 and a, b
 jr z, @+5

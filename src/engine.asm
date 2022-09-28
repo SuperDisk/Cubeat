@@ -1172,7 +1172,7 @@ game_step2::
   ;; Make blocks fall and try to find matches
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld bc, board+((BOARD_W*BOARD_H)-ROW)-1
+  ld bc, board.end-1 - ROW
   ld hl, board.end-1
   jr .fall_loop
 
@@ -1272,7 +1272,7 @@ game_step2::
   sub ROW
   jr nc, .div_loop
 
-  add 18
+  add ROW
   add a
   add a
   add a
@@ -1311,8 +1311,8 @@ game_step2::
   or a
   jr z, update_graphics2
 
-  ld hl, board+(BOARD_W*BOARD_H)-1
-  ld bc, board+(BOARD_W*BOARD_H)-1-ROW-1
+  ld hl, board.end-1
+  ld bc, board.end-1-ROW-1
 
 .destroy_loop:
   ld a, [hl]
@@ -1337,7 +1337,7 @@ game_step2::
   dec d
   dec a
 
-  add 18
+  add ROW
   add a
   add a
   add a
@@ -1453,6 +1453,12 @@ ENDR
 
   ret
 
+;;; Creates an animation.
+;;; Param: E = X
+;;; Param: D = Y
+;;; Param: C = LOW(the anim)
+;;; Param: B = HIGH(the anim)
+;;; Destroy: AF DE BC HL
 create_animation:
   push de
 

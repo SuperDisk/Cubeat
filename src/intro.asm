@@ -35,6 +35,9 @@ MACRO BGColor
   ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
 ENDM
 
+SECTION "randomshit", ROMX
+include "res/cosmic.asm"
+
 SECTION "Animation vars", WRAM0
 current_bg:: db
 next_gfx_bank:: db

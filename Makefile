@@ -38,6 +38,8 @@ RGBLINK := $(RGBDS)rgblink
 RGBFIX  := $(RGBDS)rgbfix
 RGBGFX  := $(RGBDS)rgbgfx
 
+PROLOG := swipl
+
 SBCL := sbcl.exe
 GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(SBCL) --noinform --load src/tools/2bpp2code.lisp --eval "(main)"
@@ -109,6 +111,10 @@ hardware.inc/hardware.inc rgbds-structs/structs.asm:
 # This line causes assets not found in `res/` to be also looked for in `src/res/`
 # "Source" assets can thus be safely stored there without `make clean` removing them
 VPATH := $(SRCDIR)
+
+$(RESDIR)/%.lvgm $(RESDIR)/%.asm: $(RESDIR)/%.vgm
+	@$(MKDIR_P) $(@D)
+	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< --out_file $(RESDIR)/$*.lvgm > $(RESDIR)/$*.asm
 
 $(RESDIR)/%.1bpp: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)

@@ -35,8 +35,11 @@ MACRO BGColor
   ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
 ENDM
 
-SECTION "randomshit", ROMX
 include "res/cosmic.asm"
+
+SECTION "Music vars", WRAM0
+music_bank: db
+music_pointer: dw
 
 SECTION "Animation vars", WRAM0
 current_bg:: db
@@ -132,8 +135,16 @@ Intro::
   ld [rAUDENA], a
   ld a, $FF
   ld [rAUDTERM], a
-  ld a, $77
+  ld a, $FF
   ld [rAUDVOL], a
+
+  ld a, BANK(vgm1)
+  ld [music_bank], a
+  ld hl, vgm1
+  ld a, l
+  ld [music_pointer], a
+  ld a, h
+  ld [music_pointer+1], a
 
   ; Turn the LCD off
 	xor a
@@ -378,8 +389,58 @@ endm
 	ld [rLCDC], a
 
   call init_game
+  jr kernel_loop
 
-  ;; Fall through
+do_music:
+    ld a, [hl+]
+    cp $FF
+    jr z, .bankswitch
+    cp $5F
+    jr z, .port1
+    cp $5E
+    jr z, .port0
+    cp $61
+    ret z ; wait
+
+    jr do_music
+
+.bankswitch:
+    inc c
+    ld a, c
+    ld [rROMB0], a
+    ld hl, vgm1
+    jr do_music
+.port1:
+    ld a, [hl+]
+    ld [$0003], a
+    ld a, [hl+]
+    ld [$0004], a
+    jr do_music
+.port0:
+    ld a, [hl+]
+    ld [$0001], a
+    ld a, [hl+]
+    ld [$0002], a
+    jr do_music
+
+do_music1:
+    ld a, [music_bank]
+    ld c, a
+    ld [rROMB0], a
+    ld a, [music_pointer]
+    ld l, a
+    ld a, [music_pointer+1]
+    ld h, a
+
+    call do_music
+
+    ld a, c
+    ld [music_bank], a
+    ld a, l
+    ld [music_pointer], a
+    ld a, h
+    ld [music_pointer+1], a
+    ret
 
 kernel_loop:
   ld a, [hPressedKeys]
@@ -619,6 +680,8 @@ animation_step:
 
   call playfield_buffer
 
+  call do_music1
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update falling block GFX
   ;; (happens during downtime waiting for the OAM scanline)
@@ -711,5 +774,7 @@ animation_step:
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   call update_bg
+
+  call do_music1
 
   ret

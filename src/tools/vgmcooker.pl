@@ -68,7 +68,8 @@ print_sections([], _, _).
 print_sections([Bank | Banks], Offset, OutFileName) :-
     length(Bank, BankLen),
     gensym(vgm, Sym),
-    format(current_output, "SECTION \"~a\", ROMX~n", [Sym]),
+    format(current_output, "SECTION \"~a\", ROMX[$4000]~n", [Sym]),
+    format(current_output, "~a:~n", [Sym]),
     format(current_output, "INCBIN \"~a\", ~d, ~d~n", [OutFileName, Offset, BankLen]),
     Offset1 #= Offset + BankLen,
     print_sections(Banks, Offset1, OutFileName).

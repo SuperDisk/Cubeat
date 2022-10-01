@@ -1,5 +1,7 @@
 include "defines.asm"
 
+; include "res/cosmic.asm"
+
 include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg02.asm"
 ; include "res/backgrounds/bg03.asm"

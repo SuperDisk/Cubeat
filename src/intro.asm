@@ -35,8 +35,6 @@ MACRO BGColor
   ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
 ENDM
 
-include "res/cosmic.asm"
-
 SECTION "Music vars", WRAM0
 music_bank: db
 music_pointer: dw
@@ -138,13 +136,13 @@ Intro::
   ld a, $FF
   ld [rAUDVOL], a
 
-  ld a, BANK(cosmic0)
-  ld [music_bank], a
-  ld hl, cosmic0
-  ld a, l
-  ld [music_pointer], a
-  ld a, h
-  ld [music_pointer+1], a
+  ; ld a, BANK(cosmic0)
+  ; ld [music_bank], a
+  ; ld hl, cosmic0
+  ; ld a, l
+  ; ld [music_pointer], a
+  ; ld a, h
+  ; ld [music_pointer+1], a
 
   ; Turn the LCD off
 	xor a
@@ -391,16 +389,17 @@ endm
   call init_game
   jr kernel_loop
 
-do_music1:
-    ld a, [music_bank]
-    ld [rROMB0], a
-    ld a, [music_pointer]
-    ld l, a
-    ld a, [music_pointer+1]
-    ld h, a
-    ld de, $0001
+do_music:
+  ret
+  ld a, [music_bank]
+  ld [rROMB0], a
+  ld a, [music_pointer]
+  ld l, a
+  ld a, [music_pointer+1]
+  ld h, a
+  ld de, $0001
 
-    jp hl
+  jp hl
 
 kernel_loop:
   ld a, [hPressedKeys]
@@ -640,9 +639,7 @@ animation_step:
 
   call playfield_buffer
 
-.before_domusic1:
-  call do_music1
-.after_domusic1:
+  call do_music
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update falling block GFX
@@ -736,9 +733,6 @@ animation_step:
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   call update_bg
-
-.before_domusic12:
-  call do_music1
-.after_domusic12:
+  call do_music
 
   ret

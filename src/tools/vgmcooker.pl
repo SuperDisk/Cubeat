@@ -4,7 +4,6 @@
 :- use_module(library(clpfd)).
 :- use_module(library(pure_input)).
 :- use_module(library(lists)).
-:- use_module(library(reif)).
 :- use_module(library(dcg/basics)).
 
 :- initialization(main, main).
@@ -99,13 +98,13 @@ cook(Cmds, Cooked) :-
 dbg_load(LO, X) :-
     phrase_from_file((vgm(LO, X), ...), "../res/cosmic.vgm", [type(binary)]).
 
-print_frames([], _, _).
-print_frames([Frame | Frames], CurFrame, OutFileName) :-
+print_frames([], _, _, _).
+print_frames([Frame | Frames], CurFrame, LoopFrame, OutFileName) :-
     file_base_name(OutFileName, Basename),
     file_name_extension(NoExt, _, Basename),
 
     (Frames = [_|_], NextFrame #= CurFrame+1;
-     Frames = [], NextFrame #= 0),
+     Frames = [], NextFrame #= LoopFrame),
 
     format("SECTION \"~a~d\", ROMX~n", [NoExt, CurFrame]),
     format("~a~d:~n", [NoExt, CurFrame]),
@@ -122,12 +121,19 @@ print_frames([Frame | Frames], CurFrame, OutFileName) :-
     format("ld a, HIGH(~a~d)~n", [NoExt, NextFrame]),
     format("ld [music_pointer+1], a~n"),
     format("ret~n"),
-    print_frames(Frames, NextFrame, OutFileName).
+    print_frames(Frames, NextFrame, LoopFrame, OutFileName).
 
 loop_frame(Bytes, LoopOffset, LoopFrame) :-
+    length(HeaderBytes, 0x100),
+    append(HeaderBytes, DataBytes, Bytes),
+
     length(BeforeLoopBytes, LoopOffset),
-    prefix(BeforeLoopBytes, CmdBytes),
-    cook(Cmd)
+    prefix(BeforeLoopBytes, DataBytes),
+
+    phrase(commands(Cmds), BeforeLoopBytes),
+    cook(Cmds, CookedCmds),
+    include(=(wait735), CookedCmds, OnlyWaits),
+    length(OnlyWaits, LoopFrame).
 
 opt_type(in_file, in_file, file).
 main([]) :-
@@ -137,10 +143,17 @@ main(Argv) :-
     member(in_file(InFile), Opts),
 
     phrase_from_file(seq(Bytes), InFile, [type(binary)]),
-    phrase(vgm(_LoopOffset, Commands), Bytes, _),
+    phrase(vgm(LoopOffset, Commands), Bytes, _),
     writeln(user_error, "Done parsing"),!,
+
+    loop_frame(Bytes, LoopOffset, LoopFrame),
+    format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+
     cook(Commands, CookedCommands),
-    writeln(user_error, "Done cooking"),
+    writeln(user_error, "Done cooking"),!,
+
     sound_frames(CookedCommands, Frames),
     writeln(user_error, "Done framing"),!,
-    print_frames(Frames, 0, InFile).
+
+    print_frames(Frames, 0, LoopFrame, InFile),
+    writeln(user_error, "Done!").

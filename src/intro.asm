@@ -138,9 +138,9 @@ Intro::
   ld a, $FF
   ld [rAUDVOL], a
 
-  ld a, BANK(vgm1)
+  ld a, BANK(cosmic0)
   ld [music_bank], a
-  ld hl, vgm1
+  ld hl, cosmic0
   ld a, l
   ld [music_pointer], a
   ld a, h
@@ -393,22 +393,42 @@ endm
 
 do_music:
     ld a, [hl+]
-    cp $FF
-    jr z, .bankswitch
-    cp $5F
-    jr z, .port1
     cp $5E
     jr z, .port0
-    cp $61
+    cp $5F
+    jr z, .port1
+    cp $62
     ret z ; wait
+    cp $FF
+    jr z, .bankswitch
+    cp $FE
+    jr z, .songloop
 
-    jr do_music
+    ;; Somehow trying to play garbage data
+    rst Crash
 
-.bankswitch:
-    inc c
+.songloop:
+    ld a, [hl+]
+    ld c, a
+
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+
     ld a, c
     ld [rROMB0], a
-    ld hl, vgm1
+    ret
+.bankswitch:
+    ld a, [hl+]
+    ld c, a
+
+    ld a, [hl+]
+    ld h, [hl]
+    ld l, a
+
+    ld a, c
+    ld [rROMB0], a
+
     jr do_music
 .port1:
     ld a, [hl+]
@@ -680,7 +700,9 @@ animation_step:
 
   call playfield_buffer
 
+.before_domusic1:
   call do_music1
+.after_domusic1:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update falling block GFX
@@ -775,6 +797,8 @@ animation_step:
 
   call update_bg
 
+.before_domusic12:
   call do_music1
+.after_domusic12:
 
   ret

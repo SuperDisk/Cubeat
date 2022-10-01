@@ -22,8 +22,8 @@ mus_step:
   jr z, .port0
   cp $5F
   jr z, .port1
-  cp $61
-  jr z, .wait
+  ; cp $62
+  ; ret z
   cp $FF
   jr z, .bankswitch
 
@@ -49,8 +49,3 @@ mus_step:
   ld a, [hl+]
   ld [$0002], a
   jr .step
-.wait:
-  ld a, [hl+]
-  ld [rTMA], a
-  inc hl
-  ret

@@ -391,76 +391,16 @@ endm
   call init_game
   jr kernel_loop
 
-do_music:
-    ld a, [hl+]
-    cp $5E
-    jr z, .port0
-    cp $5F
-    jr z, .port1
-    cp $62
-    ret z ; wait
-    cp $FF
-    jr z, .bankswitch
-    cp $FE
-    jr z, .songloop
-
-    ;; Somehow trying to play garbage data
-    rst Crash
-
-.songloop:
-    ld a, [hl+]
-    ld c, a
-
-    ld a, [hl+]
-    ld h, [hl]
-    ld l, a
-
-    ld a, c
-    ld [rROMB0], a
-    ret
-.bankswitch:
-    ld a, [hl+]
-    ld c, a
-
-    ld a, [hl+]
-    ld h, [hl]
-    ld l, a
-
-    ld a, c
-    ld [rROMB0], a
-
-    jr do_music
-.port1:
-    ld a, [hl+]
-    ld [$0003], a
-    ld a, [hl+]
-    ld [$0004], a
-    jr do_music
-.port0:
-    ld a, [hl+]
-    ld [$0001], a
-    ld a, [hl+]
-    ld [$0002], a
-    jr do_music
-
 do_music1:
     ld a, [music_bank]
-    ld c, a
     ld [rROMB0], a
     ld a, [music_pointer]
     ld l, a
     ld a, [music_pointer+1]
     ld h, a
+    ld de, $0001
 
-    call do_music
-
-    ld a, c
-    ld [music_bank], a
-    ld a, l
-    ld [music_pointer], a
-    ld a, h
-    ld [music_pointer+1], a
-    ret
+    jp hl
 
 kernel_loop:
   ld a, [hPressedKeys]

@@ -114,7 +114,7 @@ VPATH := $(SRCDIR)
 
 $(RESDIR)/%.lvgm $(RESDIR)/%.asm: $(RESDIR)/%.vgm
 	@$(MKDIR_P) $(@D)
-	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< --out_file $(RESDIR)/$*.lvgm > $(RESDIR)/$*.asm
+	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< > $(RESDIR)/$*.asm
 
 $(RESDIR)/%.1bpp: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)

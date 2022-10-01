@@ -5,6 +5,7 @@
 :- use_module(library(pure_input)).
 :- use_module(library(lists)).
 :- use_module(library(reif)).
+:- use_module(library(dcg/basics)).
 
 :- initialization(main, main).
 
@@ -40,95 +41,106 @@ command(wait(Samples)) --> [0x61], u16(Samples).
 command(wait735) --> [0x62].
 command(end) --> [0x66].
 
-cook(port0Write(Reg, Val), [port0Write(Reg, Val)]).
-cook(port1Write(Reg, Val), [port1Write(Reg, Val)]).
-cook(gbWrite(Reg, Val), [gbWrite(Reg, Val)]).
-cook(wait735, [wait735]).
-cook(wait(Samples), []) :-
+sound_frames_([], [], []).
+sound_frames_([], CurFrame, [CurFrame]) :-
+    CurFrame = [_|_].
+sound_frames_([H | T], CurFrame, Frames) :-
+    dif(H, wait735),
+    sound_frames_(T, [H | CurFrame], Frames).
+sound_frames_([wait735 | T], CurFrame, [CurFrame | Frames]) :-
+    sound_frames_(T, [], Frames).
+
+sound_frames(Cmds, Frames) :-
+    sound_frames_(Cmds, [], Frames0),
+    maplist(reverse, Frames0, Frames).
+
+command_code(port0Write(Reg, Val), NextPort) -->
+    "ld a, $", xinteger(Reg), eol,
+    "ld [hl+], a", eol,
+    "ld a, $", xinteger(Val), eol,
+    ({NextPort = 1}, "ld [hl+], a", eol;
+     {NextPort = 0}, "ld [hl-], a", eol).
+command_code(port1Write(Reg, Val), NextPort) -->
+    "ld a, $", xinteger(Reg), eol,
+    "ld [hl+], a", eol,
+    "ld a, $", xinteger(Val), eol,
+    "ld [hl-], a", eol,
+    ({NextPort = 1};
+     {NextPort = 0}, "dec l", eol, "dec l", eol).
+
+command_code(wait735, _) --> [].
+command_code(end, _) --> [].
+
+commands_code([], []).
+commands_code([Cmd], [Code]) :-
+    phrase(command_code(Cmd, 1), Code).
+commands_code([Cmd, NextCmd | Cmds], [Code | RestCode]) :-
+    (NextCmd = port0Write(_,_), NextPort = 0;
+     NextCmd = port1Write(_,_), NextPort = 1),
+    phrase(command_code(Cmd, NextPort), Code),
+    commands_code([NextCmd | Cmds], RestCode).
+
+cook_(port0Write(Reg, Val), [port0Write(Reg, Val)]).
+cook_(port1Write(Reg, Val), [port1Write(Reg, Val)]).
+cook_(gbWrite(Reg, Val), [gbWrite(Reg, Val)]).
+cook_(wait735, [wait735]).
+cook_(wait(Samples), []) :-
     Samples #=< 0.
-cook(wait(Samples), [wait735 | MoreWaits]) :-
+cook_(wait(Samples), [wait735 | MoreWaits]) :-
     Samples #> 0,
     RemainingSamples #= Samples - 735,
-    cook(wait(RemainingSamples), MoreWaits).
-cook(end,[]).
+    cook_(wait(RemainingSamples), MoreWaits).
+cook_(end,[]).
 
-cooked_loop_point(Bytes, OldLoopPoint, NewLoopPoint) :-
-    length(IntroBytes, OldLoopPoint),
-    prefix(IntroBytes, Bytes),
-    phrase(commands(Cmds), IntroBytes),
-    maplist(cook, Cmds, CookedCmds0),
-    append(CookedCmds0, CookedCmds),
-    phrase(commands(CookedCmds), CookedBytes),
-    length(CookedBytes, NewLoopPoint).
-
-first_bank([], CurBytes, _, [], BytesOut) :-
-    reverse(CurBytes, BytesOut).
-first_bank(Cmds, CurBytes, CurLen, Cmds, BytesOut) :-
-    CurLen #> (16*1024)-7,
-    reverse(CurBytes, BytesOut).
-first_bank([Cmd|Cmds], CurBytes, CurLen, CmdsOut, BytesOut) :-
-    CurLen #=< (16*1024)-7,
-    phrase(command(Cmd), Bytes0),
-    reverse(Bytes0, Bytes),
-    length(Bytes, BytesLength),
-    append(Bytes, CurBytes, NewBytes),
-    NewLen #= CurLen + BytesLength,
-    first_bank(Cmds, NewBytes, NewLen, CmdsOut, BytesOut).
-
-all_banks([], []).
-all_banks(Cmds, [Bank|Banks]) :-
-    Cmds = [_|_],
-    first_bank(Cmds, [], 0, RemainingCmds, Bank),
-    all_banks(RemainingCmds, Banks).
+cook(Cmds, Cooked) :-
+    maplist(cook_, Cmds, NewCmds),
+    append(NewCmds, Cooked).
 
 dbg_load(LO, X) :-
     phrase_from_file((vgm(LO, X), ...), "../res/cosmic.vgm", [type(binary)]).
 
-print_sections([], _, _, _, _).
-print_sections([Bank | Banks], Offset, CurBank, LoopOffset, OutFileName) :-
+print_frames([], _, _).
+print_frames([Frame | Frames], CurFrame, OutFileName) :-
     file_base_name(OutFileName, Basename),
-    file_name_extension(NoExt,_,Basename),
-    length(Bank, BankLen),
-    format("SECTION \"~a~d\", ROMX~n", [NoExt, CurBank]),
-    format("~a~d:~n", [NoExt, CurBank]),
-    format("INCBIN \"~a\", ~d, ~d~n", [OutFileName, Offset, BankLen]),
-    (
-        Banks = [_|_],
-        NextBank #= CurBank+1,
-        format("db $FF, BANK(~a~d)~n", [NoExt, NextBank]),
-        format("dw ~a~d~n", [NoExt, NextBank]),
-        Offset1 #= Offset + BankLen,
-        CurBank1 #= CurBank + 1,
-        print_sections(Banks, Offset1, CurBank1, LoopOffset, OutFileName)
-    ;
-        Banks = [],
-        LoopStartBank #= LoopOffset div ((16*1024)-7),
-        LoopOffsetMod #= LoopOffset mod ((16*1024)-7),
-        format("db $FE, BANK(~a~d)~n", [NoExt, LoopStartBank]),
-        format("dw ~a~d+$~16r~n", [NoExt, LoopStartBank, LoopOffsetMod])
-    ).
+    file_name_extension(NoExt, _, Basename),
+
+    (Frames = [_|_], NextFrame #= CurFrame+1;
+     Frames = [], NextFrame #= 0),
+
+    format("SECTION \"~a~d\", ROMX~n", [NoExt, CurFrame]),
+    format("~a~d:~n", [NoExt, CurFrame]),
+    ([port0Write(_,_)|_] = Frame, format("ld hl, $0001~n");
+     [port1Write(_,_)|_] = Frame, format("ld hl, $0003~n");
+     [] = Frame),
+    commands_code(Frame, FrameCode),
+    append(FrameCode, FrameCode1),
+    format(FrameCode1),
+    format("ld a, BANK(~a~d)~n", [NoExt, NextFrame]),
+    format("ld [music_bank], a~n"),
+    format("ld a, LOW(~a~d)~n", [NoExt, NextFrame]),
+    format("ld [music_pointer], a~n"),
+    format("ld a, HIGH(~a~d)~n", [NoExt, NextFrame]),
+    format("ld [music_pointer+1], a~n"),
+    format("ret~n"),
+    print_frames(Frames, NextFrame, OutFileName).
+
+loop_frame(Bytes, LoopOffset, LoopFrame) :-
+    length(BeforeLoopBytes, LoopOffset),
+    prefix(BeforeLoopBytes, CmdBytes),
+    cook(Cmd)
 
 opt_type(in_file, in_file, file).
-opt_type(out_file, out_file, file).
 main([]) :-
     argv_usage(debug).
 main(Argv) :-
     argv_options(Argv, _, Opts),
-
     member(in_file(InFile), Opts),
-    member(out_file(OutFile), Opts),
 
     phrase_from_file(seq(Bytes), InFile, [type(binary)]),
-    phrase(vgm(LoopOffset, Commands), Bytes, _),
-    maplist(cook, Commands, CookedCommands),
-    append(CookedCommands, FinalCommands),
-    all_banks(FinalCommands, Banks),
-    append(Banks, OutData),
-    open(OutFile, write, Out, [type(binary)]),
-    maplist(put_byte(Out), OutData),
-
-    length(HeaderBytes, 0x100),
-    append(HeaderBytes, DataBytes, Bytes),
-
-    cooked_loop_point(DataBytes, LoopOffset, CookedLoopOffset),
-    print_sections(Banks, 0, 0, CookedLoopOffset, OutFile).
+    phrase(vgm(_LoopOffset, Commands), Bytes, _),
+    writeln(user_error, "Done parsing"),!,
+    cook(Commands, CookedCommands),
+    writeln(user_error, "Done cooking"),
+    sound_frames(CookedCommands, Frames),
+    writeln(user_error, "Done framing"),!,
+    print_frames(Frames, 0, InFile).

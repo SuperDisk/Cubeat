@@ -662,7 +662,7 @@ ENDC
   ccf
   jr nz, .not_sixty
   xor a
-  ccf
+  scf
 .not_sixty:
   ld [hl+], a
   ld a, [hl]

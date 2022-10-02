@@ -648,6 +648,7 @@ ENDC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update time
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   ld a, [second_counter]
   inc a
   cp 30
@@ -657,6 +658,12 @@ ENDC
   ld a, [hl]
   add 1
   daa
+  cp $60
+  ccf
+  jr nz, .not_sixty
+  xor a
+  ccf
+.not_sixty:
   ld [hl+], a
   ld a, [hl]
   adc 0

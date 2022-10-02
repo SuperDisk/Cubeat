@@ -733,7 +733,7 @@ ENDC
 .radar_scan:
   ld a, [radar_pos]
   srl a
-  jr z, update_graphics ; don't scan if radar is 0
+  jr z, .done_scanning ; don't scan if radar is 0
   srl a
   srl a
   ld b, a  ; x

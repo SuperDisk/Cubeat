@@ -13,7 +13,7 @@ VERSION := 0
 GAMEID := ULGB
 
 # Game title, up to 11 ASCII chars
-TITLE := LUMINESGB
+TITLE := CUBEAT
 
 # New licensee, 2 ASCII chars
 # Homebrew games FTW!
@@ -34,7 +34,7 @@ MBC := 0x19
 SRAMSIZE := 0x00
 
 # ROM name
-ROMNAME := lumines
+ROMNAME := cubeat
 ROMEXT  := gb
 
 

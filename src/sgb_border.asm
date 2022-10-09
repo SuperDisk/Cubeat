@@ -28,6 +28,17 @@ TransferBorderAttributesPacket:
 ; hack
 vSGBTransferArea EQU $8000
 
+MACRO sgb_pal_packet
+  db (PAL01 << 3) | 1
+  dw (\1 & $F8) << 7 | (\1 & $F800) >> 6 | (\1 & $F80000) >> 19
+  dw (\2 & $F8) << 7 | (\2 & $F800) >> 6 | (\2 & $F80000) >> 19
+  dw (\3 & $F8) << 7 | (\3 & $F800) >> 6 | (\3 & $F80000) >> 19
+  dw (\4 & $F8) << 7 | (\4 & $F800) >> 6 | (\4 & $F80000) >> 19
+ENDM
+
+TestPalette:
+    sgb_pal_packet $FFFFFF, $00639C, $104A84, $FF9C00
+
 ; Sets up a ton of SGB-related stuff
 ; The stuff in question takes a bunch of time, but we need to do it ASAP, basically
 ; Of course on a non-SGB system basically nothing will happen :D
@@ -85,6 +96,14 @@ DoSGBSetup::
     ; Thought of disabling the LCD, but it appears this doesn't blank the screen on SGB!
     xor a
     ldh [hBGP], a
+
+    ; Disable manual paletting
+    ld hl, DisablePalettesPacket
+    call SendPackets
+
+    ; TODO: parameterize this and make it happen when changing skins
+    ld hl, TestPalette
+    call SendPackets
 
     ; Unfreeze the screen
     ld hl, UnfreezeScreenPacket

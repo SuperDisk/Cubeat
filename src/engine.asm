@@ -1328,8 +1328,9 @@ create_animation:
   inc hl
 
   ld a, [anim_y_temp]
-  and 1
-  swap a
+  ld b, a
+  swap b
+  or b
   ld [hl+], a ; palette
   ld a, [anim_x_temp]
   ld [hl+], a ; info

@@ -20,6 +20,9 @@ SECTION "Header", ROM0[$100]
 EntryPoint:
 	ldh [hConsoleType], a
 
+  or a
+  call z, DoCGBSetup
+
   xor a
   ldh [hIsSGB], a
   ld a, BANK(DoSGBSetup)

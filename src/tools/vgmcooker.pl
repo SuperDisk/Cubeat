@@ -66,22 +66,34 @@ command_code(port1Write(Reg, Val), NextPort) -->
     "ld [hl-], a", eol,
     ({NextPort = 1};
      {NextPort = 0}, "dec l", eol, "dec l", eol).
-
+command_code(gbWrite(Reg, Val), _) -->
+    "ld a, $", xinteger(Val), eol,
+    "ld [$FF10 + $", xinteger(Reg), "], a", eol.
 command_code(wait735, _) --> [].
 command_code(end, _) --> [].
+
+next_port_write([], 1).
+next_port_write([port0Write(_,_) | _], 0).
+next_port_write([port1Write(_,_) | _], 1).
+next_port_write([Cmd | Rest], Port) :-
+    dif(Cmd, port0Write(_,_)),
+    dif(Cmd, port1Write(_,_)),
+    next_port_write(Rest, Port).
 
 commands_code([], []).
 commands_code([Cmd], [Code]) :-
     phrase(command_code(Cmd, 1), Code).
-commands_code([Cmd, NextCmd | Cmds], [Code | RestCode]) :-
-    (NextCmd = port0Write(_,_), NextPort = 0;
-     NextCmd = port1Write(_,_), NextPort = 1),
+commands_code([Cmd | Cmds], [Code | RestCode]) :-
+    next_port_write(Cmds, NextPort),
     phrase(command_code(Cmd, NextPort), Code),
-    commands_code([NextCmd | Cmds], RestCode).
+    commands_code(Cmds, RestCode).
 
 cook_(port0Write(Reg, Val), [port0Write(Reg, Val)]).
 cook_(port1Write(Reg, Val), [port1Write(Reg, Val)]).
-cook_(gbWrite(Reg, Val), [gbWrite(Reg, Val)]).
+cook_(gbWrite(Reg, _), []) :-
+    Reg #>= 0x14.
+cook_(gbWrite(Reg, Val), [gbWrite(Reg, Val)]) :-
+    Reg #=< 0x14.
 cook_(wait735, [wait735]).
 cook_(wait(Samples), []) :-
     Samples #=< 0.
@@ -108,9 +120,10 @@ print_frames([Frame | Frames], CurFrame, LoopFrame, OutFileName) :-
 
     format("SECTION \"~a~d\", ROMX~n", [NoExt, CurFrame]),
     format("~a~d:~n", [NoExt, CurFrame]),
-    ([port0Write(_,_)|_] = Frame, format("ld hl, $0001~n");
-     [port1Write(_,_)|_] = Frame, format("ld hl, $0003~n");
-     [] = Frame),
+    next_port_write(Frame, Port),
+    (Frame = [_|_], Port = 0, format("ld hl, $0001~n");
+     Frame = [_|_], Port = 1, format("ld hl, $0003~n");
+     Frame = []),
     commands_code(Frame, FrameCode),
     append(FrameCode, FrameCode1),
     format(FrameCode1),

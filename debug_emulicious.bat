@@ -1,1 +1,1 @@
-java -jar ..\Emulicious-modded\Emulicious2.jar bin\cubeat.gb
+java -jar ..\Emulicious\Emulicious.jar bin\cubeat.gb

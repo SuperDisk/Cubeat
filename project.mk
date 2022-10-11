@@ -46,7 +46,7 @@ ASFLAGS += -h -l
 
 # Export all labels
 # This means they must all have unique names, but they will all show up in the .sym and .map files
-# ASFLAGS += -E
+ASFLAGS += -E
 
 # Game Boy Color compatible
 FIXFLAGS += -c

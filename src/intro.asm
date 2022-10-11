@@ -136,9 +136,9 @@ Intro::
   ld a, $FF
   ld [rAUDVOL], a
 
-  ld a, BANK(sxtnt0)
+  ld a, BANK(sxtnt40)
   ld [music_bank], a
-  ld hl, sxtnt0
+  ld hl, sxtnt40
   ld a, l
   ld [music_pointer], a
   ld a, h

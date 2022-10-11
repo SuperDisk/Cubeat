@@ -2,6 +2,7 @@
 /obj/
 /dep/
 /res/
+/lib/
 *.swf
 *.psd
 *.mp4
@@ -11,3 +12,5 @@
 
 animator/lib
 animator/backup
+vin-plugin/lib
+vin-plugin/backup

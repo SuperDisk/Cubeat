@@ -136,13 +136,13 @@ Intro::
   ld a, $FF
   ld [rAUDVOL], a
 
-  ld a, BANK(sxtnt40)
-  ld [music_bank], a
-  ld hl, sxtnt40
-  ld a, l
-  ld [music_pointer], a
-  ld a, h
-  ld [music_pointer+1], a
+  ; ld a, BANK(sxtnt0)
+  ; ld [music_bank], a
+  ; ld hl, sxtnt0
+  ; ld a, l
+  ; ld [music_pointer], a
+  ; ld a, h
+  ; ld [music_pointer+1], a
 
   ; Turn the LCD off
 	xor a
@@ -390,7 +390,7 @@ endm
   jr kernel_loop
 
 do_music:
-  ; ret
+  ret
   ld a, [music_bank]
   ld [rROMB0], a
   ld a, [music_pointer]

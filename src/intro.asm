@@ -532,6 +532,9 @@ transition_stage:
   ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
+  ;; Update SGB border
+
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a
 

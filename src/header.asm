@@ -1,7 +1,6 @@
 
 INCLUDE "defines.asm"
 
-
 SECTION "Header", ROM0[$100]
 
 	; This is your ROM's entry point
@@ -23,13 +22,26 @@ EntryPoint:
   or a
   call z, DoCGBSetup
 
+  ld hl, border_table
+
+  ld b, [hl]
+  inc hl
+  ld e, [hl]
+  inc hl
+  ld d, [hl]
+  inc hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  ld a, b
+
+  ld [rROMB0], a
+
   xor a
   ldh [hIsSGB], a
-  ld a, BANK(DoSGBSetup)
-  ld [rROMB0], a
   ld a, $14
   cp c
-  call z, DoSGBSetup
+  call z, ChangeSGBBorder
 
 Reset::
 	di ; Disable interrupts while we set up

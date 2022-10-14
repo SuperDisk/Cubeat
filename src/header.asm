@@ -22,7 +22,7 @@ EntryPoint:
   or a
   call z, DoCGBSetup
 
-  ld hl, border_table
+  ld hl, skin0+12
 
   ld b, [hl]
   inc hl
@@ -34,8 +34,6 @@ EntryPoint:
   ld h, [hl]
   ld l, a
   ld a, b
-
-  ld [rROMB0], a
 
   xor a
   ldh [hIsSGB], a

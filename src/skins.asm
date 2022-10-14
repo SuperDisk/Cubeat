@@ -33,6 +33,77 @@ include "res/backgrounds/bg01.asm"
 ; include "res/backgrounds/bg24.asm"
 ; include "res/backgrounds/bg25.asm"
 
+SECTION "frame_01", ROMX
+frame_01_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_01_Clean.borderchr.pb16"
+frame_01_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_01_Clean.borderattr.pb16"
+SECTION "frame_02", ROMX
+frame_02_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_02_Clean.borderchr.pb16"
+frame_02_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_02_Clean.borderattr.pb16"
+SECTION "frame_03", ROMX
+frame_03_tiles:
+; INCBIN "res/borders/SuperGameBoyFrame_03_Clean.borderchr.pb16"
+frame_03_attrs:
+; INCBIN "res/borders/SuperGameBoyFrame_03_Clean.borderattr.pb16"
+SECTION "frame_04", ROMX
+frame_04_tiles:
+; INCBIN "res/borders/SuperGameBoyFrame_04_Clean.borderchr.pb16"
+frame_04_attrs:
+; INCBIN "res/borders/SuperGameBoyFrame_04_Clean.borderattr.pb16"
+SECTION "frame_05", ROMX
+frame_05_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_05_Clean.borderchr.pb16"
+frame_05_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_05_Clean.borderattr.pb16"
+SECTION "frame_06", ROMX
+frame_06_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_06_Clean.borderchr.pb16"
+frame_06_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_06_Clean.borderattr.pb16"
+SECTION "frame_07", ROMX
+frame_07_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_07_Clean.borderchr.pb16"
+frame_07_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_07_Clean.borderattr.pb16"
+SECTION "frame_08", ROMX
+frame_08_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_08_Clean.borderchr.pb16"
+frame_08_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_08_Clean.borderattr.pb16"
+SECTION "frame_09", ROMX
+frame_09_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_09_Clean.borderchr.pb16"
+frame_09_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_09_Clean.borderattr.pb16"
+SECTION "frame_10", ROMX
+frame_10_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_10_Clean.borderchr.pb16"
+frame_10_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_10_Clean.borderattr.pb16"
+SECTION "frame_11", ROMX
+frame_11_tiles:
+; INCBIN "res/borders/SuperGameBoyFrame_11_Clean.borderchr.pb16"
+frame_11_attrs:
+; INCBIN "res/borders/SuperGameBoyFrame_11_Clean.borderattr.pb16"
+SECTION "frame_12", ROMX
+frame_12_tiles:
+; INCBIN "res/borders/SuperGameBoyFrame_12_Clean.borderchr.pb16"
+frame_12_attrs:
+; INCBIN "res/borders/SuperGameBoyFrame_12_Clean.borderattr.pb16"
+SECTION "frame_13", ROMX
+frame_13_tiles:
+INCBIN "res/borders/SuperGameBoyFrame_13_Clean.borderchr.pb16"
+frame_13_attrs:
+INCBIN "res/borders/SuperGameBoyFrame_13_Clean.borderattr.pb16"
+SECTION "frame_22", ROMX
+frame_22_tiles:
+; INCBIN "res/borders/SuperGameBoyFrame_22_Clean.borderchr.pb16"
+frame_22_attrs:
+; INCBIN "res/borders/SuperGameBoyFrame_22_Clean.borderattr.pb16"
+
 EXPORT bg01_gfx_init
 EXPORT bg01_map0
 
@@ -47,6 +118,9 @@ dw \2 ; gfx_init
 
 db BANK(\3) ; bank of map0
 dw \3 ; map0
+
+db BANK(\6) ; bank of border tiles
+dw \6, \7 ; border tiles and border attrs
 ENDM
 
 ;; Defines its own sections
@@ -55,7 +129,7 @@ include "res/sprite_block_gfx.sep1.2bpp.asm"
 SECTION "Skins", ROM0
 
 skins::
-skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1
+skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs
 ; skin1:: defskin 3, bg04_gfx_init, bg04_map0, blockset_3_0, blockset_3_1
 ;  defskin 2, bg03_gfx_init, bg03_map0, blockset3_0, blockset3_1
 ;  defskin 3, bg04_gfx_init, bg04_map0, blockset4_0, blockset4_1

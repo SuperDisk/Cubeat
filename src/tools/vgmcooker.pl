@@ -113,7 +113,8 @@ dbg_load(LO, X) :-
 print_frames([], _, _, _).
 print_frames([Frame | Frames], CurFrame, LoopFrame, OutFileName) :-
     file_base_name(OutFileName, Basename),
-    file_name_extension(NoExt, _, Basename),
+    file_name_extension(NoExt0, _, Basename),
+    string_concat(NoExt, ".opt", NoExt0),
 
     (Frames = [_|_], NextFrame #= CurFrame+1;
      Frames = [], NextFrame #= LoopFrame),

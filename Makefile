@@ -39,8 +39,11 @@ RGBFIX  := $(RGBDS)rgbfix
 RGBGFX  := $(RGBDS)rgbgfx
 
 PROLOG := swipl
-
 SBCL := sbcl.exe
+TCC := tcc
+
+FURNACE := furnace
+VGMCMP := $(TCC) -lm -lz src/tools/vgmtools/chip_cmp.c -run src/tools/vgmtools/vgm_cmp.c
 GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(SBCL) --noinform --load src/tools/2bpp2code.lisp --eval "(main)"
 
@@ -112,33 +115,39 @@ hardware.inc/hardware.inc rgbds-structs/structs.asm:
 # "Source" assets can thus be safely stored there without `make clean` removing them
 VPATH := $(SRCDIR)
 
-$(RESDIR)/%.lvgm $(RESDIR)/%.asm: $(RESDIR)/%.vgm
+# VGM conversion
+
+# $(RESDIR)/%.vgm: $(RESDIR)/%.fur
+# 	@$(MKDIR_P) $(@D)
+# 	$(FURNACE) $(PWD)/$< -vgmout $(PWD)/$(RESDIR)/$*.vgm
+
+$(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
+	@$(MKDIR_P) $(@D)
+	$(VGMCMP) $< $(RESDIR)/$*.opt.vgm
+
+$(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
 	@$(MKDIR_P) $(@D)
 	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< > $(RESDIR)/$*.asm
 
-$(RESDIR)/%.1bpp: $(RESDIR)/%.png
-	@$(MKDIR_P) $(@D)
-	$(RGBGFX) -d 1 -o $@ $<
+# Background conversion
 
 $(RESDIR)/%.deop.gif: $(RESDIR)/%.gif
 	@$(MKDIR_P) $(@D)
 	gifsicle --unoptimize < $< > $@
 
+$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
+	@$(MKDIR_P) $(@D)
+	$(GIF2TILES) $< $@
+
 $(RESDIR)/%.2bpp.asm: $(RESDIR)/%.2bpp
 	@$(MKDIR_P) $(@D)
 	$(TWOBPP2CODE) $< > $@
 
-$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
-	@$(MKDIR_P) $(@D)
-	$(GIF2TILES) $< $@
+# "Separated" images for 4-color sprites
 
 $(RESDIR)/%.sep1.png $(RESDIR)/%.sep2.png: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(PY) $(SRCDIR)/tools/colaz.py $< $@
-
-$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
-	@$(MKDIR_P) $(@D)
-	$(GIF2TILES) $< $@
 
 # Convert .png files using custom atfile arguments
 $(RESDIR)/%.2bpp: $(RESDIR)/%.arg $(RESDIR)/%.png
@@ -156,6 +165,10 @@ $(RESDIR)/%.2bppu $(RESDIR)/%.tilemapu: $(RESDIR)/%.png
 $(RESDIR)/%.2bpp $(RESDIR)/%.tilemap: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(RGBGFX) -d 2 -o $(RESDIR)/$*.2bpp -t $(RESDIR)/$*.tilemap $<
+
+$(RESDIR)/%.1bpp: $(RESDIR)/%.png
+	@$(MKDIR_P) $(@D)
+	$(RGBGFX) -d 1 -o $@ $<
 
 # Define how to compress files using the PackBits16 codec
 # Compressor script requires Python 3

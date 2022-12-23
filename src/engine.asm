@@ -1685,7 +1685,6 @@ goto_xy_pos_with_vram:
 goto_xy_pos:
   ld a, c
   or a
-  ld a, b
   jr z, .done
   xor a
 
@@ -1694,9 +1693,8 @@ goto_xy_pos:
   dec c
   jr nz, .mult
 
-  add b
-
 .done:
+  add b
   ld hl, board
   add_a_to_hl
 

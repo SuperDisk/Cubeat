@@ -19,27 +19,16 @@ SECTION "Header", ROM0[$100]
 EntryPoint:
 	ldh [hConsoleType], a
 
-  or a
-  call z, DoCGBSetup
-
-  ld hl, skin0+12
-
-  ld b, [hl]
-  inc hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  inc hl
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  ld a, b
-
-  xor a
-  ldh [hIsSGB], a
   ld a, $14
   cp c
-  call z, ChangeSGBBorder
+  jr nz, .not_sgb
+
+  inc a
+  ldh [hIsSGB], a
+
+.not_sgb:
+  ld hl, skin0+12
+  call colorize
 
 Reset::
 	di ; Disable interrupts while we set up

@@ -24,23 +24,10 @@ TransferBorderAttributesPacket:
 ; hack
 vSGBTransferArea EQU $8000
 
-MACRO sgb_pal_packet
-  db (PAL01 << 3) | 1
-  dw (\1 & $F8) << 7 | (\1 & $F800) >> 6 | (\1 & $F80000) >> 19
-  dw (\2 & $F8) << 7 | (\2 & $F800) >> 6 | (\2 & $F80000) >> 19
-  dw (\3 & $F8) << 7 | (\3 & $F800) >> 6 | (\3 & $F80000) >> 19
-  dw (\4 & $F8) << 7 | (\4 & $F800) >> 6 | (\4 & $F80000) >> 19
-ENDM
-
-TestPalette:
-    sgb_pal_packet $FFFFFF, $00639C, $104A84, $FF9C00
-
 ChangeSGBBorder::
     push hl
+    push bc
     push de
-
-    ld a, 1
-    ldh [hIsSGB], a
 
     ; Freeze the screen for the upcoming transfers
     call FreezeSGBScreen
@@ -99,8 +86,8 @@ ChangeSGBBorder::
     ld hl, DisablePalettesPacket
     call SendPackets
 
-    ; TODO: parameterize this and make it happen when changing skins
-    ld hl, TestPalette
+    pop hl
+    ; ld hl, TestPalette
     call SendPackets
 
     ; Unfreeze the screen

@@ -2,7 +2,7 @@ include "defines.asm"
 
 ; include "res/cosmic.asm"
 ; include "res/sxtnt.asm"
-include "res/asof.asm"
+; include "res/asof.asm"
 ; include "res/zen.asm"
 ; include "res/sxtnt3.asm"
 ; include "res/sxtnt4.asm"

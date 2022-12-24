@@ -118,7 +118,6 @@ skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_0
 ; skin22:: defskin 21, bg23_gfx_init, bg23_map0, blockset_22_0, blockset_22_1, frame_23_tiles, frame_23_attrs, pal22
 ; skin23:: defskin 22, bg24_gfx_init, bg24_map0, blockset_23_0, blockset_23_1, frame_24_tiles, frame_24_attrs, pal23
 ; skin24:: defskin 23, bg25_gfx_init, bg25_map0, blockset_24_0, blockset_24_1, frame_25_tiles, frame_25_attrs, pal24
-; skin25:: defskin 24, bg26_gfx_init, bg26_map0, blockset_25_0, blockset_25_1, frame_26_tiles, frame_26_attrs, pal25
 
 skin_table:
 dw skin0

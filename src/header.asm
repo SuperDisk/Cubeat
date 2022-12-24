@@ -19,6 +19,9 @@ SECTION "Header", ROM0[$100]
 EntryPoint:
 	ldh [hConsoleType], a
 
+  xor a
+  ldh [hIsSGB], a
+
   ld a, $14
   cp c
   jr nz, .not_sgb

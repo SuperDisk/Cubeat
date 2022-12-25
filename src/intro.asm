@@ -186,9 +186,6 @@ Intro::
   ld a, $C3 ; jp xxxx
   ld [update_playfield_buffer], a
 
-  ld a, $98
-  ld [current_bg], a
-
   ;; Set transition state
   ld a, 1
   ld [transition_state], a
@@ -293,137 +290,13 @@ Intro::
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a
 
   call UnfreezeScreen
 
   call init_game
-  jp kernel_loop
-
-load_skin:
-  ;; Set up initial block set
-  ld a, [hl+]
-  ld [current_blockset_bank], a
-
-  ld a, [hl+]
-  ld [draw_block0+1], a
-  ld a, [hl+]
-  ld [draw_block0+2], a
-
-  ld a, [hl+]
-  ld [draw_block1+1], a
-  ld a, [hl+]
-  ld [draw_block1+2], a
-
-  ;; Block gfx offset
-  ld a, [hl+]
-  push hl
-  ld h, [hl]
-  ld l, a
-
-  push hl
-  push hl
-
-  ;; Copy sprite graphics
-  ld a, BANK(all_graphics)
-  ld [rROMB0], a
-  ld de, all_graphics
-  ld hl, $8000
-  ld bc, (all_graphics.end - all_graphics)
-  call Memcpy
-
-  ;; Copy block graphics to sprite area (for preview)
-  pop de
-
-  ld a, e
-  add LOW(block_sprite_gfx)
-  ld e, a
-  adc HIGH(block_sprite_gfx)
-  sub e
-  ld d, a
-
-  ld c, 32
-  rst MemcpySmall
-
-  ;; Leave 2 sprites of empty space in sprite area for block graphics
-  ld a, (16*4)
-  add_a_to_hl
-
-  ;; Put 2 copies of the block underlay
-  ld de, block_underlay
-  ld c, 16
-  rst MemcpySmall
-  ld de, block_underlay
-  ld c, 16
-  rst MemcpySmall
-
-  ;; Copy block match animation to sprite area
-  ld de, block_match_anim
-  ld bc, block_match_anim.end - block_match_anim
-  call Memcpy
-
-  ;; Copy explosion animation to sprite area
-  ld de, explosion_anim
-  ld c, explosion_anim.end - explosion_anim
-  rst MemcpySmall
-
-  ;; Copy "pice" graphics to bg area
-  ld a, BANK(block_gfx)
-  ld [rROMB0], a
-
-  pop de
-
-  ld a, e
-  add LOW(block_gfx)
-  ld e, a
-  adc HIGH(block_gfx)
-  sub e
-  ld d, a
-
-  ld hl, $8800
-  ld c, 32*2
-  rst MemcpySmall
-
-  ld de, block_highlight
-  ld c, block_highlight.end - block_highlight
-  rst MemcpySmall
-
-  ;; Setup animated BG
-  pop hl
-  inc hl
-
-  ;; Copy initial tile data
-  ld a, [hl+]
-  ld [rROMB0], a
-
-  ld a, [hl+]
-  ld [ptr_next_update_bg], a
-  ld a, [hl+]
-  ld [ptr_next_update_bg+1], a
-  call update_bg
-
-  ld a, [hl+]
-  ld [next_map_bank], a
-  ld a, [hl+]
-  ld [update_playfield_buffer+1], a
-  ld a, [hl+]
-  ld [update_playfield_buffer+2], a
-
-  ret
-
-do_music:
-  ret
-  ld a, [music_bank]
-  ld [rROMB0], a
-  ld a, [music_pointer]
-  ld l, a
-  ld a, [music_pointer+1]
-  ld h, a
-  ld de, $0001
-
-  jp hl
+  ;; fallthrough
 
 kernel_loop:
   ld a, [hPressedKeys]
@@ -437,120 +310,6 @@ kernel_loop:
   dec a
   call nz, transition_stage
 
-  call animation_step
-
-  jr kernel_loop
-
-transition_stage:
-  ;; Fade out
-  ld [transition_state], a
-  cp 16
-  jr nz, .no_step1
-
-  BGColor DARK, WHITE, LIGHT, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, LIGHT, DARK
-  ld [rOBP0], a
-  BGColor LIGHT, DARK, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step1:
-  cp 14
-  jr nz, .no_step2
-
-  BGColor LIGHT, WHITE, WHITE, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, WHITE, LIGHT
-  ld [rOBP0], a
-  BGColor WHITE, LIGHT, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step2:
-  cp 12
-  jr nz, .no_step3
-
-  BGColor WHITE, WHITE, WHITE, WHITE
-  ld [rBGP], a
-  ld [rOBP0], a
-  ld [rOBP1], a
-  ret
-
-.no_step3:
-  cp 10
-  jp nz, .no_step4
-
-  ld hl, skin1.border_bank
-  call colorize
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-
-  ;; Turn the LCD off
-  xor a
-  ldh [rLCDC], a
-
-  ld hl, skin0
-  call load_skin
-
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [rLCDC], a
-
-  call UnfreezeScreen
-
-  pop af
-  jp kernel_loop
-
-.no_step4:
-  cp 8
-  jr nz, .no_step5
-
-  BGColor LIGHT, WHITE, WHITE, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, WHITE, LIGHT
-  ld [rOBP0], a
-  BGColor WHITE, LIGHT, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step5:
-  cp 6
-  jr nz, .no_step6
-
-  BGColor DARK, WHITE, LIGHT, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, LIGHT, DARK
-  ld [rOBP0], a
-  BGColor LIGHT, DARK, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step6:
-  cp 4
-  jr nz, .no_step7
-
-  BGColor BLACK, LIGHT, DARK, WHITE
-  ld [rBGP], a
-  BGColor LIGHT, WHITE, DARK, BLACK
-  ld [rOBP0], a
-  BGColor DARK, BLACK, LIGHT, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step7:
-  cp 2
-  ret nz
-
-  ld a, 1
-  ld [transition_state], a
-
-  ret
-
-animation_step:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Load buffer with new tile data
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -702,4 +461,239 @@ animation_step:
   call update_bg
   call do_music
 
+  jp kernel_loop
+
+load_skin:
+  ;; Set up initial block set
+  ld a, [hl+]
+  ld [current_blockset_bank], a
+
+  ld a, [hl+]
+  ld [draw_block0+1], a
+  ld a, [hl+]
+  ld [draw_block0+2], a
+
+  ld a, [hl+]
+  ld [draw_block1+1], a
+  ld a, [hl+]
+  ld [draw_block1+2], a
+
+  ;; Block gfx offset
+  ld a, [hl+]
+  push hl
+  ld h, [hl]
+  ld l, a
+
+  push hl
+  push hl
+
+  ;; Copy sprite graphics
+  ld a, BANK(all_graphics)
+  ld [rROMB0], a
+  ld de, all_graphics
+  ld hl, $8000
+  ld bc, (all_graphics.end - all_graphics)
+  call Memcpy
+
+  ;; Copy block graphics to sprite area (for preview)
+  pop de
+
+  ld a, e
+  add LOW(block_sprite_gfx)
+  ld e, a
+  adc HIGH(block_sprite_gfx)
+  sub e
+  ld d, a
+
+  ld c, 32
+  rst MemcpySmall
+
+  ;; Leave 2 sprites of empty space in sprite area for block graphics
+  ld a, (16*4)
+  add_a_to_hl
+
+  ;; Put 2 copies of the block underlay
+  ld de, block_underlay
+  ld c, 16
+  rst MemcpySmall
+  ld de, block_underlay
+  ld c, 16
+  rst MemcpySmall
+
+  ;; Copy block match animation to sprite area
+  ld de, block_match_anim
+  ld bc, block_match_anim.end - block_match_anim
+  call Memcpy
+
+  ;; Copy explosion animation to sprite area
+  ld de, explosion_anim
+  ld c, explosion_anim.end - explosion_anim
+  rst MemcpySmall
+
+  ;; Copy "pice" graphics to bg area
+  ld a, BANK(block_gfx)
+  ld [rROMB0], a
+
+  pop de
+
+  ld a, e
+  add LOW(block_gfx)
+  ld e, a
+  adc HIGH(block_gfx)
+  sub e
+  ld d, a
+
+  ld hl, $8800
+  ld c, 32*2
+  rst MemcpySmall
+
+  ld de, block_highlight
+  ld c, block_highlight.end - block_highlight
+  rst MemcpySmall
+
+  ;; Setup animated BG
+  pop hl
+  inc hl
+
+  ld a, $98
+  ld [current_bg], a
+
+  ;; Copy initial tile data
+  ld a, [hl+]
+  ld [rROMB0], a
+
+  ld a, [hl+]
+  ld [ptr_next_update_bg], a
+  ld a, [hl+]
+  ld [ptr_next_update_bg+1], a
+  call update_bg
+
+  ld a, [hl+]
+  ld [next_map_bank], a
+  ld a, [hl+]
+  ld [update_playfield_buffer+1], a
+  ld a, [hl+]
+  ld [update_playfield_buffer+2], a
+
   ret
+
+transition_stage:
+  ;; Fade out
+  ld [transition_state], a
+  cp 16
+  jr nz, .no_step1
+
+  BGColor DARK, WHITE, LIGHT, WHITE
+  ld [rBGP], a
+  BGColor WHITE, WHITE, LIGHT, DARK
+  ld [rOBP0], a
+  BGColor LIGHT, DARK, WHITE, WHITE
+  ld [rOBP1], a
+  ret
+
+.no_step1:
+  cp 14
+  jr nz, .no_step2
+
+  BGColor LIGHT, WHITE, WHITE, WHITE
+  ld [rBGP], a
+  BGColor WHITE, WHITE, WHITE, LIGHT
+  ld [rOBP0], a
+  BGColor WHITE, LIGHT, WHITE, WHITE
+  ld [rOBP1], a
+  ret
+
+.no_step2:
+  cp 12
+  jr nz, .no_step3
+
+  BGColor WHITE, WHITE, WHITE, WHITE
+  ld [rBGP], a
+  ld [rOBP0], a
+  ld [rOBP1], a
+  ret
+
+.no_step3:
+  cp 10
+  jp nz, .no_step4
+
+  ld hl, skin1.border_bank
+  call colorize
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+
+  ;; Turn the LCD off
+  xor a
+  ldh [rLCDC], a
+
+  ld hl, skin1
+  call load_skin
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+	ld [rLCDC], a
+
+  call UnfreezeScreen
+
+  pop af
+  jp kernel_loop
+
+.no_step4:
+  cp 8
+  jr nz, .no_step5
+
+  BGColor LIGHT, WHITE, WHITE, WHITE
+  ld [rBGP], a
+  BGColor WHITE, WHITE, WHITE, LIGHT
+  ld [rOBP0], a
+  BGColor WHITE, LIGHT, WHITE, WHITE
+  ld [rOBP1], a
+  ret
+
+.no_step5:
+  cp 6
+  jr nz, .no_step6
+
+  BGColor DARK, WHITE, LIGHT, WHITE
+  ld [rBGP], a
+  BGColor WHITE, WHITE, LIGHT, DARK
+  ld [rOBP0], a
+  BGColor LIGHT, DARK, WHITE, WHITE
+  ld [rOBP1], a
+  ret
+
+.no_step6:
+  cp 4
+  jr nz, .no_step7
+
+  BGColor BLACK, LIGHT, DARK, WHITE
+  ld [rBGP], a
+  BGColor LIGHT, WHITE, DARK, BLACK
+  ld [rOBP0], a
+  BGColor DARK, BLACK, LIGHT, WHITE
+  ld [rOBP1], a
+  ret
+
+.no_step7:
+  cp 2
+  ret nz
+
+  ld a, 1
+  ld [transition_state], a
+
+  ret
+
+do_music:
+  ret
+  ld a, [music_bank]
+  ld [rROMB0], a
+  ld a, [music_pointer]
+  ld l, a
+  ld a, [music_pointer+1]
+  ld h, a
+  ld de, $0001
+
+  jp hl

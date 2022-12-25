@@ -29,7 +29,7 @@ EntryPoint:
   inc a
   ldh [hIsSGB], a
 
-  call DisableSGBPalettes
+  call DisableManualPaletting
 
 .not_sgb:
   ld hl, skin0.border_bank

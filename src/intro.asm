@@ -152,13 +152,6 @@ ds (playfield_buffer_rom.end - playfield_buffer_rom)
 SECTION "Intro", ROM0
 
 Intro::
-  ld a, $80
-  ld [rAUDENA], a
-  ld a, $FF
-  ld [rAUDTERM], a
-  ld a, $FF
-  ld [rAUDVOL], a
-
   ; ld a, BANK(asof0)
   ; ld [music_bank], a
   ; ld hl, asof0
@@ -177,10 +170,10 @@ Intro::
 
   di
 
+  ;; Beyond this point, IME never comes back on
+
   xor a
   ld [hPressedKeys], a
-
-  ;; Beyond this point, IME never comes back on
 
   ld de, static_ram_code
   ld hl, ram_code
@@ -200,106 +193,17 @@ Intro::
   ld a, 1
   ld [transition_state], a
 
-  ;; Set up initial block set
-  ld hl, skin0
-  ld a, [hl+]
-  ld [current_blockset_bank], a
-
   ld a, $C3 ; JP
   ld [draw_block0], a
   ld [draw_block1], a
 
-  ld a, [hl+]
-  ld [draw_block0+1], a
-  ld a, [hl+]
-  ld [draw_block0+2], a
-
-  ld a, [hl+]
-  ld [draw_block1+1], a
-  ld a, [hl+]
-  ld [draw_block1+2], a
-
-  ;; Block gfx offset
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-
-  push hl
-  push hl
-
-  ;; Copy sprite graphics
-  ld a, BANK(all_graphics)
-  ld [rROMB0], a
-  ld de, all_graphics
-  ld hl, $8000
-  ld bc, (all_graphics.end - all_graphics)
-  call Memcpy
-
-  ;; Copy block graphics to sprite area (for preview)
-  pop de
-
-  ld a, e
-  add LOW(block_sprite_gfx)
-  ld e, a
-  adc HIGH(block_sprite_gfx)
-  sub e
-  ld d, a
-
-  ld c, 32
-  rst MemcpySmall
-
-  ;; Leave 2 sprites of empty space in sprite area for block graphics
-  ld a, (16*4)
-  add_a_to_hl
-
-  ;; Put 2 copies of the block underlay
-  ld de, block_underlay
-  ld c, 16
-  rst MemcpySmall
-  ld de, block_underlay
-  ld c, 16
-  rst MemcpySmall
-
-  ;; Copy block match animation to sprite area
-  ld de, block_match_anim
-  ld bc, block_match_anim.end - block_match_anim
-  call Memcpy
-
-  ;; Copy explosion animation to sprite area
-  ld de, explosion_anim
-  ld c, explosion_anim.end - explosion_anim
-  rst MemcpySmall
-
-  ;; Copy "pice" graphics to bg area
-  ld a, BANK(block_gfx)
-  ld [rROMB0], a
-
-  pop de
-
-  ld a, e
-  add LOW(block_gfx)
-  ld e, a
-  adc HIGH(block_gfx)
-  sub e
-  ld d, a
-
-  ld hl, $8800
-  ld c, 32*2
-  rst MemcpySmall
-
-  ld de, block_highlight
-  ld c, block_highlight.end - block_highlight
-  rst MemcpySmall
+  ld hl, skin0
+  call load_skin
 
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
   ld bc, playfield_buffer_rom.end - playfield_buffer_rom
   call Memcpy
-
-  ld a, 16
-  ld [wShadowOAM], a
-  ld a, 8
-  ld [wShadowOAM+1], a
 
   ; lvl
   update_sprite 0, 2+(8*0), 2, 0
@@ -389,7 +293,106 @@ Intro::
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  ld hl, skin0.gfx_init_bank
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+	ld [rLCDC], a
+
+  call UnfreezeScreen
+
+  call init_game
+  jp kernel_loop
+
+load_skin:
+  ;; Set up initial block set
+  ld a, [hl+]
+  ld [current_blockset_bank], a
+
+  ld a, [hl+]
+  ld [draw_block0+1], a
+  ld a, [hl+]
+  ld [draw_block0+2], a
+
+  ld a, [hl+]
+  ld [draw_block1+1], a
+  ld a, [hl+]
+  ld [draw_block1+2], a
+
+  ;; Block gfx offset
+  ld a, [hl+]
+  push hl
+  ld h, [hl]
+  ld l, a
+
+  push hl
+  push hl
+
+  ;; Copy sprite graphics
+  ld a, BANK(all_graphics)
+  ld [rROMB0], a
+  ld de, all_graphics
+  ld hl, $8000
+  ld bc, (all_graphics.end - all_graphics)
+  call Memcpy
+
+  ;; Copy block graphics to sprite area (for preview)
+  pop de
+
+  ld a, e
+  add LOW(block_sprite_gfx)
+  ld e, a
+  adc HIGH(block_sprite_gfx)
+  sub e
+  ld d, a
+
+  ld c, 32
+  rst MemcpySmall
+
+  ;; Leave 2 sprites of empty space in sprite area for block graphics
+  ld a, (16*4)
+  add_a_to_hl
+
+  ;; Put 2 copies of the block underlay
+  ld de, block_underlay
+  ld c, 16
+  rst MemcpySmall
+  ld de, block_underlay
+  ld c, 16
+  rst MemcpySmall
+
+  ;; Copy block match animation to sprite area
+  ld de, block_match_anim
+  ld bc, block_match_anim.end - block_match_anim
+  call Memcpy
+
+  ;; Copy explosion animation to sprite area
+  ld de, explosion_anim
+  ld c, explosion_anim.end - explosion_anim
+  rst MemcpySmall
+
+  ;; Copy "pice" graphics to bg area
+  ld a, BANK(block_gfx)
+  ld [rROMB0], a
+
+  pop de
+
+  ld a, e
+  add LOW(block_gfx)
+  ld e, a
+  adc HIGH(block_gfx)
+  sub e
+  ld d, a
+
+  ld hl, $8800
+  ld c, 32*2
+  rst MemcpySmall
+
+  ld de, block_highlight
+  ld c, block_highlight.end - block_highlight
+  rst MemcpySmall
+
+  ;; Setup animated BG
+  pop hl
+  inc hl
 
   ;; Copy initial tile data
   ld a, [hl+]
@@ -408,11 +411,7 @@ Intro::
   ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [rLCDC], a
-
-  call init_game
-  jr kernel_loop
+  ret
 
 do_music:
   ret
@@ -482,8 +481,8 @@ transition_stage:
   cp 10
   jp nz, .no_step4
 
-  ; ld hl, skin1.border_bank
-  ; call colorize
+  ld hl, skin1.border_bank
+  call colorize
 
   ld a, IEF_VBLANK
   ldh [rIE], a
@@ -495,83 +494,13 @@ transition_stage:
   xor a
   ldh [rLCDC], a
 
-  ;; Set up initial block set
-  ld hl, skin1
-  ld a, [hl+]
-  ld [current_blockset_bank], a
-
-  ld a, $C3 ; JP
-  ld [draw_block0], a
-  ld [draw_block1], a
-
-  ld a, [hl+]
-  ld [draw_block0+1], a
-  ld a, [hl+]
-  ld [draw_block0+2], a
-
-  ld a, [hl+]
-  ld [draw_block1+1], a
-  ld a, [hl+]
-  ld [draw_block1+2], a
-
-  ld a, BANK(block_sprite_gfx)
-  ld [rROMB0], a
-
-  ld a, [hl+]
-  push hl
-  ld h, [hl]
-  ld l, a
-  push hl
-
-  ;; Copy block graphics to sprite area (for preview)
-  ld de, block_sprite_gfx
-  add hl, de
-  ld d, h
-  ld e, l
-
-  ld hl, $8380
-  ld c, 32
-  rst MemcpySmall
-
-  ld a, $98
-  ld [current_bg], a
-
-
-  ld a, BANK(block_gfx)
-  ld [rROMB0], a
-
-  pop hl
-  ld de, block_gfx
-  add hl, de
-  ld d, h
-  ld e, l
-  ld hl, $8800
-  ld c, 32*2
-  rst MemcpySmall
-
-  pop hl
-  inc hl
-  ld a, [hl+] ; gfx init bank
-  ld [rROMB0], a
-
-  ld a, [hl+]
-  ld [ptr_next_update_bg], a
-  ld a, [hl+]
-  ld [ptr_next_update_bg+1], a
-  call update_bg
-
-  ld a, [hl+]
-  ld [next_map_bank], a
-  ld a, [hl+]
-  ld [update_playfield_buffer+1], a
-  ld a, [hl+]
-  ld [update_playfield_buffer+2], a
-
-  ; ;; TODO: Update SGB border
-  ; call colorize
+  ld hl, skin0
+  call load_skin
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a
+
+  call UnfreezeScreen
 
   pop af
   jp kernel_loop

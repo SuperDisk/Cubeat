@@ -26,6 +26,29 @@ MACRO add_a_to_de
     add_a_to_r16 d, e
 ENDM
 
+MACRO update_sprite  ; which sprite, x, y, tile
+  ld a, \3+16
+  ld [wShadowOAM+(4*\1)], a
+  ld a, \2+8
+  ld [wShadowOAM+(4*\1)+1], a
+  ld a, \4
+  ld [wShadowOAM+(4*\1)+2], a
+ENDM
+
+MACRO update_sprite2  ; which sprite, x, y, tile
+  ld a, \3+16
+  ld [wShadowOAM2+(4*\1)], a
+  ld a, \2+8
+  ld [wShadowOAM2+(4*\1)+1], a
+  ld a, \4
+  ld [wShadowOAM2+(4*\1)+2], a
+ENDM
+
+MACRO alt_palette2
+  ld a, 1 << 4
+  ld [wShadowOAM2+(4*\1)+3], a
+ENDM
+
 DEF BLACK = %11
 DEF WHITE = %00
 DEF LIGHT = %01
@@ -178,7 +201,7 @@ Intro::
   ld [transition_state], a
 
   ;; Set up initial block set
-  ld hl, skins
+  ld hl, skin0
   ld a, [hl+]
   ld [current_blockset_bank], a
 
@@ -205,7 +228,7 @@ Intro::
   call Memcpy
 
   ;; Copy block graphics to sprite area (for preview)
-  ld de, block_sprite_gfx
+  ld de, block_sprite_gfx+(64*3)
   ld c, 32
   rst MemcpySmall
 
@@ -234,7 +257,7 @@ Intro::
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)
   ld [rROMB0], a
-  ld de, block_gfx
+  ld de, block_gfx+(3*64)
   ld hl, $8800
   ld c, 32*2
   rst MemcpySmall
@@ -252,29 +275,6 @@ Intro::
   ld [wShadowOAM], a
   ld a, 8
   ld [wShadowOAM+1], a
-
-macro update_sprite  ; which sprite, x, y, tile
-  ld a, \3+16
-  ld [wShadowOAM+(4*\1)], a
-  ld a, \2+8
-  ld [wShadowOAM+(4*\1)+1], a
-  ld a, \4
-  ld [wShadowOAM+(4*\1)+2], a
-endm
-
-macro update_sprite2  ; which sprite, x, y, tile
-  ld a, \3+16
-  ld [wShadowOAM2+(4*\1)], a
-  ld a, \2+8
-  ld [wShadowOAM2+(4*\1)+1], a
-  ld a, \4
-  ld [wShadowOAM2+(4*\1)+2], a
-endm
-
-macro alt_palette2
-  ld a, 1 << 4
-  ld [wShadowOAM2+(4*\1)+3], a
-endm
 
   ; lvl
   update_sprite 0, 2+(8*0), 2, 0
@@ -305,15 +305,15 @@ endm
   update_sprite 17, 28, 16+8, $38
 
   ; Pice preview underlay
-  update_sprite 26, 2, 16, $3E
-  update_sprite 27, 10, 16, $3E
-  update_sprite 28, 2, 16+8, $3E
-  update_sprite 29, 10, 16+8, $3E
+  update_sprite 30, 2, 16, $3E
+  update_sprite 31, 10, 16, $3E
+  update_sprite 32, 2, 16+8, $3E
+  update_sprite 33, 10, 16+8, $3E
 
-  update_sprite 30, 20, 16, $3E
-  update_sprite 31, 28, 16, $3E
-  update_sprite 32, 20, 16+8, $3E
-  update_sprite 33, 28, 16+8, $3E
+  update_sprite 34, 20, 16, $3E
+  update_sprite 35, 28, 16, $3E
+  update_sprite 36, 20, 16+8, $3E
+  update_sprite 37, 28, 16+8, $3E
 
   ; Score numbers
   ; update_sprite 18, 115-(6*1), 9, $12
@@ -532,8 +532,7 @@ transition_stage:
   ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
-  ;; Update SGB border
-
+  ;; TODO: Update SGB border
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a

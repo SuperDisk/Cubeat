@@ -30,7 +30,7 @@ EntryPoint:
   ldh [hIsSGB], a
 
 .not_sgb:
-  ld hl, skin0+12
+  ld hl, skin0.border_bank
   call colorize
 
 Reset::

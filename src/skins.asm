@@ -48,7 +48,7 @@ MACRO defskin ; id, gfx_init, map0, block0, block1
   .block0: dw \4
   .block1: dw \5 ; block0 and block1
 
-  .block_gfx_offset: db \1*64 ; offset of block gfx
+  .block_gfx_offset: dw \1*64 ; offset of block gfx
 
   .gfx_init_bank: db BANK(\2) ; bank of gfx_init
   .gfx_init: dw \2 ; gfx_init
@@ -94,7 +94,7 @@ pal24: pal_packet $9c00cd, $fdc540, $e99418, $ffffff
 
 skins::
 
-skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_3_0, blockset_3_1, frame_01_tiles, frame_01_attrs, pal0
+skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
 ; skin0:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_02_tiles, frame_02_attrs, pal1
 ; skin0:: defskin 2, bg03_gfx_init, bg03_map0, blockset_2_0, blockset_2_1, frame_03_tiles, frame_03_attrs, pal2
 ; skin3:: defskin 3, bg04_gfx_init, bg04_map0, blockset_3_0, blockset_3_1, frame_04_tiles, frame_04_attrs, pal3

@@ -219,6 +219,14 @@ Intro::
   ld a, [hl+]
   ld [draw_block1+2], a
 
+  ;; Block gfx offset
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+
+  push hl
+  push hl
+
   ;; Copy sprite graphics
   ld a, BANK(all_graphics)
   ld [rROMB0], a
@@ -228,7 +236,15 @@ Intro::
   call Memcpy
 
   ;; Copy block graphics to sprite area (for preview)
-  ld de, block_sprite_gfx+(64*3)
+  pop de
+
+  ld a, e
+  add LOW(block_sprite_gfx)
+  ld e, a
+  adc HIGH(block_sprite_gfx)
+  sub e
+  ld d, a
+
   ld c, 32
   rst MemcpySmall
 
@@ -257,7 +273,16 @@ Intro::
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)
   ld [rROMB0], a
-  ld de, block_gfx+(3*64)
+
+  pop de
+
+  ld a, e
+  add LOW(block_gfx)
+  ld e, a
+  adc HIGH(block_gfx)
+  sub e
+  ld d, a
+
   ld hl, $8800
   ld c, 32*2
   rst MemcpySmall
@@ -364,7 +389,7 @@ Intro::
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  ld hl, skin0+6
+  ld hl, skin0.gfx_init_bank
 
   ;; Copy initial tile data
   ld a, [hl+]

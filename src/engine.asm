@@ -5,7 +5,7 @@ include "defines.asm"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DEF DBG_BLOCK = $81
-DEF DBG_DONTFALL = 1
+; DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
 
@@ -236,6 +236,8 @@ frame_counter: db
 second_counter: db
 radar_pos: db
 
+can_quickdrop: db
+falling_block_wait: db
 falling_block_rate: db
 falling_block_timer: db
 falling_block_y: db
@@ -289,6 +291,7 @@ init_game::
   ld [second_counter], a
   ld [radar_pos], a
   ld [drop_pos], a
+  ld [can_quickdrop], a
   ld [falling_block_y], a
   ld [radar_marking_state], a
   ld [need_to_destroy], a
@@ -338,15 +341,20 @@ ENDC
   ; ld a, 6
   ; ld [free_sprites_count], a
 
-  ; Simluate score to add
+  ; Simulate score to add
   ; ld a, 1
   ; ld [score_counter], a
 
   ld a, $01
   ld [level_num], a
 
+  ld a, 30
+  ld [falling_block_wait], a
+
   ld a, 9
   ld [falling_block_rate], a
+
+  ld a, 39
   ld [falling_block_timer], a
 
   ld a, DPAD_HOLD_FRAMES
@@ -566,8 +574,15 @@ game_step::
   ;; Perform a quick drop
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ld hl, can_quickdrop
+
+  ld a, [hPressedKeys]
+  and PADF_DOWN
+  or [hl]
+  ld [hl], a
+
   ld a, [hHeldKeys]
-  bit PADB_DOWN, a
+  and [hl]
   jr nz, .do_fall
 
 .no_down:
@@ -585,8 +600,11 @@ ELSE
 ENDC
 
 .do_fall:
-
   ;; Block needs to fall
+
+  ld a, PADF_DOWN
+  ld [can_quickdrop], a
+
   ld a, [falling_block_y]
   inc a
   ld [falling_block_y], a
@@ -630,6 +648,15 @@ ENDC
 
 .block_collision:
   ;; Block hit the bottom. Place there.
+
+  ld a, [falling_block_wait]
+  ld hl, falling_block_timer
+  add [hl]
+  ld [hl], a
+
+  ;; Reset the "down" held key
+  xor a
+  ld [can_quickdrop], a
 
   ld a, [falling_block_y]
   sub 3

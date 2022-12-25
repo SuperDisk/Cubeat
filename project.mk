@@ -42,6 +42,7 @@ ROMEXT  := gb
 # "Sensible defaults" are included
 
 # Disable automatic `nop` after `halt`
+# Enable automatic conversion of `ld` to `ldh`
 ASFLAGS += -h -l
 
 # Export all labels

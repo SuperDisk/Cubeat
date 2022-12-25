@@ -17,7 +17,7 @@ colorize:
 
   ld a, [hIsSGB]
   or a
-  ret z
+  ; ret z
 
 .sgb:
   ;; bank

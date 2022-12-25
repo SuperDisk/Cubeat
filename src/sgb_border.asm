@@ -24,6 +24,16 @@ TransferBorderAttributesPacket:
 ; hack
 vSGBTransferArea EQU $8000
 
+DisableSGBPalettes::
+    ; Disable manual paletting
+    ld hl, DisablePalettesPacket
+    jp SendPackets
+
+UnfreezeScreen::
+    ; Unfreeze the screen
+    ld hl, UnfreezeScreenPacket
+    jp SendPacketNoDelay ; Tail call
+
 ChangeSGBBorder::
     push hl
     push bc
@@ -82,18 +92,11 @@ ChangeSGBBorder::
     xor a
     ldh [hBGP], a
 
-    ; Disable manual paletting
-    ld hl, DisablePalettesPacket
-    call SendPackets
-
     pop hl
     ; ld hl, TestPalette
     call SendPackets
 
-    ; Unfreeze the screen
-    ld hl, UnfreezeScreenPacket
-    jp SendPacketNoDelay ; Tail call
-
+    jr UnfreezeScreen
 
 ;; This function is run while interrupts are disabled, so we're
 ;; just doing it the dirty way.

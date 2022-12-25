@@ -29,6 +29,8 @@ EntryPoint:
   inc a
   ldh [hIsSGB], a
 
+  call DisableSGBPalettes
+
 .not_sgb:
   ld hl, skin0.border_bank
   call colorize
@@ -161,7 +163,11 @@ SECTION "Global vars", HRAM
 hConsoleType:: db
 hIsSGB:: db
 
-hTempStack:: dw
+;; Temporary stack used inside of graphic update data
+;; Has enough room to call hOAMDMA but that's it
+hTempStackTop:
+ds 2
+hTempStack:: ds 2
 
 ; Copy of the currently-loaded ROM bank, so the handlers can restore it
 ; Make sure to always write to it before writing to ROMB0

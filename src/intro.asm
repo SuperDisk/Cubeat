@@ -482,6 +482,9 @@ transition_stage:
   cp 10
   jp nz, .no_step4
 
+  ; ld hl, skin1.border_bank
+  ; call colorize
+
   ld a, IEF_VBLANK
   ldh [rIE], a
   xor a
@@ -493,7 +496,7 @@ transition_stage:
   ldh [rLCDC], a
 
   ;; Set up initial block set
-  ld hl, skin0
+  ld hl, skin1
   ld a, [hl+]
   ld [current_blockset_bank], a
 
@@ -514,33 +517,40 @@ transition_stage:
   ld a, BANK(block_sprite_gfx)
   ld [rROMB0], a
 
-  ld a, [hl]
+  ld a, [hl+]
+  push hl
+  ld h, [hl]
+  ld l, a
   push hl
 
   ;; Copy block graphics to sprite area (for preview)
-  ld hl, $8380
   ld de, block_sprite_gfx
-  add_a_to_de
+  add hl, de
+  ld d, h
+  ld e, l
+
+  ld hl, $8380
   ld c, 32
   rst MemcpySmall
 
   ld a, $98
   ld [current_bg], a
 
-  pop hl
 
   ld a, BANK(block_gfx)
   ld [rROMB0], a
 
-  ld a, [hl+]
-  push hl
+  pop hl
   ld de, block_gfx
-  add_a_to_de
+  add hl, de
+  ld d, h
+  ld e, l
   ld hl, $8800
   ld c, 32*2
   rst MemcpySmall
 
   pop hl
+  inc hl
   ld a, [hl+] ; gfx init bank
   ld [rROMB0], a
 
@@ -557,7 +567,8 @@ transition_stage:
   ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
-  ;; TODO: Update SGB border
+  ; ;; TODO: Update SGB border
+  ; call colorize
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a

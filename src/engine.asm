@@ -92,18 +92,17 @@ MACRO deflevel
   db \1
 
   ; Curve score thousands (bcd)
-  db ((\2)/(10**0)) % 10
-  db ((\3)/(10**1)) % 10
-  db ((\4)/(10**2)) % 10
+  db ((\2 / 10**1) % 10) << 4 | ((\2 / 10**0) % 10)
+  db ((\2 / 10**2) % 10) << 4
 
   ; Radar speed (seconds for full sweep)
-  dw MUL(DIV(MUL(BOARD_W * 1.0, 8.0), MUL(30.0, (\3) * 1.0)), 255.0) / 1.0
+  dw MUL(DIV(BOARD_W * 8.0, (\3) * 30.0), 255.0) / 1.0
 
   ; Block fall wait (seconds)
   db \4*30
 
   ; Block fall rate (seconds to ground)
-  db (\5*30)/BOARD_H
+  db DIV(\5*30.0, BOARD_H*1.0)/1.0
 ENDM
 
 SECTION "Levels", ROM0
@@ -250,6 +249,7 @@ ENDR
 SECTION "Game vars", WRAM0
 score: ds 4 ; 7 digits
 score_counter: db
+score_curve: ds 2 ; needed score to advance to the next level (3 digits)
 
 level_num: db
 
@@ -390,9 +390,7 @@ ENDC
   ld hl, blocks
   call generate_block
   call generate_block
-  call generate_block
-
-  ret
+  jp generate_block
 
 ;;; Generates a new block at the pointer in HL
 ;;; Param: HL = The level to load
@@ -401,10 +399,10 @@ load_level:
   ld a, [hl+]
   ld [level_num], a
 
-  ;; TODO: Load score curve
-  inc hl
-  inc hl
-  inc hl
+  ld a, [hl+]
+  ld [score_curve], a
+  ld a, [hl+]
+  ld [score_curve+1], a
 
   ld a, [hl+]
   ld [radar_speed], a

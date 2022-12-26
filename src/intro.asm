@@ -501,8 +501,9 @@ load_skin:
   ld a, e
   add LOW(block_sprite_gfx)
   ld e, a
-  adc HIGH(block_sprite_gfx)
+  adc d
   sub e
+  add HIGH(block_sprite_gfx)
   ld d, a
 
   ld c, 32
@@ -539,8 +540,9 @@ load_skin:
   ld a, e
   add LOW(block_gfx)
   ld e, a
-  adc HIGH(block_gfx)
+  adc d
   sub e
+  add HIGH(block_gfx)
   ld d, a
 
   ld hl, $8800

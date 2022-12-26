@@ -58,34 +58,53 @@ MACRO spriteX1 ; which sprite
 ENDM
 
 MACRO add_a_to_r16
-    add \2
-    ld \2, a
-    adc \1
-    sub \2
-    ld \1, a
+  add \2
+  ld \2, a
+  adc \1
+  sub \2
+  ld \1, a
 ENDM
 
 ;; Thanks PinoBatch!
 MACRO sub_from_r16 ;; (high, low, value)
-    ld a, \2
-    sub \3
-    ld \2, a
-    sbc a  ; A = -1 if borrow or 0 if not
-    add \1
-    ld \1, a
+  ld a, \2
+  sub \3
+  ld \2, a
+  sbc a  ; A = -1 if borrow or 0 if not
+  add \1
+  ld \1, a
 ENDM
 
 MACRO add_a_to_hl
-    add_a_to_r16 h, l
+  add_a_to_r16 h, l
 ENDM
 
 MACRO add_a_to_de
-    add_a_to_r16 d, e
+  add_a_to_r16 d, e
 ENDM
 
 MACRO add_a_to_bc
-    add_a_to_r16 b, c
+  add_a_to_r16 b, c
 ENDM
+
+MACRO deflevel
+  ; Level number
+  db \1
+
+  ; Curve score thousands (bcd)
+  db ((\2)/(10**0)) % 10
+  db ((\3)/(10**1)) % 10
+  db ((\4)/(10**2)) % 10
+
+  db \3 ; Radar speed (seconds)
+  db \4*30 ; Block fall wait (seconds)
+  db (\5*30)/11 ; Block fall rate (seconds to ground)
+ENDM
+
+SECTION "Levels", ROM0
+
+levels:
+include "levels.inc"
 
 SECTION "Board", WRAM0, ALIGN[8]
 
@@ -300,7 +319,6 @@ init_game::
   ld [score+2], a
   ld [score+3], a
   ld [score_counter], a
-  ld [level_num], a
   ld [num_destroyed], a
   ld [time+0], a
   ld [time+1], a
@@ -345,17 +363,8 @@ ENDC
   ; ld a, 1
   ; ld [score_counter], a
 
-  ld a, $01
-  ld [level_num], a
-
-  ld a, 30
-  ld [falling_block_wait], a
-
-  ld a, 9
-  ld [falling_block_rate], a
-
-  ld a, 39
-  ld [falling_block_timer], a
+  ld hl, levels
+  call load_level
 
   ld a, DPAD_HOLD_FRAMES
   ld [dpad_frames], a
@@ -378,6 +387,34 @@ ENDC
 
   ret
 
+;;; Generates a new block at the pointer in HL
+;;; Param: HL = The level to load
+;;; Destroy: HL BC AF
+load_level:
+  ld a, [hl+]
+  ld [level_num], a
+
+  ;; TODO: Load score curve
+  inc hl
+  inc hl
+  inc hl
+
+  ;; TODO: Load radar speed
+  inc hl
+
+  ld a, [hl+]
+  ld [falling_block_wait], a
+  ld b, a
+
+  ld a, [hl]
+  ld [falling_block_rate], a
+
+  add b
+  ld [falling_block_timer], a
+
+  ret
+
+
 game_step::
   call poll_joystick
 
@@ -393,30 +430,30 @@ game_step::
   ;; Move radar right
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; IF DEF(SELECT_PAUSES_RADAR)
-;   ld a, [hPressedKeys]
-;   bit PADB_SELECT, a
-;   jr z, .no_pause
-;   ld a, [radar_paused]
-;   xor 1
-;   ld [radar_paused], a
-; .no_pause:
+IF DEF(SELECT_PAUSES_RADAR)
+  ld a, [hPressedKeys]
+  bit PADB_SELECT, a
+  jr z, .no_pause
+  ld a, [radar_paused]
+  xor 1
+  ld [radar_paused], a
+.no_pause:
 
-;   ld a, [radar_paused]
-;   or a
-;   jr nz, .check_rotate_piece
-; ENDC
+  ld a, [radar_paused]
+  or a
+  jr nz, .check_rotate_piece
+ENDC
 
-;   ld a, [radar_pos]
-;   inc a
-;   cp 163-16-3
-;   jr nz, .no_reset_radar
-;   ld a, 1
-;   ld [need_to_destroy], a
-;   xor a
-;   ld [num_destroyed], a
-; .no_reset_radar:
-;   ld [radar_pos], a
+  ld a, [radar_pos]
+  inc a
+  cp 163-16-3
+  jr nz, .no_reset_radar
+  ld a, 1
+  ld [need_to_destroy], a
+  xor a
+  ld [num_destroyed], a
+.no_reset_radar:
+  ld [radar_pos], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Rotate piece

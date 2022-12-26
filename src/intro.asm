@@ -619,6 +619,12 @@ transition_stage:
   cp 10
   jp nz, .no_step4
 
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+
   ld hl, skin1.border_bank
   call colorize
 

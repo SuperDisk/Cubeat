@@ -41,7 +41,7 @@ ChangeSGBBorder::
     ; Freeze the screen for the upcoming transfers
     call FreezeSGBScreen
     call SGBDelay
-    call .waitVBlank ; Wait an extra frame to make up for the SGB delay (can be removed if decompression takes long enough)
+    ; call .waitVBlank ; Wait an extra frame to make up for the SGB delay (can be removed if decompression takes long enough)
     ; Shut the LCD down to decompress directly to VRAM
 
     call .turnLCDOff

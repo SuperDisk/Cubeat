@@ -96,9 +96,14 @@ MACRO deflevel
   db ((\3)/(10**1)) % 10
   db ((\4)/(10**2)) % 10
 
-  db \3 ; Radar speed (seconds)
-  db \4*30 ; Block fall wait (seconds)
-  db (\5*30)/11 ; Block fall rate (seconds to ground)
+  ; Radar speed (seconds for full sweep)
+  dw MUL(DIV(MUL(BOARD_W * 1.0, 8.0), MUL(30.0, (\3) * 1.0)), 255.0) / 1.0
+
+  ; Block fall wait (seconds)
+  db \4*30
+
+  ; Block fall rate (seconds to ground)
+  db (\5*30)/BOARD_H
 ENDM
 
 SECTION "Levels", ROM0
@@ -253,7 +258,8 @@ drop_pos: db
 time: dw
 frame_counter: db
 second_counter: db
-radar_pos: db
+radar_pos: dw
+radar_speed: dw
 
 can_quickdrop: db
 falling_block_wait: db
@@ -308,10 +314,11 @@ init_game::
   xor a
   ld [frame_counter], a
   ld [second_counter], a
-  ld [radar_pos], a
   ld [drop_pos], a
   ld [can_quickdrop], a
   ld [falling_block_y], a
+  ld [radar_pos], a
+  ld [radar_pos+1], a
   ld [radar_marking_state], a
   ld [need_to_destroy], a
   ld [score+0], a
@@ -399,8 +406,10 @@ load_level:
   inc hl
   inc hl
 
-  ;; TODO: Load radar speed
-  inc hl
+  ld a, [hl+]
+  ld [radar_speed], a
+  ld a, [hl+]
+  ld [radar_speed+1], a
 
   ld a, [hl+]
   ld [falling_block_wait], a
@@ -413,7 +422,6 @@ load_level:
   ld [falling_block_timer], a
 
   ret
-
 
 game_step::
   call poll_joystick
@@ -444,16 +452,39 @@ IF DEF(SELECT_PAUSES_RADAR)
   jr nz, .check_rotate_piece
 ENDC
 
-  ld a, [radar_pos]
-  inc a
+  assert radar_speed == radar_pos+2
+  ld hl, radar_speed+1
+
+  ld a, [hl-]
+  ld d, a
+  ld a, [hl-]
+  ld e, a
+
+  ld a, [hl-]
+  ld l, [hl]
+  ld h, a
+
+  add hl, de
+  ld a, h
+
   cp 163-16-3
-  jr nz, .no_reset_radar
-  ld a, 1
-  ld [need_to_destroy], a
+  jr c, .no_reset_radar
+
   xor a
+
+  ; a = 0
   ld [num_destroyed], a
+  ld h, a
+  ld l, a
+
+  inc a
+  ; a = 1
+  ld [need_to_destroy], a
 .no_reset_radar:
+  ld a, l
   ld [radar_pos], a
+  ld a, h
+  ld [radar_pos+1], a
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Rotate piece
@@ -795,7 +826,7 @@ ENDC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .radar_scan:
-  ld a, [radar_pos]
+  ld a, [radar_pos+1]
   srl a
   jr z, .done_scanning ; don't scan if radar is 0
   srl a
@@ -926,7 +957,7 @@ ENDR
 
   ;; Radar position
 
-  ld a, [radar_pos]
+  ld a, [radar_pos+1]
   add 10
   spriteX 3
   spriteX 4

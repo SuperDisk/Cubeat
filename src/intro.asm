@@ -63,6 +63,7 @@ music_bank:: db
 music_pointer:: dw
 
 SECTION "Animation vars", WRAM0
+current_skin: db
 current_bg:: db
 next_gfx_bank:: db
 next_map_bank:: db
@@ -174,6 +175,7 @@ Intro::
 
   xor a
   ld [hPressedKeys], a
+  ld [current_skin], a
 
   ld de, static_ram_code
   ld hl, ram_code
@@ -299,11 +301,11 @@ Intro::
   ;; fallthrough
 
 kernel_loop:
-  ld a, [hPressedKeys]
-  bit PADB_START, a
-  jr z, .no_begin_transition
-  ld a, 16
-  ld [transition_state], a
+  ; ld a, [hPressedKeys]
+  ; bit PADB_START, a
+  ; jr z, .no_begin_transition
+  ; ld a, 16
+  ; ld [transition_state], a
 
 .no_begin_transition:
   ld a, [transition_state]
@@ -625,7 +627,19 @@ transition_stage:
   ld [rIF], a
   halt ; wait for VBlank
 
-  ld hl, skin1.border_bank
+  ld a, [current_skin]
+  add a
+  ld hl, skin_table
+  ld d, 0
+  ld e, a
+  add hl, de
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  push hl
+
+  ld e, (skin0.border_bank-skin0)
+  add hl, de
   call colorize
 
   ld a, IEF_VBLANK
@@ -638,7 +652,7 @@ transition_stage:
   xor a
   ldh [rLCDC], a
 
-  ld hl, skin1
+  pop hl
   call load_skin
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON

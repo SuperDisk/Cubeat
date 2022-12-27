@@ -103,6 +103,9 @@ MACRO deflevel
 
   ; Block fall rate (seconds to ground)
   db DIV(\5*30.0, BOARD_H*1.0)/1.0
+
+  ; Skin number (0 for no change)
+  db \6-1
 ENDM
 
 SECTION "Levels", ROM0
@@ -112,7 +115,7 @@ include "levels.inc"
 
 level_table:
 FOR I, 100
-  level{d:I}: dw levels+(I*7)
+  level{d:I}: dw levels+(I*8)
 ENDR
 
 SECTION "Board", WRAM0, ALIGN[8]
@@ -418,11 +421,21 @@ load_level:
   ld [falling_block_wait], a
   ld b, a
 
-  ld a, [hl]
+  ld a, [hl+]
   ld [falling_block_rate], a
 
   add b
   ld [falling_block_timer], a
+
+  ld d, [hl]
+  ld a, [current_skin]
+  cp d
+  ret z
+
+  ld a, d
+  ld [current_skin], a
+  ld a, 16
+  ld [transition_state], a
 
   ret
 

@@ -1,100 +1,100 @@
-  deflevel 0, 1, 2, 5, 5
-  deflevel 1, 3, 2, 5, 5
-  deflevel 2, 5, 2, 5, 5
-  deflevel 3, 8, 2, 5, 5
-  deflevel 4, 11, 3, 4, 5
-  deflevel 5, 14, 3, 4, 5
-  deflevel 6, 18, 3, 4, 5
-  deflevel 7, 22, 3, 4, 5
-  deflevel 8, 26, 4, 4, 4
-  deflevel 9, 30, 4, 4, 4
-  deflevel 10, 35, 4, 4, 4
-  deflevel 11, 40, 4, 4, 4
-  deflevel 12, 45, 4, 4, 3
-  deflevel 13, 50, 4, 4, 3
-  deflevel 14, 55, 4, 4, 3
-  deflevel 15, 61, 4, 4, 3
-  deflevel 16, 67, 3, 2, 2
-  deflevel 17, 73, 3, 2, 2
-  deflevel 18, 79, 3, 2, 2
-  deflevel 19, 85, 3, 2, 1
-  deflevel 20, 91, 2, 4, 4
-  deflevel 21, 98, 2, 4, 4
-  deflevel 22, 105, 2, 4, 4
-  deflevel 23, 112, 2, 4, 4
-  deflevel 24, 119, 3, 4, 3
-  deflevel 25, 126, 3, 4, 3
-  deflevel 26, 133, 3, 4, 3
-  deflevel 27, 140, 3, 4, 3
-  deflevel 28, 148, 4, 3, 3
-  deflevel 29, 156, 4, 3, 3
-  deflevel 30, 164, 4, 3, 3
-  deflevel 31, 172, 4, 3, 3
-  deflevel 32, 180, 4, 3, 2
-  deflevel 33, 188, 4, 3, 2
-  deflevel 34, 196, 4, 3, 2
-  deflevel 35, 204, 4, 3, 2
-  deflevel 36, 213, 5, 2, 2
-  deflevel 37, 222, 5, 2, 2
-  deflevel 38, 231, 5, 2, 2
-  deflevel 39, 240, 5, 2, 2
-  deflevel 40, 249, 2, 4, 3
-  deflevel 41, 258, 3, 4, 3
-  deflevel 42, 267, 3, 4, 3
-  deflevel 43, 276, 3, 4, 3
-  deflevel 44, 285, 4, 4, 2
-  deflevel 45, 295, 4, 4, 2
-  deflevel 46, 305, 4, 4, 2
-  deflevel 47, 315, 4, 4, 2
-  deflevel 48, 325, 4, 2, 2
-  deflevel 49, 335, 4, 2, 2
-  deflevel 50, 345, 4, 2, 2
-  deflevel 51, 355, 4, 2, 2
-  deflevel 52, 365, 5, 1, 2
-  deflevel 53, 375, 5, 1, 2
-  deflevel 54, 385, 5, 1, 2
-  deflevel 55, 395, 5, 1, 2
-  deflevel 56, 405, 5, 2, 1
-  deflevel 57, 415, 5, 2, 1
-  deflevel 58, 425, 5, 2, 1
-  deflevel 59, 435, 5, 2, 1
-  deflevel 60, 445, 2, 5, 4
-  deflevel 61, 455, 2, 5, 4
-  deflevel 62, 465, 2, 5, 4
-  deflevel 63, 475, 2, 5, 4
-  deflevel 64, 485, 2, 4, 4
-  deflevel 65, 495, 2, 4, 4
-  deflevel 66, 505, 2, 4, 4
-  deflevel 67, 515, 2, 4, 4
-  deflevel 68, 525, 2, 3, 3
-  deflevel 69, 535, 2, 3, 3
-  deflevel 70, 545, 2, 3, 3
-  deflevel 71, 555, 2, 3, 3
-  deflevel 72, 565, 3, 4, 1
-  deflevel 73, 575, 3, 4, 1
-  deflevel 74, 585, 3, 4, 1
-  deflevel 75, 595, 2, 3, 1
-  deflevel 76, 605, 3, 3, 1
-  deflevel 77, 615, 3, 3, 1
-  deflevel 78, 625, 3, 3, 1
-  deflevel 79, 635, 2, 2, 1
-  deflevel 80, 645, 4, 2, 1
-  deflevel 81, 655, 4, 2, 1
-  deflevel 82, 665, 4, 2, 1
-  deflevel 83, 675, 2, 2, 1
-  deflevel 84, 685, 4, 2, 1
-  deflevel 85, 695, 4, 2, 1
-  deflevel 86, 705, 4, 2, 1
-  deflevel 87, 715, 2, 1, 1
-  deflevel 88, 725, 5, 2, 1
-  deflevel 89, 735, 5, 2, 1
-  deflevel 90, 745, 5, 2, 1
-  deflevel 91, 755, 3, 1, 1
-  deflevel 92, 765, 5, 1, 1
-  deflevel 93, 775, 5, 1, 1
-  deflevel 94, 785, 5, 1, 1
-  deflevel 95, 795, 5, 1, 1
-  deflevel 96, 805, 2, 3, 3
-  deflevel 97, 815, 5, 2, 1
-  deflevel 98, 825, 2, 1, 1
-  deflevel 99, 999, 2, 1, 1
+  deflevel 0, 1, 2, 5, 5, 1
+  deflevel 1, 3, 2, 5, 5, 1
+  deflevel 2, 5, 2, 5, 5, 1
+  deflevel 3, 8, 2, 5, 5, 1
+  deflevel 4, 11, 3, 4, 5, 2
+  deflevel 5, 14, 3, 4, 5, 2
+  deflevel 6, 18, 3, 4, 5, 2
+  deflevel 7, 22, 3, 4, 5, 2
+  deflevel 8, 26, 4, 4, 4, 3
+  deflevel 9, 30, 4, 4, 4, 3
+  deflevel 10, 35, 4, 4, 4, 3
+  deflevel 11, 40, 4, 4, 4, 3
+  deflevel 12, 45, 4, 4, 3, 4
+  deflevel 13, 50, 4, 4, 3, 4
+  deflevel 14, 55, 4, 4, 3, 4
+  deflevel 15, 61, 4, 4, 3, 4
+  deflevel 16, 67, 3, 2, 2, 5
+  deflevel 17, 73, 3, 2, 2, 5
+  deflevel 18, 79, 3, 2, 2, 5
+  deflevel 19, 85, 3, 2, 1, 5
+  deflevel 20, 91, 2, 4, 4, 6
+  deflevel 21, 98, 2, 4, 4, 6
+  deflevel 22, 105, 2, 4, 4, 6
+  deflevel 23, 112, 2, 4, 4, 6
+  deflevel 24, 119, 3, 4, 3, 7
+  deflevel 25, 126, 3, 4, 3, 7
+  deflevel 26, 133, 3, 4, 3, 7
+  deflevel 27, 140, 3, 4, 3, 7
+  deflevel 28, 148, 4, 3, 3, 8
+  deflevel 29, 156, 4, 3, 3, 8
+  deflevel 30, 164, 4, 3, 3, 8
+  deflevel 31, 172, 4, 3, 3, 8
+  deflevel 32, 180, 4, 3, 2, 9
+  deflevel 33, 188, 4, 3, 2, 9
+  deflevel 34, 196, 4, 3, 2, 9
+  deflevel 35, 204, 4, 3, 2, 9
+  deflevel 36, 213, 5, 2, 2, 10
+  deflevel 37, 222, 5, 2, 2, 10
+  deflevel 38, 231, 5, 2, 2, 10
+  deflevel 39, 240, 5, 2, 2, 10
+  deflevel 40, 249, 2, 4, 3, 11
+  deflevel 41, 258, 3, 4, 3, 11
+  deflevel 42, 267, 3, 4, 3, 11
+  deflevel 43, 276, 3, 4, 3, 11
+  deflevel 44, 285, 4, 4, 2, 12
+  deflevel 45, 295, 4, 4, 2, 12
+  deflevel 46, 305, 4, 4, 2, 12
+  deflevel 47, 315, 4, 4, 2, 12
+  deflevel 48, 325, 4, 2, 2, 13
+  deflevel 49, 335, 4, 2, 2, 13
+  deflevel 50, 345, 4, 2, 2, 13
+  deflevel 51, 355, 4, 2, 2, 13
+  deflevel 52, 365, 5, 1, 2, 14
+  deflevel 53, 375, 5, 1, 2, 14
+  deflevel 54, 385, 5, 1, 2, 14
+  deflevel 55, 395, 5, 1, 2, 14
+  deflevel 56, 405, 5, 2, 1, 15
+  deflevel 57, 415, 5, 2, 1, 15
+  deflevel 58, 425, 5, 2, 1, 15
+  deflevel 59, 435, 5, 2, 1, 15
+  deflevel 60, 445, 2, 5, 4, 16
+  deflevel 61, 455, 2, 5, 4, 16
+  deflevel 62, 465, 2, 5, 4, 16
+  deflevel 63, 475, 2, 5, 4, 16
+  deflevel 64, 485, 2, 4, 4, 17
+  deflevel 65, 495, 2, 4, 4, 17
+  deflevel 66, 505, 2, 4, 4, 17
+  deflevel 67, 515, 2, 4, 4, 17
+  deflevel 68, 525, 2, 3, 3, 18
+  deflevel 69, 535, 2, 3, 3, 18
+  deflevel 70, 545, 2, 3, 3, 18
+  deflevel 71, 555, 2, 3, 3, 18
+  deflevel 72, 565, 3, 4, 1, 19
+  deflevel 73, 575, 3, 4, 1, 19
+  deflevel 74, 585, 3, 4, 1, 19
+  deflevel 75, 595, 2, 3, 1, 19
+  deflevel 76, 605, 3, 3, 1, 20
+  deflevel 77, 615, 3, 3, 1, 20
+  deflevel 78, 625, 3, 3, 1, 20
+  deflevel 79, 635, 2, 2, 1, 20
+  deflevel 80, 645, 4, 2, 1, 21
+  deflevel 81, 655, 4, 2, 1, 21
+  deflevel 82, 665, 4, 2, 1, 21
+  deflevel 83, 675, 2, 2, 1, 21
+  deflevel 84, 685, 4, 2, 1, 22
+  deflevel 85, 695, 4, 2, 1, 22
+  deflevel 86, 705, 4, 2, 1, 22
+  deflevel 87, 715, 2, 1, 1, 22
+  deflevel 88, 725, 5, 2, 1, 23
+  deflevel 89, 735, 5, 2, 1, 23
+  deflevel 90, 745, 5, 2, 1, 23
+  deflevel 91, 755, 3, 1, 1, 23
+  deflevel 92, 765, 5, 1, 1, 24
+  deflevel 93, 775, 5, 1, 1, 24
+  deflevel 94, 785, 5, 1, 1, 24
+  deflevel 95, 795, 5, 1, 1, 24
+  deflevel 96, 805, 2, 3, 3, 25
+  deflevel 97, 815, 5, 2, 1, 25
+  deflevel 98, 825, 2, 1, 1, 25
+  deflevel 99, 999, 2, 1, 1, 25

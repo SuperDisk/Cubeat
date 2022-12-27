@@ -121,7 +121,6 @@ skin1:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_0
 ; skin24:: defskin 24, bg25_gfx_init, bg25_map0, blockset_24_0, blockset_24_1, frame_25_tiles, frame_25_attrs, pal24
 
 skin_table:
-dw skin0
-; FOR I, NUM_SKINS
-;   dw skin{d:I}
-; ENDR
+FOR I, NUM_SKINS
+  dw skin{d:I}
+ENDR

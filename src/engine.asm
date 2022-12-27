@@ -860,7 +860,7 @@ ENDC
   cp b
   jr z, .done_scanning
   ;; Current marking state and B are different
-  cp 0
+  or a
   jr z, .done_scanning
   ;; B is 0, which means we just stopped marking. Perform a destroy.
   ld [need_to_destroy], a ; A != B so A = 1

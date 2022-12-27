@@ -44,8 +44,13 @@ MACRO update_sprite2  ; which sprite, x, y, tile
   ld [wShadowOAM2+(4*\1)+2], a
 ENDM
 
+MACRO alt_palette
+  ld a, %00010001
+  ld [wShadowOAM+(4*\1)+3], a
+ENDM
+
 MACRO alt_palette2
-  ld a, 1 << 4
+  ld a, %00010001
   ld [wShadowOAM2+(4*\1)+3], a
 ENDM
 
@@ -237,11 +242,19 @@ Intro::
   update_sprite 31, 10, 16, $3E
   update_sprite 32, 2, 16+8, $3E
   update_sprite 33, 10, 16+8, $3E
+  alt_palette 30
+  alt_palette 31
+  alt_palette 32
+  alt_palette 33
 
   update_sprite 34, 20, 16, $3E
   update_sprite 35, 28, 16, $3E
   update_sprite 36, 20, 16+8, $3E
   update_sprite 37, 28, 16+8, $3E
+  alt_palette 34
+  alt_palette 35
+  alt_palette 36
+  alt_palette 37
 
   ; Score numbers
   ; update_sprite 18, 115-(6*1), 9, $12

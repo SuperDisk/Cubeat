@@ -486,10 +486,24 @@ ENDC
   cp 163-16-3
   jr c, .no_reset_radar
 
-  xor a
+  ld hl, num_destroyed
+  ld a, [hl]
 
+  ; add a
+  ; add a
+  ; add a
+  ; ld b, a
+  ; add a
+  ; add a
+  ; add b
+  add a
+  add a
+
+  ld [score_counter], a
+
+  xor a
   ; a = 0
-  ld [num_destroyed], a
+  ld [hl], a
   ld h, a
   ld l, a
 

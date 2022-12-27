@@ -92,8 +92,8 @@ MACRO deflevel
   db \1
 
   ; Curve score thousands (bcd)
-  db ((\2 / 10**1) % 10) << 4 | ((\2 / 10**0) % 10)
-  db ((\2 / 10**2) % 10) << 4
+  db ((\2 / 10**2) % 10) << 4 | ((\2 / 10**1) % 10)
+  db ((\2 / 10**0) % 10) << 4
 
   ; Radar speed (seconds for full sweep)
   dw MUL(DIV(BOARD_W * 8.0, (\3) * 30.0), 255.0) / 1.0
@@ -109,6 +109,11 @@ SECTION "Levels", ROM0
 
 levels:
 include "levels.inc"
+
+level_table:
+FOR I, 100
+  level{d:I}: dw levels+(I*7)
+ENDR
 
 SECTION "Board", WRAM0, ALIGN[8]
 
@@ -900,6 +905,9 @@ ENDC
 
   ld hl, score_counter
   ld a, [hl]
+  or a
+  jr z, .counter_empty
+
   sub 2
   ld d, 2
   jr nc, .no_carry
@@ -926,11 +934,43 @@ ENDC
   daa
   ld [hl+], a
 
-  ld a, 0
-  adc [hl]
-  daa
-  ld [hl+], a
+  ; ld a, 0
+  ; adc [hl]
+  ; daa
+  ; ld [hl+], a
 
+.counter_empty:
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Advance level if necessary
+  ;;;;;;;;;;;;;;;;;;; ;;;;;;;;;;;;;;;;;;;;
+  ld a, [score+2]
+  ld d, a
+  ld a, [score_curve]
+  cp d
+  jr c, .curve_reached
+
+  ld a, [score_curve+1]
+  ld d, a
+  ld a, [score+1]
+  cp d
+  jr c, .curve_not_reached
+
+.curve_reached:
+  ld hl, level_num
+  ld a, [hl]
+  inc a
+  ld [hl], a
+
+  ld hl, level_table
+  add a
+  add_a_to_hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  call load_level
+
+.curve_not_reached:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Refresh the graphics buffers

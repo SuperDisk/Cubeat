@@ -256,8 +256,8 @@ ENDR
 
 SECTION "Game vars", WRAM0
 score: ds 4 ; 7 digits
-score_counter: db
-score_curve: ds 2 ; needed score to advance to the next level (3 digits)
+score_counter: dw
+score_curve: dw ; needed score to advance to the next level (3 digits)
 
 level_num: db
 
@@ -333,7 +333,8 @@ init_game::
   ld [score+1], a
   ld [score+2], a
   ld [score+3], a
-  ld [score_counter], a
+  ld [score_counter+0], a
+  ld [score_counter+1], a
   ld [num_destroyed], a
   ld [time+0], a
   ld [time+1], a
@@ -486,24 +487,23 @@ ENDC
   cp 163-16-3
   jr c, .no_reset_radar
 
-  ld hl, num_destroyed
-  ld a, [hl]
+  ld a, [num_destroyed]
 
-  ; add a
-  ; add a
-  ; add a
-  ; ld b, a
-  ; add a
-  ; add a
-  ; add b
-  add a
-  add a
+  ld h, 0
+  ld l, a
 
+  ; hl *= 32
+  swap l
+  add hl, hl
+
+  ld a, l
   ld [score_counter], a
+  ld a, h
+  ld [score_counter+1], a
 
   xor a
   ; a = 0
-  ld [hl], a
+  ld [num_destroyed], a
   ld h, a
   ld l, a
 
@@ -933,14 +933,28 @@ ENDC
   ld hl, score_counter
   ld a, [hl]
   or a
+
+  jr nz, .lsb_has_score
+
+  inc hl
+  or [hl]
   jr z, .counter_empty
 
-  sub 2
-  ld d, 2
+  dec [hl]
+  dec hl
+
+  ld a, $FF
+  ld [hl], a
+
+.lsb_has_score:
+  sub 4
+  ld d, 4
   jr nc, .no_carry
-  add 2
+  add 4
+
   ld d, a
   xor a
+
 .no_carry:
   ld [hl], a
 

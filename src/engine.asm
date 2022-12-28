@@ -375,10 +375,6 @@ ENDC
   ; ld a, 6
   ; ld [free_sprites_count], a
 
-  ; Simulate score to add
-  ; ld a, 1
-  ; ld [score_counter], a
-
   ld hl, levels
   call load_level
 
@@ -495,6 +491,20 @@ ENDC
   ; hl *= 32
   swap l
   add hl, hl
+
+  cp 4
+  jr c, .less_than4
+
+  ; hl *= 4
+  add hl, hl
+  add hl, hl
+
+.less_than4:
+  ld a, [score_counter]
+  ld c, a
+  ld a, [score_counter+1]
+  ld b, a
+  add hl, bc
 
   ld a, l
   ld [score_counter], a
@@ -930,6 +940,10 @@ ENDC
   ;; Update score count
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ;; TODO: Refactor this, it sucks.
+
+  ld c, 0
+
   ld hl, score_counter
   ld a, [hl]
   or a
@@ -944,18 +958,20 @@ ENDC
   dec hl
 
   ld a, $FF
+  ld c, 1
   ld [hl], a
 
 .lsb_has_score:
-  sub 4
-  ld d, 4
+  sub 8
+  ld d, 8
   jr nc, .no_carry
-  add 4
+  add 8
 
   ld d, a
   xor a
 
 .no_carry:
+  add c
   ld [hl], a
 
   ld hl, score
@@ -984,17 +1000,15 @@ ENDC
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Advance level if necessary
-  ;;;;;;;;;;;;;;;;;;; ;;;;;;;;;;;;;;;;;;;;
-  ld a, [score+2]
-  ld d, a
-  ld a, [score_curve]
-  cp d
-  jr c, .curve_reached
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld a, [score_curve+1]
-  ld d, a
+  ld hl, score_curve+1
   ld a, [score+1]
-  cp d
+  sub [hl]
+  dec hl
+  ld a, [score+2]
+  sbc [hl]
+
   jr c, .curve_not_reached
 
 .curve_reached:

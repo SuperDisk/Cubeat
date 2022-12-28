@@ -447,6 +447,27 @@ game_step::
   inc a
   ld [frame_counter], a
 
+
+  ld a, [hPressedKeys]
+  bit PADB_START, a
+  jp z, .no_shit
+
+  ld a, 10
+  ld [anim_sprites_needed], a
+
+  ld e, 7
+  ld d, 75
+
+  xor a
+  ld [anim_y_temp], a
+  ld [anim_x_temp], a
+
+  ld bc, anim_bonus
+  call create_animation
+
+.no_shit:
+
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Move radar right
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

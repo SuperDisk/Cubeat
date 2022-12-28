@@ -145,6 +145,10 @@ explosion_anim:
 incbin "res/anim_explosion.2bpp"
 .end:
 
+bonus_anim:
+incbin "res/anim_bonus.2bpp"
+.end:
+
 SECTION "Playfield Buffer ROM", ROM0
 
 playfield_buffer_rom:
@@ -545,6 +549,11 @@ load_skin:
   ld de, explosion_anim
   ld c, explosion_anim.end - explosion_anim
   rst MemcpySmall
+
+  ;; Copy bonus anim to sprite area
+  ld de, bonus_anim
+  ld bc, bonus_anim.end - bonus_anim
+  call Memcpy
 
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)

@@ -152,11 +152,11 @@ $(RESDIR)/%.sep1.png $(RESDIR)/%.sep2.png: $(RESDIR)/%.png
 # Convert .png files using custom atfile arguments
 $(RESDIR)/%.2bpp: $(RESDIR)/%.arg $(RESDIR)/%.png
 	@mkdir -p $(@D)
-	$(RGBGFX) -o $(RESDIR)/$*.2bpp @$^
+	$(RGBGFX) -o $(RESDIR)/$*.2bpp -t $(RESDIR)/$*.tilemap @$^
 
 $(RESDIR)/%.2bppu: $(RESDIR)/%.arg $(RESDIR)/%.png
 	@mkdir -p $(@D)
-	$(RGBGFX) -u -o $(RESDIR)/$*.2bppu @$^
+	$(RGBGFX) -u -o $(RESDIR)/$*.2bppu -t $(RESDIR)/$*.tilemapu @$^
 
 $(RESDIR)/%.2bppu $(RESDIR)/%.tilemapu: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)

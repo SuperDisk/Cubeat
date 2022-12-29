@@ -249,9 +249,15 @@
 (defun apply-colon (frame)
   (skippy:composite *colon* frame :sx 0 :sy 0 :dx 80 :dy 11))
 
+(defun load-images (dstream)
+  (loop for img across (skippy:images dstream)
+        appending
+        (let* ((ms (* 10 (skippy:delay-time img)))
+               (frames (round ms 32)))
+          (make-list frames :initial-element (apply-colon img)))))
+
 (defun gif->tiles (filename out-filename)
-  (let* ((frames (mapcar #'apply-colon
-                         (coerce (skippy:images (skippy:load-data-stream filename)) 'list)))
+  (let* ((frames (load-images (skippy:load-data-stream filename)))
          (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
          (indexes->tiles (make-hash-table)) ; map of tile name -> tile data

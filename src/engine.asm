@@ -5,7 +5,7 @@ include "defines.asm"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DEF DBG_BLOCK = $81
-; DEF DBG_DONTFALL = 1
+DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
 
@@ -1526,10 +1526,14 @@ game_step2::
   ld [hl], 0
   jr nz, .no_destroy
 
+  dec l
+  cp [hl]
+  jr nz, .no_destroy2
+
   ;; Split out XY coords from board pos
   ld d, 0
   ld a, l
-  dec a
+  inc l
 .div_loop2:
   inc d
   sub ROW
@@ -1572,6 +1576,7 @@ game_step2::
 
 .no_destroy:
   dec l
+.no_destroy2:
   dec c
   jr nz, .destroy_loop
 .done_destroy_loop:

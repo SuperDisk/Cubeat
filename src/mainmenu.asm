@@ -1,5 +1,10 @@
 include "defines.asm"
 
+DEF BUTTON_PLAY = %00
+DEF BUTTON_SELECT = %01
+DEF BUTTON_MUSIC = %10
+DEF BUTTON_CREDITS = %11
+
 MACRO add_a_to_r16
   add \2
   ld \2, a
@@ -55,50 +60,50 @@ incbin "res/menu/cursor.2bpp"
 
 SECTION "Tweening vars", WRAM0
 menu_frame_counter: db
-
-tween_start_coords:
-
-tween_startx1: db
-tween_startx2: db
-tween_startx3: db
-tween_startx4: db
-
-tween_starty1: db
-tween_starty2: db
-tween_starty3: db
-tween_starty4: db
-
-tween_end_coords:
-
-tween_endx1: db
-tween_endx2: db
-tween_endx3: db
-tween_endx4: db
-
-tween_endy1: db
-tween_endy2: db
-tween_endy3: db
-tween_endy4: db
-
-coords:
-x1: db
-x2: db
-x3: db
-x4: db
-
-y1: db
-y2: db
-y3: db
-y4: db
+selected_button: db
 
 tween_dist: db
-
 tween_step: db
 tweening: db
 
-bleh: db
+dest_coords_ptr: dw
+
+tween_start_coords:
+  tween_startx1: db
+  tween_startx2: db
+  tween_startx3: db
+  tween_startx4: db
+
+  tween_starty1: db
+  tween_starty2: db
+  tween_starty3: db
+  tween_starty4: db
+
+tween_end_coords:
+  tween_endx1: db
+  tween_endx2: db
+  tween_endx3: db
+  tween_endx4: db
+
+  tween_endy1: db
+  tween_endy2: db
+  tween_endy3: db
+  tween_endy4: db
+
+coords:
+  x1: db
+  x2: db
+  x3: db
+  x4: db
+
+  y1: db
+  y2: db
+  y3: db
+  y4: db
 
 SECTION "Main Menu", ROM0
+
+button_coords:
 
 play_coords:
 .x: db 15, 82, 15, 82
@@ -106,17 +111,16 @@ play_coords:
 .end:
 
 select_level_coords:
-.x: db 88, 131, 88, 131
-.y: db 48, 48, 74, 74
-
-credits_coords:
-.x: db 87, 121, 88, 121
-.y: db 80, 80, 91, 91
+.x: db 87, 130, 87, 130
+.y: db 47, 47, 74, 74
 
 music_player_coords:
-.x:
-.y:
+.x: db 39, 82, 39, 82
+.y: db 79, 79, 106, 106
 
+credits_coords:
+.x: db 87, 122, 87, 122
+.y: db 79, 79, 90, 90
 
 MainMenu::
 	xor a
@@ -133,7 +137,7 @@ MainMenu::
   ld [menu_frame_counter], a
   ld [tween_step], a
   ld [tweening], a
-  ld [bleh], a
+  ld [selected_button], a
 
   ld de, play_coords
   ld hl, coords
@@ -190,12 +194,18 @@ MainMenu::
   jp z, .no_tween
 
   ld a, [tween_step]
-  cp 64
+  cp 40
   jr c, .continue
   xor a
   ld [tweening], a
-  inc a
-  ld [bleh], a
+
+  ld hl, dest_coords_ptr
+  ld a, [hl+]
+  ld d, [hl]
+  ld e, a
+  ld hl, coords
+  ld c, 8
+  rst MemcpySmall
 
   jp .no_tween
 .continue:
@@ -297,20 +307,40 @@ MainMenu::
   spriteY 3
 
   ld a, [hPressedKeys]
-  bit PADB_START, a
+
+  and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
   jp z, .stuff
 
-  ld a, [bleh]
-  or a
-  jr z, .nobleh
+  ld d, a
+  ld a, [selected_button]
 
-  ld de, credits_coords
-  jr .yeah
+  bit PADB_LEFT, d
+  jr z, .no_left
+  res 0, a
+.no_left:
+  bit PADB_RIGHT, d
+  jr z, .no_right
+  set 0, a
+.no_right:
+  bit PADB_UP, d
+  jr z, .no_up
+  res 1, a
+.no_up:
+  bit PADB_DOWN, d
+  jp z, .no_down
+  set 1, a
 
-.nobleh:
-  ld de, select_level_coords
+.no_down:
+  ld [selected_button], a
 
-.yeah:
+  ld hl, button_coords
+  add a
+  add a
+  add a
+  add_a_to_hl
+  ld d, h
+  ld e, l
+
   call start_tween
 
   jp .stuff
@@ -318,16 +348,19 @@ MainMenu::
 
 start_tween:
   push de
+  ld hl, dest_coords_ptr
+  ld [hl], e
+  inc hl
+  ld [hl], d
 
   ld de, coords
   ld hl, tween_start_coords
   ld c, (play_coords.end - play_coords)
   rst MemcpySmall
 
+  pop de
   ld hl, tween_start_coords
   ld bc, tween_end_coords
-
-  pop de
 
 REPT 8
   ld a, [de]

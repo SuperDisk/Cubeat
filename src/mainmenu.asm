@@ -17,6 +17,10 @@ MACRO add_a_to_hl
   add_a_to_r16 h, l
 ENDM
 
+MACRO add_a_to_de
+    add_a_to_r16 d, e
+ENDM
+
 MACRO update_sprite  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM+(4*\1)], a
@@ -148,7 +152,7 @@ MainMenu::
   ld a, BANK(main_menu_bg)
   ld [rROMB0], a
   ld de, main_menu_bg
-  ld hl, $9000
+  ld hl, $8800
   ld bc, (main_menu_bg.end - main_menu_bg)
   call Memcpy
 
@@ -333,13 +337,11 @@ MainMenu::
 .no_down:
   ld [selected_button], a
 
-  ld hl, button_coords
+  ld de, button_coords
   add a
   add a
   add a
-  add_a_to_hl
-  ld d, h
-  ld e, l
+  add_a_to_de
 
   call start_tween
 

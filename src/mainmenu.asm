@@ -55,7 +55,8 @@ incbin "res/menu/cursor.2bpp"
 
 SECTION "Tweening vars", WRAM0
 menu_frame_counter: db
-cursor_tweak: db
+
+tween_start_coords:
 
 tween_startx1: db
 tween_startx2: db
@@ -67,6 +68,8 @@ tween_starty2: db
 tween_starty3: db
 tween_starty4: db
 
+tween_end_coords:
+
 tween_endx1: db
 tween_endx2: db
 tween_endx3: db
@@ -77,12 +80,39 @@ tween_endy2: db
 tween_endy3: db
 tween_endy4: db
 
-tween_dist:db
+coords:
+x1: db
+x2: db
+x3: db
+x4: db
+
+y1: db
+y2: db
+y3: db
+y4: db
+
+tween_dist: db
 
 tween_step: db
 tweening: db
 
+bleh: db
+
 SECTION "Main Menu", ROM0
+
+play_coords:
+.x: db 15, 82, 15, 82
+.y: db 39, 39, 74, 74
+.end:
+
+select_level_coords:
+.x: db 88, 131, 88, 131
+.y: db 48, 48, 74, 74
+
+credits_coords:
+.x: db 87, 124, 88, 124
+.y: db 80, 80, 91, 91
+
 
 MainMenu::
 	xor a
@@ -97,53 +127,14 @@ MainMenu::
   ;; Setup tweening
   xor a
   ld [menu_frame_counter], a
-  ld [cursor_tweak], a
   ld [tween_step], a
   ld [tweening], a
+  ld [bleh], a
 
-  ld a, 15
-  ld [tween_startx1], a
-  ld a, 39
-  ld [tween_starty1], a
-
-  ld a, 82
-  ld [tween_startx2], a
-  ld a, 39
-  ld [tween_starty2], a
-
-  ld a, 15
-  ld [tween_startx3], a
-  ld a, 74
-  ld [tween_starty3], a
-
-  ld a, 82
-  ld [tween_startx4], a
-  ld a, 74
-  ld [tween_starty4], a
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ld a, 88-15
-  ld [tween_endx1], a
-  ld a, 48-39
-  ld [tween_endy1], a
-
-  ld a, 131-82
-  ld [tween_endx2], a
-  ld a, 48-39
-  ld [tween_endy2], a
-
-  ld a, 88-15
-  ld [tween_endx3], a
-  ld a, 74-74
-  ld [tween_endy3], a
-
-  ld a, 131-82
-  ld [tween_endx4], a
-  ld a, 74-74
-  ld [tween_endy4], a
-
-
+  ld de, play_coords
+  ld hl, coords
+  ld c, (play_coords.end - play_coords)
+  rst MemcpySmall
 
   ;; Load BG area
   ld a, BANK(main_menu_bg)
@@ -185,11 +176,7 @@ MainMenu::
   nop
 
   ld hl, menu_frame_counter
-  ld a, [hl]
   inc [hl]
-  and %10000000
-  rlca
-  ld [cursor_tweak], a
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
@@ -203,10 +190,15 @@ MainMenu::
   jr c, .continue
   xor a
   ld [tweening], a
+  inc a
+  ld [bleh], a
+
   jp .no_tween
 .continue:
   inc a
+  inc a
   ld [tween_step], a
+  dec a
   dec a
   add a
 
@@ -220,62 +212,133 @@ MainMenu::
   ld a, [tween_endx1]
   ld hl, tween_startx1
   call tween
-  add 8
-  spriteX 0
+  ld [x1], a
 
   ld a, [tween_endy1]
   ld hl, tween_starty1
   call tween
-  add 16
-  spriteY 0
+  ld [y1], a
 
   ld a, [tween_endx2]
   ld hl, tween_startx2
   call tween
-  add 8
-  spriteX 1
+  ld [x2], a
 
   ld a, [tween_endy2]
   ld hl, tween_starty2
   call tween
-  add 16
-  spriteY 1
+  ld [y2], a
 
   ld a, [tween_endx3]
   ld hl, tween_startx3
   call tween
-  add 8
-  spriteX 2
+  ld [x3], a
 
   ld a, [tween_endy3]
   ld hl, tween_starty3
   call tween
-  add 16
-  spriteY 2
+  ld [y3], a
 
   ld a, [tween_endx4]
   ld hl, tween_startx4
   call tween
-  add 8
-  spriteX 3
+  ld [x4], a
 
   ld a, [tween_endy4]
   ld hl, tween_starty4
   call tween
-  add 16
-  spriteY 3
+  ld [y4], a
 
 .no_tween:
   call poll_joystick
+
+  ld a, [menu_frame_counter]
+  and %00010000
+  swap a
+  ld c, a
+
+  ld hl, coords
+
+  ld a, [hl+]
+  add c
+  add 8
+  spriteX 0
+  ld a, [hl+]
+  sub c
+  add 8
+  spriteX 1
+  ld a, [hl+]
+  add c
+  add 8
+  spriteX 2
+  ld a, [hl+]
+  sub c
+  add 8
+  spriteX 3
+  ld a, [hl+]
+  add c
+  add 16
+  spriteY 0
+  ld a, [hl+]
+  add c
+  add 16
+  spriteY 1
+  ld a, [hl+]
+  sub c
+  add 16
+  spriteY 2
+  ld a, [hl+]
+  sub c
+  add 16
+  spriteY 3
 
   ld a, [hPressedKeys]
   bit PADB_START, a
   jp z, .stuff
 
-  ld a, 1
-  ld [tweening], a
+  ld a, [bleh]
+  or a
+  jr z, .nobleh
+
+  ld de, credits_coords
+  jr .yeah
+
+.nobleh:
+  ld de, select_level_coords
+
+.yeah:
+  call start_tween
 
   jp .stuff
+  ret
+
+start_tween:
+  push de
+
+  ld de, coords
+  ld hl, tween_start_coords
+  ld c, (play_coords.end - play_coords)
+  rst MemcpySmall
+
+  ld hl, tween_start_coords
+  ld bc, tween_end_coords
+
+  pop de
+
+REPT 8
+  ld a, [de]
+  sub [hl]
+  ld [bc], a
+  inc hl
+  inc de
+  inc bc
+ENDR
+
+  xor a
+  ld [tween_step], a
+  inc a
+  ld [tweening], a
+
   ret
 
 tween:
@@ -289,28 +352,28 @@ tween:
   ret
 
 mult_de_bc:
-   ld	hl, 0
+  ld hl, 0
 
-   sla	e		; optimised 1st iteration
-   rl	d
-   jr	nc, @+4
-   ld	h, b
-   ld	l, c
+  sla e   ; optimised 1st iteration
+  rl d
+  jr nc, @+4
+  ld h, b
+  ld l, c
 
-   ld	a, 15
-_loop:
-   add	hl, hl
-   rl	e
-   rl	d
-   jr	nc, @+6
-   add	hl, bc
-   jr	nc, @+3
-   inc	de
+  ld a, 15
+.loop:
+  add hl, hl
+  rl e
+  rl d
+  jr nc, @+6
+  add hl, bc
+  jr nc, @+3
+  inc de
 
-   dec	a
-   jr	nz, _loop
+  dec a
+  jr nz, .loop
 
-   ret
+  ret
 
 MapRegion::
   push bc

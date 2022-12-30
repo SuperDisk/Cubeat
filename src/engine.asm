@@ -1914,7 +1914,7 @@ goto_xy_pos:
 
   ret
 
-poll_joystick:
+poll_joystick::
 	ld c, LOW(rP1)
 	ld a, $20 ; Select D-pad
 	ldh [c], a

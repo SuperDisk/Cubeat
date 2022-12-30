@@ -56,7 +56,7 @@ MACRO defskin ; id, gfx_init, map0, block0, block1
   .map0_bank: db BANK(\3) ; bank of map0
   .map0: dw \3 ; map0
 
-  .border_bank: db BANK(\6) ; bank of border tiles
+  .border_bank:: db BANK(\6) ; bank of border tiles
   .border_data: dw \6, \7 ; border tiles and border attrs
   .palette: dw \8 ; sgb palette
 ENDM
@@ -120,7 +120,7 @@ skin1:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_0
 ; skin23:: defskin 23, bg24_gfx_init, bg24_map0, blockset_23_0, blockset_23_1, frame_24_tiles, frame_24_attrs, pal23
 ; skin24:: defskin 24, bg25_gfx_init, bg25_map0, blockset_24_0, blockset_24_1, frame_25_tiles, frame_25_attrs, pal24
 
-skin_table:
+skin_table::
 FOR I, NUM_SKINS
   dw skin{d:I}
 ENDR

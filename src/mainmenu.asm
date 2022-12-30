@@ -110,8 +110,12 @@ select_level_coords:
 .y: db 48, 48, 74, 74
 
 credits_coords:
-.x: db 87, 124, 88, 124
+.x: db 87, 121, 88, 121
 .y: db 80, 80, 91, 91
+
+music_player_coords:
+.x:
+.y:
 
 
 MainMenu::
@@ -341,14 +345,34 @@ ENDR
 
   ret
 
+;;; A = tween distance
+;;; HL = tween start pos
 tween:
+  push af
+
+  bit 7, a
+  jr z, .positive_dist
+  cpl
+  inc a
+
+.positive_dist:
+
   push hl
   ld d, a
   ld e, 0
   call mult_de_bc
   ld a, e
   pop hl
+
+  pop de
+  bit 7, d
+  jr z, .no_negatize
+  cpl
+  inc a
+
+.no_negatize:
   add [hl]
+
   ret
 
 mult_de_bc:

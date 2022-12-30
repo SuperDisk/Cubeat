@@ -10,7 +10,7 @@ SECTION "Colorization functions", ROM0
 ;;;  3-4: SGB border map
 ;;;  5-6: SGB palette packet
 ;;;  7-8: CGB palette
-colorize:
+colorize::
   ld a, [hConsoleType]
   or a
   jr z, .cgb

@@ -68,13 +68,13 @@ music_bank:: db
 music_pointer:: dw
 
 SECTION "Animation vars", WRAM0
-current_skin: db
+current_skin:: db
 current_bg:: db
 next_gfx_bank:: db
 next_map_bank:: db
 update_playfield_buffer:: ds 3 ; includes jump opcode
 
-transition_state: db
+transition_state:: db
 
 SECTION "Blockset drawing ram code", WRAM0
 current_blockset_bank: db

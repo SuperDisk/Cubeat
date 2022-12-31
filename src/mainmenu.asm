@@ -248,6 +248,10 @@ menu_loop:
 
   call playfield_buffer
 
+  wait_vram
+  ld a, HIGH(wShadowOAM)
+  call hOAMDMA
+
   ld a, BANK(main_menu_buttons_gfx)
   ld [rROMB0], a
   lb bc, 16, 10
@@ -282,14 +286,15 @@ menu_loop:
 
   call update_bg
 
+  wait_vram
+  ld a, HIGH(wShadowOAM)
+  call hOAMDMA
+
   jr menu_loop
 
 menu_logic:
   ld hl, menu_frame_counter
   inc [hl]
-
-  ld a, HIGH(wShadowOAM)
-  call hOAMDMA
 
   ld a, [tweening]
   or a

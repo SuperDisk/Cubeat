@@ -34,6 +34,7 @@ ENDM
 FOR I, 1, NUM_SKINS+1
   include "res/backgrounds/bg{02d:I}.asm"
 ENDR
+include "res/backgrounds/out.asm"
 
 FOR I, 1, NUM_SKINS+1
   SECTION "frame_{02d:I}", ROMX
@@ -94,7 +95,7 @@ pal24: pal_packet $9c00cd, $fdc540, $e99418, $ffffff
 
 skins::
 
-skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
+skin0:: defskin 0, out_gfx_init, out_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
 skin1:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_02_tiles, frame_02_attrs, pal1
 ; skin0:: defskin 2, bg03_gfx_init, bg03_map0, blockset_2_0, blockset_2_1, frame_03_tiles, frame_03_attrs, pal2
 ; skin3:: defskin 3, bg04_gfx_init, bg04_map0, blockset_3_0, blockset_3_1, frame_04_tiles, frame_04_attrs, pal3

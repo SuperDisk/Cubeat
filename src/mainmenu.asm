@@ -48,6 +48,7 @@ MACRO spriteY ; which sprite
   ld [wShadowOAM+(4*(\1))], a
 ENDM
 
+
 SECTION "Main Menu Graphics", ROMX
 
 main_menu_bg:

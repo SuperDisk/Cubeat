@@ -294,10 +294,12 @@
                  (initial-part (loop for tname being each hash-key of (car frame-sets)
                                      for i from *reserved-tiles-count*
                                      collect (cons i tname)))
-                 (first-assignment (loop for i from *reserved-tiles-count* to max-tiles
-                                         collect (or (assoc i initial-part) (cons i i))))
+                 (first-assignment (loop for i from *reserved-tiles-count*
+                                         for j from 0
+                                         repeat max-tiles
+                                         collect (or (assoc i initial-part) (cons i j))))
                  (current-assignment first-assignment)
-                 (free-idxs (loop for i from (length initial-part) to max-tiles collect i)))
+                 (free-idxs (loop for (a . b) in first-assignment when (not (assoc a initial-part)) collect a)))
             (flet ((assignment-contains (name assignment)
                      (find name assignment :key #'cdr))
                    (frame-set-contains (name frame-set)

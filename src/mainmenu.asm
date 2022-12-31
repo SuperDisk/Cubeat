@@ -240,6 +240,12 @@ menu_loop:
   halt ; wait for VBlank
   nop
 
+  assert IEF_VBLANK + 1 == IEF_STAT
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
   call playfield_buffer
 
   ld a, BANK(main_menu_buttons_gfx)

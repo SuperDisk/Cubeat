@@ -1,6 +1,7 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload '(:skippy) :silent t))
 
+(defparameter *menu-mode* nil)
 (defparameter *reserved-tiles-count* 8)
 
 (defparameter *colon*
@@ -168,7 +169,8 @@
                    (setf cycle-counter 0)
                    (incf scanlines)
                    (when (and (= scanlines 31)
-                              (not done-dma))
+                              (not done-dma)
+                              (not *menu-mode*))
                      (format stream "ld a, [rLCDC]~%")
                      (format stream "set 2, a~%")
                      (format stream "ld [rLCDC], a~%")
@@ -215,7 +217,7 @@
                   (format stream "ld [$~X], sp~%" address)
                   (inc-cycles 5)))))))
 
-      (when (and include-halts (not done-dma))
+      (when (and include-halts (not done-dma) (not *menu-mode*))
         (format stream ".wait_for_oam_scanline~%")
         (format stream "ld a, [rLY]~%")
         (format stream "cp 30~%")
@@ -249,16 +251,16 @@
 (defun apply-colon (frame)
   (skippy:composite *colon* frame :sx 0 :sy 0 :dx 80 :dy 11))
 
-(defun load-images (dstream apply-colon)
+(defun load-images (dstream)
   (loop for img across (skippy:images dstream)
         appending
         (let* ((ms (* 10 (skippy:delay-time img)))
                (frames (round ms 32))
-               (im (if apply-colon (apply-colon img) img)))
+               (im (if (not *menu-mode*) (apply-colon img) img)))
           (make-list frames :initial-element im))))
 
-(defun gif->tiles (filename out-filename &optional (apply-colon nil))
-  (let* ((frames (load-images (skippy:load-data-stream filename) apply-colon))
+(defun gif->tiles (filename out-filename)
+  (let* ((frames (load-images (skippy:load-data-stream filename)))
          (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
          (indexes->tiles (make-hash-table)) ; map of tile name -> tile data
@@ -382,5 +384,6 @@
                 (format t "Frame ~a has too many (~a) unique tiles!" i ut))))))
 
 (defun main ()
-  (apply #'gif->tiles (cdr sb-ext:*posix-argv*))
-  (exit))
+  (let ((*menu-mode* (cadddr sb-ext:*posix-argv*)))
+    (apply #'gif->tiles (subseq sb-ext:*posix-argv* 1 3))
+    (exit)))

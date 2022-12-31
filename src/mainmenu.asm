@@ -50,7 +50,16 @@ ENDM
 
 
 SECTION "Main Menu Graphics", ROMX
+
 include "res/menu/bgmenu.menu.asm"
+
+main_menu_buttons_gfx:
+incbin "res/menu/main_menu_buttons.2bppu"
+.end:
+
+main_menu_buttons_map:
+incbin "res/menu/main_menu_buttons.tilemapu"
+.end:
 
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
@@ -180,6 +189,19 @@ MainMenu::
   ld c, (play_coords.end - play_coords)
   rst MemcpySmall
 
+  ;; Load BG area
+  ld a, BANK(main_menu_buttons_gfx)
+  ld [rROMB0], a
+  ld de, main_menu_buttons_gfx
+  ld hl, $9000
+  ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
+  call Memcpy
+
+  lb bc, 16, 10
+  ld de, $98A2
+  ld hl, main_menu_buttons_map
+  call MapRegion
+
   ;; Load sprite area
   ld de, cursor_sprite
   ld hl, $8000
@@ -198,11 +220,12 @@ MainMenu::
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a
 
-.stuff:
+menu_loop:
   ld a, [next_map_bank]
   ld [rROMB0], a
 
   call update_playfield_buffer
+  call menu_logic
 
   ld a, [current_bg]
   xor %00000100
@@ -218,6 +241,18 @@ MainMenu::
   nop
 
   call playfield_buffer
+
+  ld a, BANK(main_menu_buttons_gfx)
+  ld [rROMB0], a
+  lb bc, 16, 10
+  ld a, [current_bg]
+  or $98
+  ld d, a
+  ld e, $A2
+  ld hl, main_menu_buttons_map
+  call MapRegion
+
+  call menu_logic
 
   ld a, [next_gfx_bank]
   ld [rROMB0], a
@@ -241,8 +276,9 @@ MainMenu::
 
   call update_bg
 
-  jr .stuff
+  jr menu_loop
 
+menu_logic:
   ld hl, menu_frame_counter
   inc [hl]
 
@@ -369,7 +405,7 @@ MainMenu::
   ld a, [hPressedKeys]
 
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
-  jp z, .stuff
+  ret z
 
   ld d, a
   ld a, [selected_button]
@@ -399,10 +435,7 @@ MainMenu::
   add a
   add_a_to_de
 
-  call start_tween
-
-  jp .stuff
-  ret
+  ;; fallthrough
 
 start_tween:
   push de
@@ -490,9 +523,17 @@ mult_de_bc:
 
   ret
 
+; @param b: Width
+; @param c: Height
+; @param de: VRAM destination
+; @param hl: Source map
 MapRegion::
   push bc
 .copy:
+.waitVram:
+	ldh a, [rSTAT]
+	and a, STATF_BUSY
+	jr nz, .waitVram
 	ld a, [hli]
 	ld [de], a
 	inc de

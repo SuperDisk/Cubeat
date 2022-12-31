@@ -82,7 +82,7 @@ draw_block0: ds 3
 draw_block1: ds 3
 
 SECTION "Static RAM Code", ROM0
-static_ram_code:
+static_ram_code::
   xor a
   ldh [rIF], a
   assert IEF_VBLANK == 1
@@ -92,14 +92,14 @@ static_ram_code:
 .update_bg:
   ld [orig_sp], sp
   db $C3 ; jp xxxx
-.end:
+.end::
 
 SECTION "RAM Code", WRAM0
 update_bg_done:: ds 1 ; ld sp, xxxx
 orig_sp: ds 2 ; operand of above
-ram_code:
+ram_code::
   ds static_ram_code.update_bg - static_ram_code
-update_bg:
+update_bg::
   ds static_ram_code.end - static_ram_code.update_bg
 ptr_next_update_bg::
   ds 2 ; operand of above
@@ -151,9 +151,9 @@ incbin "res/anim_bonus.2bpp"
 
 SECTION "Playfield Buffer ROM", ROM0
 
-playfield_buffer_rom:
+playfield_buffer_rom::
 include "playfield_buffer.inc"
-.end:
+.end::
 
 SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
@@ -318,13 +318,6 @@ Intro::
   ;; fallthrough
 
 kernel_loop:
-  ; ld a, [hPressedKeys]
-  ; bit PADB_START, a
-  ; jr z, .no_begin_transition
-  ; ld a, 16
-  ; ld [transition_state], a
-
-.no_begin_transition:
   ld a, [transition_state]
   dec a
   call nz, transition_stage

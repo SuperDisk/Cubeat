@@ -50,14 +50,7 @@ ENDM
 
 
 SECTION "Main Menu Graphics", ROMX
-
-main_menu_bg:
-incbin "res/menu/main_menu.2bppu"
-.end:
-
-main_menu_map:
-incbin "res/menu/main_menu.tilemapu"
-.end:
+include "res/menu/bgmenu.menu.asm"
 
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
@@ -137,6 +130,44 @@ MainMenu::
 
   di
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ld de, playfield_buffer_rom
+  ld hl, playfield_buffer
+  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
+  call Memcpy
+
+  ld de, static_ram_code
+  ld hl, ram_code
+  ld c, static_ram_code.end - static_ram_code
+  rst MemcpySmall
+
+  ld a, $31 ; ld sp, xxxx
+  ld [update_bg_done], a
+
+  ld a, $C3 ; jp xxxx
+  ld [update_playfield_buffer], a
+
+  ld a, $98
+  ld [current_bg], a
+
+  ;; Copy initial tile data
+  ld a, BANK(bgmenu_gfx_init)
+  ld [rROMB0], a
+
+  ld a, LOW(bgmenu_gfx_init)
+  ld [ptr_next_update_bg], a
+  ld a, HIGH(bgmenu_gfx_init)
+  ld [ptr_next_update_bg+1], a
+  call update_bg
+
+  ld a, BANK(bgmenu_map0)
+  ld [next_map_bank], a
+  ld a, LOW(bgmenu_map0)
+  ld [update_playfield_buffer+1], a
+  ld a, HIGH(bgmenu_map0)
+  ld [update_playfield_buffer+2], a
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
   ;; Setup tweening
   xor a
   ld [menu_frame_counter], a
@@ -148,19 +179,6 @@ MainMenu::
   ld hl, coords
   ld c, (play_coords.end - play_coords)
   rst MemcpySmall
-
-  ;; Load BG area
-  ld a, BANK(main_menu_bg)
-  ld [rROMB0], a
-  ld de, main_menu_bg
-  ld hl, $8800
-  ld bc, (main_menu_bg.end - main_menu_bg)
-  call Memcpy
-
-  lb bc, SCRN_X_B, SCRN_Y_B
-  ld de, $9800
-  ld hl, main_menu_map
-  call MapRegion
 
   ;; Load sprite area
   ld de, cursor_sprite
@@ -181,12 +199,49 @@ MainMenu::
 	ld [rLCDC], a
 
 .stuff:
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+
+  call update_playfield_buffer
+
+  ld a, [current_bg]
+  xor %00000100
+  ld [current_bg], a
+  ld h, a
+  ld l, 0
+
   ld a, IEF_VBLANK
   ldh [rIE], a
   xor a
   ld [rIF], a
   halt ; wait for VBlank
   nop
+
+  call playfield_buffer
+
+  ld a, [next_gfx_bank]
+  ld [rROMB0], a
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt ; wait for VBlank
+  nop
+
+  ; swap map
+  ldh a, [rLCDC]
+  xor %00001000
+  ldh [rLCDC], a
+
+  ld a, IEF_STAT
+  ldh [rIE], a
+  ld a, STATF_MODE00
+  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+
+  call update_bg
+
+  jr .stuff
 
   ld hl, menu_frame_counter
   inc [hl]

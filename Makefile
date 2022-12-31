@@ -133,9 +133,13 @@ $(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
 
 $(RESDIR)/%.deop.gif: $(RESDIR)/%.gif
 	@$(MKDIR_P) $(@D)
-	gifsicle --unoptimize < $< > $@
+	gifsicle --use-colormap src/res/background.colormap --unoptimize < $< > $@
 
 $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
+	@$(MKDIR_P) $(@D)
+	$(GIF2TILES) $< $@ t
+
+$(RESDIR)/%.menu.asm: $(RESDIR)/%.deop.gif
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@
 

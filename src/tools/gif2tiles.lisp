@@ -257,7 +257,7 @@
                (im (if apply-colon (apply-colon img) img)))
           (make-list frames :initial-element im))))
 
-(defun gif->tiles (filename out-filename &optional (apply-colon t))
+(defun gif->tiles (filename out-filename &optional (apply-colon nil))
   (let* ((frames (load-images (skippy:load-data-stream filename) apply-colon))
          (split-frames (mapcar #'splitimg frames))
          (tiles (make-hash-table :test #'gif-data=)) ; map of tile data -> tile name
@@ -294,9 +294,8 @@
                  (initial-part (loop for tname being each hash-key of (car frame-sets)
                                      for i from *reserved-tiles-count*
                                      collect (cons i tname)))
-                 (first-assignment (loop for i from *reserved-tiles-count*
-                                         for j from 0
-                                         repeat max-tiles
+                 (first-assignment (loop for i from *reserved-tiles-count* to 255
+                                         for j to max-tiles
                                          collect (or (assoc i initial-part) (cons i j))))
                  (current-assignment first-assignment)
                  (free-idxs (loop for (a . b) in first-assignment when (not (assoc a initial-part)) collect a)))
@@ -349,7 +348,7 @@
     (with-open-file (out out-filename
                          :direction :output
                          :if-exists :supersede)
-      (let ((prefix (pathname-name out-filename)))
+      (let ((prefix (pathname-name (pathname-name out-filename))))
         (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
         (format out "~a_gfx_init:~%" prefix)
         (format out (gfx->source (car tilemaps)

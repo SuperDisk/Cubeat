@@ -21,14 +21,8 @@ MACRO add_a_to_de
     add_a_to_r16 d, e
 ENDM
 
-MACRO update_sprite  ; which sprite, x, y, tile
-  ld a, \3+16
-  ld [wShadowOAM+(4*\1)], a
-  ld a, \2+8
-  ld [wShadowOAM+(4*\1)+1], a
-  ld a, \4
-  ld [wShadowOAM+(4*\1)+2], a
-  ld a, \5
+MACRO spriteAttr  ; which sprite, x, y, tile
+  ld a, \2
   ld [wShadowOAM+(4*\1)+3], a
 ENDM
 
@@ -90,6 +84,10 @@ incbin "res/menu/cursor.2bpp"
 .end:
 
 SECTION "Tweening vars", WRAM0
+menu_ui_ptr: dw
+menu_logic_ptr: dw
+menu_init_ptr: dw
+
 menu_frame_counter: db
 selected_button: db
 
@@ -163,6 +161,35 @@ MainMenu::
 
   di
 
+  ;; temp
+  ld hl, menu_ui_ptr
+  ld [hl], LOW(main_menu_ui)
+  inc hl
+  ld [hl], HIGH(main_menu_ui)
+  inc hl
+  ld [hl], LOW(main_menu_logic)
+  inc hl
+  ld [hl], HIGH(main_menu_logic)
+  inc hl
+  ld [hl], LOW(main_menu_init)
+  inc hl
+  ld [hl], HIGH(main_menu_init)
+  inc hl
+
+  ; ld hl, menu_ui_ptr
+  ; ld [hl], LOW(levels_ui)
+  ; inc hl
+  ; ld [hl], HIGH(levels_ui)
+  ; inc hl
+  ; ld [hl], LOW(levels_logic)
+  ; inc hl
+  ; ld [hl], HIGH(levels_logic)
+  ; inc hl
+  ; ld [hl], LOW(levels_init)
+  ; inc hl
+  ; ld [hl], HIGH(levels_init)
+  ; inc hl
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
@@ -216,11 +243,13 @@ MainMenu::
   ;; Load BG area
   ld a, BANK(main_menu_buttons_gfx)
   ld [rROMB0], a
-  ld de, main_menu_buttons_gfx
-  ld hl, $9000
-  ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
-  call Memcpy
+  ld hl, menu_init_ptr
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  rst CallHL
 
+  ld hl, $95B0
   ld de, move_select_gfx
   ld bc, (move_select_gfx.end - move_select_gfx)
   call Memcpy
@@ -229,13 +258,6 @@ MainMenu::
   ld bc, (back_gfx.end - back_gfx)
   call Memcpy
 
-  ; ld a, BANK(levels_gfx)
-  ; ld [rROMB0], a
-  ; ld de, levels_gfx
-  ; ld hl, $9000
-  ; ld bc, (levels_gfx.end - levels_gfx)
-  ; call Memcpy
-
   ;; Load sprite area
   ld de, cursor_sprite
   ld hl, $8000
@@ -243,13 +265,10 @@ MainMenu::
   rst MemcpySmall
 
   ;; Setup sprites
-  update_sprite 0, 15, 39, 0, 0
-  update_sprite 1, 82, 39, 0, OAMF_XFLIP
-  update_sprite 2, 15, 74, 0, OAMF_YFLIP
-  update_sprite 3, 82, 74, 0, OAMF_XFLIP|OAMF_YFLIP
-
-  ld a, HIGH(wShadowOAM)
-  call hOAMDMA
+  spriteAttr 0, 0
+  spriteAttr 1, OAMF_XFLIP
+  spriteAttr 2, OAMF_YFLIP
+  spriteAttr 3, OAMF_XFLIP|OAMF_YFLIP
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a
@@ -259,7 +278,12 @@ menu_loop:
   ld [rROMB0], a
 
   call update_playfield_buffer
-  call main_menu_logic
+
+  ld hl, menu_logic_ptr
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  rst CallHL
 
   ld a, [current_bg]
   xor %00000100
@@ -286,8 +310,11 @@ menu_loop:
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  call main_menu_ui
-  call main_menu_logic
+  ld hl, menu_ui_ptr
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  rst CallHL
 
   ld a, [next_gfx_bank]
   ld [rROMB0], a
@@ -317,6 +344,18 @@ menu_loop:
 
   jp menu_loop
 
+main_menu_init:
+  ld de, main_menu_buttons_gfx
+  ld hl, $9000
+  ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
+  jp Memcpy
+
+levels_init:
+  ld de, levels_gfx
+  ld hl, $9000
+  ld bc, (levels_gfx.end - levels_gfx)
+  jp Memcpy
+
 levels_ui:
   ld a, BANK(levels_gfx)
   ld [rROMB0], a
@@ -345,7 +384,12 @@ levels_ui:
   ld d, a
   ld e, $0E
   ld hl, back_map
-  jp MapRegion
+  call MapRegion
+
+  ;; fallthrough
+
+levels_logic:
+  ret
 
 main_menu_ui:
   ld a, BANK(main_menu_buttons_gfx)
@@ -365,7 +409,9 @@ main_menu_ui:
   ld d, a
   ld e, $E1
   ld hl, move_select_map
-  jp MapRegion
+  call MapRegion
+
+  ;; fallthrough
 
 main_menu_logic:
   ld hl, menu_frame_counter

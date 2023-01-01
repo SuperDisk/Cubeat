@@ -61,6 +61,30 @@ main_menu_buttons_map:
 incbin "res/menu/main_menu_buttons.tilemapu"
 .end:
 
+move_select_gfx:
+incbin "res/menu/move_select.2bppu"
+.end:
+
+move_select_map:
+incbin "res/menu/move_select.tilemapu"
+.end:
+
+back_gfx:
+incbin "res/menu/back.2bppu"
+.end:
+
+back_map:
+incbin "res/menu/back.tilemapu"
+.end:
+
+levels_gfx:
+incbin "res/menu/levels.2bppu"
+.end:
+
+levels_map:
+incbin "res/menu/levels.tilemapu"
+.end:
+
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
@@ -197,10 +221,20 @@ MainMenu::
   ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
   call Memcpy
 
-  lb bc, 16, 10
-  ld de, $98A2
-  ld hl, main_menu_buttons_map
-  call MapRegion
+  ld de, move_select_gfx
+  ld bc, (move_select_gfx.end - move_select_gfx)
+  call Memcpy
+
+  ld de, back_gfx
+  ld bc, (back_gfx.end - back_gfx)
+  call Memcpy
+
+  ; ld a, BANK(levels_gfx)
+  ; ld [rROMB0], a
+  ; ld de, levels_gfx
+  ; ld hl, $9000
+  ; ld bc, (levels_gfx.end - levels_gfx)
+  ; call Memcpy
 
   ;; Load sprite area
   ld de, cursor_sprite
@@ -225,7 +259,7 @@ menu_loop:
   ld [rROMB0], a
 
   call update_playfield_buffer
-  call menu_logic
+  call main_menu_logic
 
   ld a, [current_bg]
   xor %00000100
@@ -252,17 +286,8 @@ menu_loop:
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  ld a, BANK(main_menu_buttons_gfx)
-  ld [rROMB0], a
-  lb bc, 16, 10
-  ld a, [current_bg]
-  or $98
-  ld d, a
-  ld e, $A2
-  ld hl, main_menu_buttons_map
-  call MapRegion
-
-  call menu_logic
+  call main_menu_ui
+  call main_menu_logic
 
   ld a, [next_gfx_bank]
   ld [rROMB0], a
@@ -290,9 +315,59 @@ menu_loop:
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  jr menu_loop
+  jp menu_loop
 
-menu_logic:
+levels_ui:
+  ld a, BANK(levels_gfx)
+  ld [rROMB0], a
+  lb bc, 15, 9
+  ld a, [current_bg]
+  or $98
+  ld d, a
+  ld e, $83
+  ld hl, levels_map
+  call MapRegion
+
+  lb bc, 13, 3
+  ld a, [current_bg]
+  or $98
+  inc a
+  ld d, a
+  ld e, $E1
+  ld hl, move_select_map
+  call MapRegion
+
+  lb bc, 4, 2
+  ld a, [current_bg]
+  or $98
+  inc a
+  inc a
+  ld d, a
+  ld e, $0E
+  ld hl, back_map
+  jp MapRegion
+
+main_menu_ui:
+  ld a, BANK(main_menu_buttons_gfx)
+  ld [rROMB0], a
+  lb bc, 16, 10
+  ld a, [current_bg]
+  or $98
+  ld d, a
+  ld e, $A2
+  ld hl, main_menu_buttons_map
+  call MapRegion
+
+  lb bc, 13, 3
+  ld a, [current_bg]
+  or $98
+  inc a
+  ld d, a
+  ld e, $E1
+  ld hl, move_select_map
+  jp MapRegion
+
+main_menu_logic:
   ld hl, menu_frame_counter
   inc [hl]
 

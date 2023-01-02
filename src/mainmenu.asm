@@ -236,9 +236,6 @@ MainMenu::
   ld a, $C3 ; jp xxxx
   ld [update_playfield_buffer], a
 
-  ld a, $98
-  ld [current_bg], a
-
   ;; Copy initial tile data
   ld a, BANK(bgmenu_gfx_init)
   ld [rROMB0], a
@@ -398,10 +395,7 @@ music_player_ui:
   ld a, BANK(main_menu_buttons_gfx)
   ld [rROMB0], a
   lb bc, 16, 10
-  ld a, [current_bg]
-  or $98
-  ld d, a
-  ld e, $A2
+  ld de, $98A2
   ld hl, main_menu_buttons_map
   call MapRegion
 
@@ -495,37 +489,22 @@ levels_ui:
   ld a, BANK(levels_gfx)
   ld [rROMB0], a
   lb bc, 15, 9
-  ld a, [current_bg]
-  or $98
-  ld d, a
-  ld e, $83
+  ld de, $9883
   ld hl, levels_map
   call MapRegion
 
   lb bc, 13, 3
-  ld a, [current_bg]
-  or $98
-  inc a
-  ld d, a
-  ld e, $E1
+  ld de, $99E1
   ld hl, move_select_map
   call MapRegion
 
   lb bc, 4, 2
-  ld a, [current_bg]
-  or $98
-  inc a
-  inc a
-  ld d, a
-  ld e, $0E
+  ld de, $9A0E
   ld hl, back_map
   call MapRegion
 
   lb bc, 7, 1
-  ld a, [current_bg]
-  or $98
-  ld d, a
-  ld e, $43
+  ld de, $9843
   ld hl, text_select_level_map
   call MapRegion
 
@@ -671,19 +650,12 @@ main_menu_ui:
   ld a, BANK(main_menu_buttons_gfx)
   ld [rROMB0], a
   lb bc, 16, 10
-  ld a, [current_bg]
-  or $98
-  ld d, a
-  ld e, $A2
+  ld de, $98A2
   ld hl, main_menu_buttons_map
   call MapRegion
 
   lb bc, 13, 3
-  ld a, [current_bg]
-  or $98
-  inc a
-  ld d, a
-  ld e, $E1
+  ld de, $99E1
   ld hl, move_select_map
   call MapRegion
 

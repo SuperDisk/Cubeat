@@ -103,6 +103,8 @@ selected_level: db
 true_x: db
 true_y: db
 
+scroll_amount: db
+
 SECTION "Tweening vars", WRAM0
 tween_dist: db
 tween_step: db
@@ -175,32 +177,46 @@ MainMenu::
   di
 
   ;; temp
-  ld hl, menu_ui_ptr
-  ld [hl], LOW(main_menu_ui)
-  inc hl
-  ld [hl], HIGH(main_menu_ui)
-  inc hl
-  ld [hl], LOW(main_menu_logic)
-  inc hl
-  ld [hl], HIGH(main_menu_logic)
-  inc hl
-  ld [hl], LOW(main_menu_init)
-  inc hl
-  ld [hl], HIGH(main_menu_init)
-  inc hl
+  ; ld hl, menu_ui_ptr
+  ; ld [hl], LOW(main_menu_ui)
+  ; inc hl
+  ; ld [hl], HIGH(main_menu_ui)
+  ; inc hl
+  ; ld [hl], LOW(main_menu_logic)
+  ; inc hl
+  ; ld [hl], HIGH(main_menu_logic)
+  ; inc hl
+  ; ld [hl], LOW(main_menu_init)
+  ; inc hl
+  ; ld [hl], HIGH(main_menu_init)
+  ; inc hl
+
+  ; ld hl, menu_ui_ptr
+  ; ld [hl], LOW(levels_ui)
+  ; inc hl
+  ; ld [hl], HIGH(levels_ui)
+  ; inc hl
+  ; ld [hl], LOW(levels_logic)
+  ; inc hl
+  ; ld [hl], HIGH(levels_logic)
+  ; inc hl
+  ; ld [hl], LOW(levels_init)
+  ; inc hl
+  ; ld [hl], HIGH(levels_init)
+  ; inc hl
 
   ld hl, menu_ui_ptr
-  ld [hl], LOW(levels_ui)
+  ld [hl], LOW(music_player_ui)
   inc hl
-  ld [hl], HIGH(levels_ui)
+  ld [hl], HIGH(music_player_ui)
   inc hl
-  ld [hl], LOW(levels_logic)
+  ld [hl], LOW(music_player_logic)
   inc hl
-  ld [hl], HIGH(levels_logic)
+  ld [hl], HIGH(music_player_logic)
   inc hl
-  ld [hl], LOW(levels_init)
+  ld [hl], LOW(music_player_init)
   inc hl
-  ld [hl], HIGH(levels_init)
+  ld [hl], HIGH(music_player_init)
   inc hl
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -233,11 +249,11 @@ MainMenu::
   ld [ptr_next_update_bg+1], a
   call update_bg
 
-  ld a, BANK(bgmenu_map0)
+  ld a, BANK(bgmenu_map_init)
   ld [next_map_bank], a
-  ld a, LOW(bgmenu_map0)
+  ld a, LOW(bgmenu_map_init)
   ld [update_playfield_buffer+1], a
-  ld a, HIGH(bgmenu_map0)
+  ld a, HIGH(bgmenu_map_init)
   ld [update_playfield_buffer+2], a
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -278,6 +294,11 @@ MainMenu::
   spriteAttr 2, OAMF_YFLIP
   spriteAttr 3, OAMF_XFLIP|OAMF_YFLIP
 
+  ;; Initialize tile map
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
 	ld [rLCDC], a
 
@@ -285,19 +306,11 @@ menu_loop:
   ld a, [next_map_bank]
   ld [rROMB0], a
 
-  call update_playfield_buffer
-
   ld hl, menu_logic_ptr
   ld a, [hl+]
   ld h, [hl]
   ld l, a
   rst CallHL
-
-  ld a, [current_bg]
-  xor %00000100
-  ld [current_bg], a
-  ld h, a
-  ld l, 0
 
   ld a, IEF_VBLANK
   ldh [rIE], a
@@ -306,15 +319,8 @@ menu_loop:
   halt ; wait for VBlank
   nop
 
-  assert IEF_VBLANK + 1 == IEF_STAT
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
+  call update_playfield_buffer
 
-  call playfield_buffer
-
-  wait_vram
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
@@ -334,11 +340,6 @@ menu_loop:
   halt ; wait for VBlank
   nop
 
-  ; swap map
-  ldh a, [rLCDC]
-  xor %00001000
-  ldh [rLCDC], a
-
   ld a, IEF_STAT
   ldh [rIE], a
   ld a, STATF_MODE00
@@ -346,7 +347,6 @@ menu_loop:
 
   call update_bg
 
-  wait_vram
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
@@ -380,6 +380,116 @@ levels_init:
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   jp Memcpy
+
+music_player_init:
+  xor a
+  ld [scroll_amount], a
+  ld [x1], a
+  ld [y1], a
+
+  ld de, main_menu_buttons_gfx
+  ld hl, $9000
+  ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
+  jp Memcpy
+
+  ret
+
+music_player_ui:
+  ld a, BANK(main_menu_buttons_gfx)
+  ld [rROMB0], a
+  lb bc, 16, 10
+  ld a, [current_bg]
+  or $98
+  ld d, a
+  ld e, $A2
+  ld hl, main_menu_buttons_map
+  call MapRegion
+
+  ;; fallthrough
+
+music_player_logic:
+  ld hl, menu_frame_counter
+  inc [hl]
+
+.wait_for_split
+  ld a, [rLY]
+  cp 32
+  jr c, .wait_for_split
+
+  wait_vram
+  ld a, [x1]
+  ld [rSCX], a
+
+.wait_for_split2
+  ld a, [rLY]
+  cp 112
+  jr c, .wait_for_split2
+
+  wait_vram
+  xor a
+  ld [rSCX], a
+
+  ld a, [tweening]
+  or a
+  jp z, .no_tween
+
+  ld a, [tween_step]
+  cp 63
+  jr c, .continue
+  xor a
+  ld [tweening], a
+
+  ld a, [scroll_amount]
+  ld [x1], a
+
+  jp .no_tween
+
+.continue:
+  inc a
+  ; inc a
+  ld [tween_step], a
+  ; dec a
+  dec a
+  add a
+
+  ld hl, tweening_table
+  add_a_to_hl
+
+  ld c, [hl]
+  inc hl
+  ld b, [hl]
+
+  ld a, [tween_endx1]
+  ld hl, tween_startx1
+  call tween
+  ld [x1], a
+
+.no_tween:
+  call poll_joystick
+
+  ld a, [hPressedKeys]
+  or a
+  ret z
+
+  ld d, a
+
+  bit PADB_START, d
+  jr z, .no_start
+
+  ld a, [scroll_amount]
+  ld [tween_startx1], a
+  add 88
+  ld [scroll_amount], a
+  ld a, 88
+  ld [tween_endx1], a
+
+  xor a
+  ld [tween_step], a
+  inc a
+  ld [tweening], a
+
+.no_start:
+  ret
 
 levels_ui:
   ld a, BANK(levels_gfx)

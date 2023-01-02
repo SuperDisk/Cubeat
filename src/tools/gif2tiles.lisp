@@ -132,15 +132,25 @@
 
 (defun tmap->source (annotated-tmap next-frame prefix)
   (with-output-to-string (stream)
-    (let (old-loc)
-      (format stream "ld de, 3~%")
-      (loop for (location . tile) in annotated-tmap
-            for loc = (cdr (assoc location *idx->playfield-buffer-offset*)) do
-              (if (and old-loc (= (- loc old-loc) 3))
-                  (format stream "add hl, de~%")
-                  (format stream "ld hl, playfield_buffer + $~X~%" loc))
-              (format stream "ld [hl], ~a~%" (logxor #b10000000 tile))
-              (setf old-loc loc)))
+    (if (not *menu-mode*)
+        (let (old-loc)
+          (format stream "ld de, 3~%")
+          (loop for (location . tile) in annotated-tmap
+                for loc = (cdr (assoc location *idx->playfield-buffer-offset*)) do
+                  (if (and old-loc (= (- loc old-loc) 3))
+                      (format stream "add hl, de~%")
+                      (format stream "ld hl, playfield_buffer + $~X~%" loc))
+                  (format stream "ld [hl], ~a~%" (logxor #b10000000 tile))
+                  (setf old-loc loc)))
+        (flet ((wrap-location (loc)
+                 (let ((remainder (mod loc 20))
+                       (row (floor loc 20)))
+                   (+ #x9800 (* row 32) remainder))))
+          (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap))))
+            (loop for tile in unique-tiles do
+              (format stream "ld a, ~a~%" (logxor #b10000000 tile))
+              (loop for (location . __tile) in (remove-if-not (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
+                (format stream "ld [$~X], a~%" (wrap-location location)))))))
 
     (format stream "ld a, LOW(~a_map~a)~%" prefix next-frame)
     (format stream "ld [update_playfield_buffer+1], a~%")
@@ -268,6 +278,7 @@
          assignments ; list of (list of (idx . name) pairs) for tile map updates
          assignment-diffs ; pared down assignment list which just includes the updates
          tilemaps ; list of (list of (loc . idx) representing a tile map)
+         tilemap-diffs ; diffs between tilemaps, used only in menu mode.
          )
 
     ;; Build tiles and frame-sets
@@ -346,6 +357,17 @@
                       for loc from 0
                       collect (cons loc index))))
 
+    (when *menu-mode*
+      (setf tilemap-diffs
+            (setf tilemap-diffs
+                  (loop for (before after) on (cons (car (last tilemaps)) tilemaps)
+                        when (and before after)
+                          collect
+                          (loop for (l1 . i1) in before
+                                for (l2 . i2) in after
+                                when (not (equalp l1 l2)) do (format t "Critical error~%")
+                                  when (not (equalp i1 i2)) collect (cons l2 i2))))))
+
     ;; Dump map initialization code
     (with-open-file (out out-filename
                          :direction :output
@@ -360,9 +382,14 @@
                                  :include-halts nil
                                  :prefix prefix))
 
+        (when *menu-mode*
+          (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
+          (format out "~a_map_init:~%" prefix)
+          (format out (tmap->source (car tilemaps) 1 prefix)))
+
         (loop for frame in frames
               for assignment-diff in assignment-diffs
-              for tmap in tilemaps
+              for tmap in (if *menu-mode* tilemap-diffs tilemaps)
               for i from 0 do
                 (let ((next-frame (mod (1+ i) (length frames))))
                   (format out "SECTION \"~a\", ROMX~%" (gensym prefix))

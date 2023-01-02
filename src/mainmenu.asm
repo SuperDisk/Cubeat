@@ -79,11 +79,19 @@ levels_map:
 incbin "res/menu/levels.tilemapu"
 .end:
 
+text_select_level_gfx:
+incbin "res/menu/text_select_level.2bppu"
+.end:
+
+text_select_level_map:
+incbin "res/menu/text_select_level.tilemapu"
+.end:
+
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
 
-SECTION "Tweening vars", WRAM0
+SECTION "Menu vars", WRAM0
 menu_ui_ptr: dw
 menu_logic_ptr: dw
 menu_init_ptr: dw
@@ -91,6 +99,11 @@ menu_init_ptr: dw
 menu_frame_counter: db
 selected_button: db
 
+selected_level: db
+true_x: db
+true_y: db
+
+SECTION "Tweening vars", WRAM0
 tween_dist: db
 tween_step: db
 tweening: db
@@ -176,19 +189,19 @@ MainMenu::
   ld [hl], HIGH(main_menu_init)
   inc hl
 
-  ; ld hl, menu_ui_ptr
-  ; ld [hl], LOW(levels_ui)
-  ; inc hl
-  ; ld [hl], HIGH(levels_ui)
-  ; inc hl
-  ; ld [hl], LOW(levels_logic)
-  ; inc hl
-  ; ld [hl], HIGH(levels_logic)
-  ; inc hl
-  ; ld [hl], LOW(levels_init)
-  ; inc hl
-  ; ld [hl], HIGH(levels_init)
-  ; inc hl
+  ld hl, menu_ui_ptr
+  ld [hl], LOW(levels_ui)
+  inc hl
+  ld [hl], HIGH(levels_ui)
+  inc hl
+  ld [hl], LOW(levels_logic)
+  inc hl
+  ld [hl], HIGH(levels_logic)
+  inc hl
+  ld [hl], LOW(levels_init)
+  inc hl
+  ld [hl], HIGH(levels_init)
+  inc hl
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ld de, playfield_buffer_rom
@@ -234,11 +247,6 @@ MainMenu::
   ld [tween_step], a
   ld [tweening], a
   ld [selected_button], a
-
-  ld de, play_coords
-  ld hl, coords
-  ld c, (play_coords.end - play_coords)
-  rst MemcpySmall
 
   ;; Load BG area
   ld a, BANK(main_menu_buttons_gfx)
@@ -345,15 +353,32 @@ menu_loop:
   jp menu_loop
 
 main_menu_init:
+  ld de, play_coords
+  ld hl, coords
+  ld c, (play_coords.end - play_coords)
+  rst MemcpySmall
+
   ld de, main_menu_buttons_gfx
   ld hl, $9000
   ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
   jp Memcpy
 
 levels_init:
+  xor a
+  ld [selected_level], a
+
+  ld a, 23
+  ld [x1], a
+  ld a, 31
+  ld [y1], a
+
   ld de, levels_gfx
   ld hl, $9000
   ld bc, (levels_gfx.end - levels_gfx)
+  call Memcpy
+
+  ld de, text_select_level_gfx
+  ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   jp Memcpy
 
 levels_ui:
@@ -386,9 +411,150 @@ levels_ui:
   ld hl, back_map
   call MapRegion
 
+  lb bc, 7, 1
+  ld a, [current_bg]
+  or $98
+  ld d, a
+  ld e, $43
+  ld hl, text_select_level_map
+  call MapRegion
+
   ;; fallthrough
 
 levels_logic:
+  ld hl, menu_frame_counter
+  inc [hl]
+
+  ld a, [tweening]
+  or a
+  jp z, .no_tween
+
+  ld a, [tween_step]
+  cp 40
+  jr c, .continue
+  xor a
+  ld [tweening], a
+
+  ld a, [true_x]
+  ld [x1], a
+  ld a, [true_y]
+  ld [y1], a
+
+  jp .no_tween
+.continue:
+  inc a
+  inc a
+  ld [tween_step], a
+  dec a
+  dec a
+  add a
+
+  ld hl, tweening_table
+  add_a_to_hl
+
+  ld c, [hl]
+  inc hl
+  ld b, [hl]
+
+  ld a, [tween_endx1]
+  ld hl, tween_startx1
+  call tween
+  ld [x1], a
+
+  ld a, [tween_endy1]
+  ld hl, tween_starty1
+  call tween
+  ld [y1], a
+
+.no_tween:
+  ld a, [x1]
+  ld [x3], a
+  add 11
+  ld [x2], a
+  ld [x4], a
+
+  ld a, [y1]
+  ld [y2], a
+  add 11
+  ld [y3], a
+  ld [y4], a
+
+  call poll_joystick
+  call update_cursor_pos
+
+  ld a, [hPressedKeys]
+  and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
+  ret z
+
+  ld d, a
+  ld a, [selected_level]
+
+  bit PADB_LEFT, d
+  jr z, .no_left
+  sub 1
+  jr nc, .no_left
+  inc a
+.no_left:
+  bit PADB_RIGHT, d
+  jr z, .no_right
+  inc a
+  cp 25
+  jr nz, .no_right
+  dec a
+.no_right:
+  bit PADB_UP, d
+  jr z, .no_up
+  sub 7
+  jr nc, .no_up
+  add 7
+.no_up:
+  bit PADB_DOWN, d
+  jr z, .no_down
+  add 7
+  cp 25
+  jr c, .no_down
+  sub 7
+.no_down:
+  ld [selected_level], a
+
+  ld b, 0
+.div_loop:
+  inc b
+  sub 7
+  jr nc, .div_loop
+  add 7
+
+  swap a
+  add 24-1
+  ld d, a
+  ld [true_x], a
+
+  ld a, b
+  dec a
+  swap a
+  add 32-1
+  ld b, a
+  ld [true_y], a
+
+  ld a, [x1]
+  ld [tween_startx1], a
+  ld e, a
+  ld a, d
+  sub e
+  ld [tween_endx1], a
+
+  ld a, [y1]
+  ld [tween_starty1], a
+  ld e, a
+  ld a, b
+  sub e
+  ld [tween_endy1], a
+
+  xor a
+  ld [tween_step], a
+  inc a
+  ld [tweening], a
+
   ret
 
 main_menu_ui:
@@ -493,49 +659,9 @@ main_menu_logic:
 
 .no_tween:
   call poll_joystick
-
-  ld a, [menu_frame_counter]
-  and %00010000
-  swap a
-  ld c, a
-
-  ld hl, coords
-
-  ld a, [hl+]
-  add c
-  add 8
-  spriteX 0
-  ld a, [hl+]
-  sub c
-  add 8
-  spriteX 1
-  ld a, [hl+]
-  add c
-  add 8
-  spriteX 2
-  ld a, [hl+]
-  sub c
-  add 8
-  spriteX 3
-  ld a, [hl+]
-  add c
-  add 16
-  spriteY 0
-  ld a, [hl+]
-  add c
-  add 16
-  spriteY 1
-  ld a, [hl+]
-  sub c
-  add 16
-  spriteY 2
-  ld a, [hl+]
-  sub c
-  add 16
-  spriteY 3
+  call update_cursor_pos
 
   ld a, [hPressedKeys]
-
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
   ret z
 
@@ -557,7 +683,6 @@ main_menu_logic:
   bit PADB_DOWN, d
   jp z, .no_down
   set 1, a
-
 .no_down:
   ld [selected_button], a
 
@@ -600,6 +725,50 @@ ENDR
   ld [tweening], a
 
   ret
+
+
+update_cursor_pos:
+  ld a, [menu_frame_counter]
+  and %00010000
+  swap a
+  ld c, a
+
+  ld hl, coords
+
+  ld a, [hl+]
+  add c
+  add 8
+  spriteX 0
+  ld a, [hl+]
+  sub c
+  add 8
+  spriteX 1
+  ld a, [hl+]
+  add c
+  add 8
+  spriteX 2
+  ld a, [hl+]
+  sub c
+  add 8
+  spriteX 3
+  ld a, [hl+]
+  add c
+  add 16
+  spriteY 0
+  ld a, [hl+]
+  add c
+  add 16
+  spriteY 1
+  ld a, [hl+]
+  sub c
+  add 16
+  spriteY 2
+  ld a, [hl+]
+  sub c
+  add 16
+  spriteY 3
+  ret
+
 
 ;;; A = tween distance
 ;;; HL = tween start pos

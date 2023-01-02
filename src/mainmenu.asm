@@ -300,15 +300,6 @@ MainMenu::
 	ld [rLCDC], a
 
 menu_loop:
-  ld a, [next_map_bank]
-  ld [rROMB0], a
-
-  ld hl, menu_logic_ptr
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  rst CallHL
-
   ld a, IEF_VBLANK
   ldh [rIE], a
   xor a
@@ -316,36 +307,18 @@ menu_loop:
   halt ; wait for VBlank
   nop
 
-  call update_playfield_buffer
-
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
+
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
 
   ld hl, menu_ui_ptr
   ld a, [hl+]
   ld h, [hl]
   ld l, a
   rst CallHL
-
-  ld a, [next_gfx_bank]
-  ld [rROMB0], a
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-  nop
-
-  ld a, IEF_STAT
-  ldh [rIE], a
-  ld a, STATF_MODE00
-  ldh [rSTAT], a ; Careful, this may make the STAT int pending
-
-  call update_bg
-
-  ld a, HIGH(wShadowOAM)
-  call hOAMDMA
 
   jp menu_loop
 

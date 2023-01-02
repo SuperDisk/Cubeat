@@ -244,13 +244,14 @@
         (format stream "ld sp, hTempStack~%")
         (format stream "call hOAMDMA~%"))
 
-      (format stream "ld a, LOW(~a_gfx~a)~%" prefix next-frame)
-      (format stream "ld [ptr_next_update_bg], a~%")
-      (format stream "ld a, HIGH(~a_gfx~a)~%" prefix next-frame)
-      (format stream "ld [ptr_next_update_bg+1], a~%")
+      (when (not *menu-mode*)
+        (format stream "ld a, LOW(~a_gfx~a)~%" prefix next-frame)
+        (format stream "ld [ptr_next_update_bg], a~%")
+        (format stream "ld a, HIGH(~a_gfx~a)~%" prefix next-frame)
+        (format stream "ld [ptr_next_update_bg+1], a~%")
 
-      (format stream "ld a, BANK(~a_gfx~a)~%" prefix next-frame)
-      (format stream "ld [next_gfx_bank], a~%")
+        (format stream "ld a, BANK(~a_gfx~a)~%" prefix next-frame)
+        (format stream "ld [next_gfx_bank], a~%"))
 
       (format stream "jp update_bg_done~%"))))
 
@@ -392,10 +393,11 @@
               for tmap in (if *menu-mode* tilemap-diffs tilemaps)
               for i from 0 do
                 (let ((next-frame (mod (1+ i) (length frames))))
-                  (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
-                  (format out "~a_gfx~a:~%" prefix i)
-                  (format out (gfx->source tmap indexes->tiles assignment-diff next-frame :prefix prefix))
-                  (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i))
+                  (when (not *menu-mode*)
+                    (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
+                    (format out "~a_gfx~a:~%" prefix i)
+                    (format out (gfx->source tmap indexes->tiles assignment-diff next-frame :prefix prefix))
+                    (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i)))
 
                   (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
                   (format out "~a_map~a:~%" prefix i)

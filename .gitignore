@@ -8,9 +8,11 @@
 *.mp4
 *.exe
 *.dll
+*.so
 *.lps
 
 animator/lib
 animator/backup
 vin-plugin/lib
 vin-plugin/backup
+vin-plugin/OPL3Vin

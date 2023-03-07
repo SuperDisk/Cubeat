@@ -5,8 +5,15 @@
 :- use_module(library(pure_input)).
 :- use_module(library(lists)).
 :- use_module(library(dcg/basics)).
+:- use_module(library(reif)).
 
 :- initialization(main, main).
+
+bool_rep(true, 1).
+bool_rep(false, 0).
+
+in(X, Y, Cond) :-
+    X in Y #<==> B, bool_rep(Cond, B).
 
 skipB(N) --> {length(Ls, N)}, Ls.
 u16(N) --> [B1, B2],
@@ -53,39 +60,18 @@ sound_frames(Cmds, Frames) :-
     sound_frames_(Cmds, [], Frames0),
     maplist(reverse, Frames0, Frames).
 
-command_code(port0Write(Reg, Val), NextPort) -->
-    "ld a, $", xinteger(Reg), eol,
-    "ld [hl+], a", eol,
-    "ld a, $", xinteger(Val), eol,
-    ({NextPort = 1}, "ld [hl+], a", eol;
-     {NextPort = 0}, "ld [hl-], a", eol).
-command_code(port1Write(Reg, Val), NextPort) -->
-    "ld a, $", xinteger(Reg), eol,
-    "ld [hl+], a", eol,
-    "ld a, $", xinteger(Val), eol,
-    "ld [hl-], a", eol,
-    ({NextPort = 1};
-     {NextPort = 0}, "dec l", eol, "dec l", eol).
-command_code(gbWrite(Reg, Val), _) -->
-    "ld a, $", xinteger(Val), eol,
-    "ld [$FF10 + $", xinteger(Reg), "], a", eol.
-command_code(wait735, _) --> [].
-command_code(end, _) --> [].
-
-next_port_write([], 1).
-next_port_write([port0Write(_,_) | _], 0).
-next_port_write([port1Write(_,_) | _], 1).
-next_port_write([Cmd | Rest], Port) :-
-    dif(Cmd, port0Write(_,_)),
-    dif(Cmd, port1Write(_,_)),
-    next_port_write(Rest, Port).
+command_code(port0Write(Reg, Val)) -->
+    " lb de, $", xinteger(Reg), ", $", xinteger(Val), eol,
+    "rst Port0Write", eol.
+command_code(port1Write(Reg, Val)) -->
+    " lb de, $", xinteger(Reg), ", $", xinteger(Val), eol,
+    "rst Port1Write", eol.
+command_code(wait735) --> [].
+command_code(end) --> [].
 
 commands_code([], []).
-commands_code([Cmd], [Code]) :-
-    phrase(command_code(Cmd, 1), Code).
 commands_code([Cmd | Cmds], [Code | RestCode]) :-
-    next_port_write(Cmds, NextPort),
-    phrase(command_code(Cmd, NextPort), Code),
+    phrase(command_code(Cmd), Code),
     commands_code(Cmds, RestCode).
 
 cook_(port0Write(Reg, Val), [port0Write(Reg, Val)]).
@@ -110,32 +96,37 @@ cook(Cmds, Cooked) :-
 dbg_load(LO, X) :-
     phrase_from_file((vgm(LO, X), ...), "../res/cosmic.vgm", [type(binary)]).
 
-print_frames([], _, _, _).
-print_frames([Frame | Frames], CurFrame, LoopFrame, OutFileName) :-
-    file_base_name(OutFileName, Basename),
-    file_name_extension(NoExt0, _, Basename),
-    string_concat(NoExt, ".opt", NoExt0),
+command_sm83(Command, DecompPointer, Code, NewDecompPointer) :-
+    (Command = port0Write(Reg, Val), Opcode = 0xF7;
+     Command = port1Write(Reg, Val), Opcode = 0xD7),
+    BaseCode = [0x11, Reg, Val, Opcode],
+    Distance #= 0x1000 - (DecompPointer mod 0x1000),
+    if_(Distance in 0..3,
+        (length(Nops, Distance),
+         maplist(=(0x00), Nops)),
+        Nops = []),
+    append(Nops, BaseCode, Code),
+    length(Code, L),
+    NewDecompPointer #= (DecompPointer + L) mod 0x1000.
+command_sm83(wait735, []).
+command_sm83(end, []).
 
-    (Frames = [_|_], NextFrame #= CurFrame+1;
-     Frames = [], NextFrame #= LoopFrame),
+frame_sm83([], DP0, [[0xC9]], DP1) :-
+    DP1 #= DP0 + 1.
+frame_sm83([Cmd|Cmds], DP0, [Code|Codes], DP2) :-
+    command_sm83(Cmd, DP0, Code, DP1),
+    frame_sm83(Cmds, DP1, Codes, DP2).
 
-    format("SECTION \"~a~d\", ROMX~n", [NoExt, CurFrame]),
-    format("~a~d:~n", [NoExt, CurFrame]),
-    next_port_write(Frame, Port),
-    (Frame = [_|_], Port = 0, format("ld hl, $0001~n");
-     Frame = [_|_], Port = 1, format("ld hl, $0003~n");
-     Frame = []),
-    commands_code(Frame, FrameCode),
-    append(FrameCode, FrameCode1),
-    format(FrameCode1),
-    format("ld a, BANK(~a~d)~n", [NoExt, NextFrame]),
-    format("ld [music_bank], a~n"),
-    format("ld a, LOW(~a~d)~n", [NoExt, NextFrame]),
-    format("ld [music_pointer], a~n"),
-    format("ld a, HIGH(~a~d)~n", [NoExt, NextFrame]),
-    format("ld [music_pointer+1], a~n"),
-    format("ret~n"),
-    print_frames(Frames, NextFrame, LoopFrame, OutFileName).
+frames_sm83([], DP, [], DP).
+frames_sm83([Frame|Frames], DP0, [Code|Codes], DP2) :-
+    frame_sm83(Frame, DP0, Code0, DP1),
+    append(Code0, Code),
+    frames_sm83(Frames, DP1, Codes, DP2).
+
+print_frames(Frames) :-
+    frames_sm83(Frames, 0, SM83Frames, _),
+    %% maplist(frame_sm83, Frames, SM83Frames),
+    writeln(SM83Frames).
 
 loop_frame(Bytes, LoopOffset, LoopFrame) :-
     length(HeaderBytes, 0x100),
@@ -158,11 +149,11 @@ main(Argv) :-
     member(in_file(InFile), Opts),
 
     phrase_from_file(seq(Bytes), InFile, [type(binary)]),
-    phrase(vgm(LoopOffset, Commands), Bytes, _),
+    phrase(vgm(_LoopOffset, Commands), Bytes, _),
     writeln(user_error, "Done parsing"),!,
 
-    loop_frame(Bytes, LoopOffset, LoopFrame),
-    format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+    %% loop_frame(Bytes, LoopOffset, LoopFrame),
+    %% format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
 
     cook(Commands, CookedCommands),
     writeln(user_error, "Done cooking"),!,
@@ -170,5 +161,5 @@ main(Argv) :-
     sound_frames(CookedCommands, Frames),
     writeln(user_error, "Done framing"),!,
 
-    print_frames(Frames, 0, LoopFrame, InFile),
-    writeln(user_error, "Done!").
+    print_frames(Frames),
+    writeln(user_error, "Done!"),!.

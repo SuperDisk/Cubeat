@@ -16,6 +16,7 @@ var
 procedure sendsamples(value: integer);
 begin
   write(Format('%0.4X', [value]));
+  flush(output);
 end;
 
 {$R *.res}
@@ -65,6 +66,7 @@ begin
         end;
 
         write('0');
+        flush(output);
       end;
       #10, #13: continue;
       else begin

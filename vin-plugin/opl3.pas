@@ -137,12 +137,12 @@ end;
 p_opl3_chip = ^opl3_chip;
 
 
-procedure OPL3_Generate(chip: p_opl3_chip; buf: PInt16); external 'opl3.dll';
-procedure OPL3_GenerateResampled(chip: p_opl3_chip; buf: PInt16); external 'opl3.dll';
-procedure OPL3_Reset(chip: p_opl3_chip; samplerate: UInt32); external 'opl3.dll';
-procedure OPL3_WriteReg(chip: p_opl3_chip; reg: UInt16; v: UInt8); external 'opl3.dll';
-procedure OPL3_WriteRegBuffered(chip: p_opl3_chip; reg: UInt16; v: UInt8); external 'opl3.dll';
-procedure OPL3_GenerateStream(chip: p_opl3_chip; sndptr: PInt16; numsamples: UInt32); external 'opl3.dll';
+procedure OPL3_Generate(chip: p_opl3_chip; buf: PInt16); external 'libopl3.so';
+procedure OPL3_GenerateResampled(chip: p_opl3_chip; buf: PInt16); external 'libopl3.so';
+procedure OPL3_Reset(chip: p_opl3_chip; samplerate: UInt32); external 'libopl3.so';
+procedure OPL3_WriteReg(chip: p_opl3_chip; reg: UInt16; v: UInt8); external 'libopl3.so';
+procedure OPL3_WriteRegBuffered(chip: p_opl3_chip; reg: UInt16; v: UInt8); external 'libopl3.so';
+procedure OPL3_GenerateStream(chip: p_opl3_chip; sndptr: PInt16; numsamples: UInt32); external 'libopl3.so';
 
 implementation
 

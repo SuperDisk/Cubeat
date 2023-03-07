@@ -63,9 +63,16 @@ MACRO BGColor
   ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
 ENDM
 
+SECTION "Buffer wraparound jump", WRAM0[$C000]
+wrap_jump: ds 3
+
 SECTION "Music vars", WRAM0
-music_bank:: db
-music_pointer:: dw
+music_bank: db
+decompress_in: dw
+decompress_out: dw
+
+SECTION "Music Buffer", WRAM0[$D000]
+music_buffer: ds $FFF
 
 SECTION "Animation vars", WRAM0
 current_skin:: db
@@ -134,7 +141,7 @@ incbin "res/bg_block_gfx.2bpp"
 .end:
 
 block_highlight:
-incbin "res/HighLight_blocks.2bpp"
+;; incbin "res/HighLight_blocks.2bpp"
 .end:
 
 block_match_anim:
@@ -159,20 +166,36 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
+include "res/wtf.asm"
+
 SECTION "Intro", ROM0
 
 Intro::
-  ; ld a, BANK(asof0)
-  ; ld [music_bank], a
-  ; ld hl, asof0
-  ; ld a, l
-  ; ld [music_pointer], a
-  ; ld a, h
-  ; ld [music_pointer+1], a
+  ld a, BANK(wtf0)
+  ld [music_bank], a
+  ld [rROMB0], a
+
+  ld a, LOW(wtf0)
+  ld [decompress_in], a
+  ld a, HIGH(wtf0)
+  ld [decompress_in+1], a
+
+  ld a, LOW(music_buffer)
+  ld [decompress_out], a
+  ld a, HIGH(music_buffer)
+  ld [decompress_out+1], a
+
+  ld hl, wrap_jump
+  ld [hl], $C3
+  inc l
+  ld [hl], $00
+  inc l
+  ld [hl], $D0
+
 
   ; Turn the LCD off
-	xor a
-	ld [hLCDC], a
+  xor a
+  ld [hLCDC], a
 .wait_lcdc_off:
   ld a, [rLCDC]
   and %10000000
@@ -310,7 +333,7 @@ Intro::
   call hOAMDMA
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [rLCDC], a
+  ld [rLCDC], a
 
   call UnfreezeScreen
 
@@ -335,7 +358,11 @@ kernel_loop:
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ; xor a
+  ; ld [rBGP], a
   call game_step
+  ; ld a, %00_10_01_11
+  ; ld [rBGP], a
 
 .wait_for_below_play_area
   ld a, [rLY]
@@ -376,8 +403,6 @@ kernel_loop:
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   call playfield_buffer
-
-  call do_music
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Update falling block GFX
@@ -429,7 +454,13 @@ kernel_loop:
   ;; Anything we couldn't cram into the previous step...
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ; ld a, $FF
+  ; ld [rBGP], a
   call game_step2
+  ; ld a, %00_10_01_11
+  ; ld [rBGP], a
+
+  call do_music
 
 .wait_for_below_play_area0
   ld a, [rLY]
@@ -671,7 +702,7 @@ transition_stage:
   call load_skin
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [rLCDC], a
+  ld [rLCDC], a
 
   call UnfreezeScreen
 
@@ -723,14 +754,114 @@ transition_stage:
 
   ret
 
-do_music:
-  ret
+do_music::
   ld a, [music_bank]
   ld [rROMB0], a
-  ld a, [music_pointer]
-  ld l, a
-  ld a, [music_pointer+1]
-  ld h, a
-  ld de, $0001
 
-  jp hl
+  ld a, [decompress_in]
+  ld l, a
+  ld a, [decompress_in+1]
+  ld h, a
+
+  ld a, [decompress_out]
+  ld e, a
+  ld a, [decompress_out+1]
+  ld d, a
+
+  push de
+
+  ; xor a
+  ; ld [rBGP], a
+  call uncap
+  ; ld a, %00_10_01_11
+  ; ld [rBGP], a
+
+  ld a, [hl]
+  or a
+  jr nz, .no_new_bank
+  inc hl
+  ld a, [hl+]
+  ld [music_bank], a
+  ld hl, $4000
+.no_new_bank:
+  ld a, l
+  ld [decompress_in], a
+  ld a, h
+  ld [decompress_in+1], a
+
+  ld a, e
+  ld [decompress_out], a
+  ld a, d
+  ld [decompress_out+1], a
+
+  ld h, 0
+  ;; Jump to the DE we pushed previously
+  ret
+
+SECTION "Uncap Decompressor", ROM0
+
+uncap::
+  ld	a,[hl+]			; start with token
+  and	a			; 0 marks the end of packed data
+  ret	z
+  bit	7,a			; next byte is offset if 7th bit is set
+  jr	z,_literals             ; literals come next otherwise
+  and	$7F			; bits 0 - 6 define reference length
+  ld	c,a			; move length to c(ounter)
+  ld	a,[hl+]			; load offset
+  ld b, a
+  ld a, [hl+]
+  push	hl			; store packed data address
+  ld	l,b			; offset is negative because game boy cpu lacks
+  ld	h,a			; sub hl,de :)
+  add	hl,de			; locate reference
+
+  ; rectify HL
+  set 4, h
+  res 5, h
+
+_1:
+  ld	a,[hl+]			; and copy it
+  ld	[de],a
+
+  ; inc/rectify DE
+  inc e
+  jr z, rectify1
+.end_rectify:
+
+  ; rectify HL
+  set 4, h
+  res 5, h
+
+  dec	c
+  jr	nz,_1
+  pop	hl			; restore packed data address
+  jr	uncap			; continue
+_literals:
+  ld	c,a			; move length to c(ounter)
+_2:
+  ld	a,[hl+]			; and copy c literals
+  ld	[de],a
+
+  ; inc/rectify DE
+  inc e
+  jr z, rectify2
+.end_rectify:
+
+  dec	c
+  jr	nz,_2
+  jr	uncap			; continue
+
+rectify1:
+  inc d
+  bit 5, d
+  jr z, _1.end_rectify
+  ld d, $D0
+  jr _1.end_rectify
+
+rectify2:
+  inc d
+  bit 5, d
+  jr z, _2.end_rectify
+  ld d, $D0
+  jr _2.end_rectify

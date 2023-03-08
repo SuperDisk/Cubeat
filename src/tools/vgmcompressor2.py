@@ -12,6 +12,7 @@ WINDOW_SIZE = 0xFFF       # sliding window size
 FLAG_LTRLS  = 0           # indicates literals
 FLAG_PAIR   = 0x80        # indicates length,offset pair
 FLAG_EOF    = 0           # end of compressed data
+FLAG_MEGAFRAME = 0x80
 
 SEQ = namedtuple('SEQ', ('offset', 'length'))
 
@@ -88,12 +89,19 @@ def compress():
         b = 0
 
     out_banks = []
-    cur_bank = bytearray()
+    cur_bank = []
 
     def writebytes(b):
         nonlocal this_bank, cur_bank
         this_bank += len(b)
         cur_bank.extend(b)
+
+    def write_megaframe_ref(mf):
+        nonlocal this_bank, cur_bank
+        this_bank += 2
+        cur_bank.append((mf,))
+
+    megaframes = []
 
     while d < size:
         if not frame_need:
@@ -106,12 +114,31 @@ def compress():
             writebytes(bytes([FLAG_EOF]))
             frame_need = framelens.pop(0)
 
-            if this_bank+frame_need >= 0x4000:
+            # sometimes the compression makes stuff bigger so we add in some slack
+            if this_bank+frame_need >= 0x4000-0x5b:
                 print("splitting bank at", hex(this_bank))
                 this_bank = 0
                 cur_bank.append(FLAG_EOF) # Double EOF means bank switch
                 out_banks.append(cur_bank)
-                cur_bank = bytearray()
+                cur_bank = []
+
+            if frame_need > 300:
+                print("Making megaframe",frame_need)
+                writebytes(bytes([FLAG_MEGAFRAME]))
+                megaframes.append(data[d:d+frame_need])
+                del data[d:d+frame_need]
+                size -= frame_need
+                write_megaframe_ref(len(megaframes)-1)
+                this_bank += len(megaframes[-1])
+
+                if d<size and (data[d] not in [0x11, 0xc9]):
+                    input("something has gone wrong")
+
+                if framelens:
+                    frame_need = framelens.pop(0)
+                    continue
+                else:
+                    break
 
         # find best match
         best = find(data, d, size, frame_need)
@@ -144,16 +171,33 @@ def compress():
     cur_bank.append(FLAG_EOF)
     out_banks.append(cur_bank)
 
+    def asm(el):
+        if isinstance(el, tuple):
+            (x,) = el
+            return f"LOW(megaframe{x}),HIGH(megaframe{x})"
+        else:
+            return str(el)
+
     with open(outfile, 'w') as f:
         stem = Path(outfile).stem
         for idx, bank in enumerate(out_banks):
             print(f'SECTION "{stem}{idx}", ROMX[$4000]', file=f)
             print(f"{stem}{idx}::", file=f)
-            print('db', ','.join(str(x) for x in bank), file=f)
+            print('db', ','.join(asm(x) for x in bank), file=f)
             next_bank = idx+1 if idx != len(out_banks)-1 else 0
             print(f'db BANK({stem}{next_bank})', file=f)
 
-        print("Compressed to", sum(len(x) for x in out_banks), "bytes")
+            for el in bank:
+                if isinstance(el, tuple):
+                    (x,) = el
+                    print(f"megaframe{x}:", file=f)
+                    print('db', ','.join(str(q) for q in megaframes[x]), file=f)
+
+        print("Compressed to", sum(len(x) for x in out_banks)+sum(len(x) for x in megaframes), "bytes")
+
+    # with open('/home/npfaro/dump.dat', 'wb') as f:
+    #     for bank in out_banks:
+    #         f.write(bytes(bank))
 
 if __name__=="__main__":
     compress()

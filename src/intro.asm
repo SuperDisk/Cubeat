@@ -166,18 +166,18 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/wtf.asm"
+include "res/zen.asm"
 
 SECTION "Intro", ROM0
 
 Intro::
-  ld a, BANK(wtf0)
+  ld a, BANK(zen0)
   ld [music_bank], a
   ld [rROMB0], a
 
-  ld a, LOW(wtf0)
+  ld a, LOW(zen0)
   ld [decompress_in], a
-  ld a, HIGH(wtf0)
+  ld a, HIGH(zen0)
   ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
@@ -768,6 +768,27 @@ do_music::
   ld a, [decompress_out+1]
   ld d, a
 
+  ld a, [hl]
+  cp $80
+  jr nz, .regular_frame
+
+  inc hl
+  ld e, [hl]
+  inc hl
+  ld d, [hl]
+  inc hl
+  push de
+
+  ld a, l
+  ld [decompress_in], a
+  ld a, h
+  ld [decompress_in+1], a
+
+  ;; Jump to the DE we pushed previously
+  ld h, 0
+  ret
+
+.regular_frame:
   push de
 
   ; xor a
@@ -794,8 +815,8 @@ do_music::
   ld a, d
   ld [decompress_out+1], a
 
-  ld h, 0
   ;; Jump to the DE we pushed previously
+  ld h, 0
   ret
 
 SECTION "Uncap Decompressor", ROM0

@@ -108,6 +108,8 @@ hardware.inc/hardware.inc rgbds-structs/structs.asm:
 #                                              #
 ################################################
 
+.PRECIOUS: $(RESDIR)/%.opt.vgm
+
 # By default, asset recipes convert files in `res/` into other files in `res/`
 # This line causes assets not found in `res/` to be also looked for in `src/res/`
 # "Source" assets can thus be safely stored there without `make clean` removing them

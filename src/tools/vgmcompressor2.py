@@ -118,8 +118,7 @@ def compress():
 
             frame_need = framelens.pop(0)
 
-            # sometimes the compression makes stuff bigger so we add in some slack
-            if this_bank+frame_need >= 0x4000-0x5b:
+            if this_bank+frame_need >= 0x4000:
                 print("splitting bank at", hex(this_bank))
                 this_bank = 0
                 cur_bank.append(FLAG_EOF) # Double EOF means bank switch

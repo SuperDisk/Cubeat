@@ -13,6 +13,7 @@ FLAG_LTRLS  = 0           # indicates literals
 FLAG_PAIR   = 0x80        # indicates length,offset pair
 FLAG_EOF    = 0           # end of compressed data
 FLAG_MEGAFRAME = 0x80
+FLAG_RESET_DECOMPRESSOR = 0x81
 
 SEQ = namedtuple('SEQ', ('offset', 'length'))
 
@@ -64,7 +65,9 @@ def find(data, offset, size, maxlen):
 def compress():
     outfile = sys.argv[1]
 
-    frames = json.load(sys.stdin)
+    # frames = json.load(sys.stdin)
+    loopframe, frames = [json.loads(x) for x in sys.stdin]
+
     framelens = [len(q)-1 for q in frames]
     framedata = list(chain(*[frame[:-1] for frame in frames]))
     print(len(frames), "frames in total")
@@ -124,6 +127,13 @@ def compress():
                 cur_bank.append(FLAG_EOF) # Double EOF means bank switch
                 out_banks.append(cur_bank)
                 cur_bank = []
+
+            # if fprocessed == loopframe:
+            #     print("resetting compressor")
+            #     del data[:d]
+            #     size -= d
+            #     d = 0
+            #     writebytes(bytes[FLAG_RESET_DECOMPRESSOR])
 
             if frames[fprocessed][-1] == "mega":
                 print("Making megaframe",frame_need)

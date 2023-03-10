@@ -118,9 +118,8 @@ frame_sm83([Cmd|Cmds], DP0, [Code|Codes], DP2) :-
     frame_sm83(Cmds, DP1, Codes, DP2).
 
 megaframe_sm83([], [[0xC9, "mega"]]).
-megaframe_sm83([Cmd|Cmds], [[0x11, Reg, Val, Opcode]|Codes]) :-
-    command_sm83(Cmd, 0, NoppedCode, _),
-    [0x11, Reg, Val, Opcode | _] = NoppedCode,
+megaframe_sm83([Cmd|Cmds], [Code|Codes]) :-
+    command_sm83(Cmd, 0, Code, _),
     megaframe_sm83(Cmds, Codes).
 
 frames_sm83([], DP, [], DP).
@@ -139,7 +138,6 @@ frames_sm83([Frame|Frames], DP0, [Code|Codes], DP2) :-
 
 print_frames(Frames) :-
     frames_sm83(Frames, 0, SM83Frames, _),
-    %% maplist(frame_sm83, Frames, SM83Frames),
     print(SM83Frames).
 
 loop_frame(Bytes, LoopOffset, LoopFrame) :-
@@ -163,11 +161,11 @@ main(Argv) :-
     member(in_file(InFile), Opts),
 
     phrase_from_file(seq(Bytes), InFile, [type(binary)]),
-    phrase(vgm(_LoopOffset, Commands), Bytes, _),
+    phrase(vgm(LoopOffset, Commands), Bytes, _),
     writeln(user_error, "Done parsing"),!,
 
-    %% loop_frame(Bytes, LoopOffset, LoopFrame),
-    %% format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+    loop_frame(Bytes, LoopOffset, LoopFrame),
+    format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
 
     cook(Commands, CookedCommands),
     writeln(user_error, "Done cooking"),!,
@@ -175,5 +173,6 @@ main(Argv) :-
     sound_frames(CookedCommands, Frames),
     writeln(user_error, "Done framing"),!,
 
+    print(LoopFrame), nl,
     print_frames(Frames),
     writeln(user_error, "Done!"),!.

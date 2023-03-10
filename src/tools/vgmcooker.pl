@@ -111,22 +111,36 @@ command_sm83(Command, DecompPointer, Code, NewDecompPointer) :-
 command_sm83(wait735, []).
 command_sm83(end, []).
 
-frame_sm83([], DP0, [[0xC9]], DP1) :-
+frame_sm83([], DP0, [[0xC9, "regular"]], DP1) :-
     DP1 #= DP0 + 1.
 frame_sm83([Cmd|Cmds], DP0, [Code|Codes], DP2) :-
     command_sm83(Cmd, DP0, Code, DP1),
     frame_sm83(Cmds, DP1, Codes, DP2).
 
+megaframe_sm83([], [[0xC9, "mega"]]).
+megaframe_sm83([Cmd|Cmds], [[0x11, Reg, Val, Opcode]|Codes]) :-
+    command_sm83(Cmd, 0, NoppedCode, _),
+    [0x11, Reg, Val, Opcode | _] = NoppedCode,
+    megaframe_sm83(Cmds, Codes).
+
 frames_sm83([], DP, [], DP).
 frames_sm83([Frame|Frames], DP0, [Code|Codes], DP2) :-
-    frame_sm83(Frame, DP0, Code0, DP1),
+    length(Frame, FrameLen),
+    (
+        FrameLen #> 75,
+        megaframe_sm83(Frame, Code0),
+        DP1 #= DP0
+    ;
+        FrameLen #=< 75,
+        frame_sm83(Frame, DP0, Code0, DP1)
+    ),
     append(Code0, Code),
     frames_sm83(Frames, DP1, Codes, DP2).
 
 print_frames(Frames) :-
     frames_sm83(Frames, 0, SM83Frames, _),
     %% maplist(frame_sm83, Frames, SM83Frames),
-    writeln(SM83Frames).
+    print(SM83Frames).
 
 loop_frame(Bytes, LoopOffset, LoopFrame) :-
     length(HeaderBytes, 0x100),

@@ -15,14 +15,14 @@ RESDIR := res
 
 # Program constants
 ifneq ($(shell which rm),)
-		# POSIX OSes
+# POSIX OSes
 		RM_RF := rm -rf
 		MKDIR_P := mkdir -p
-		PY :=
+		PY := python
 		filesize = echo 'NB_PB$2_BLOCKS equ (' `wc -c $1 | cut -d ' ' -f 1` ' + $2 - 1) / $2'
 else
-		# Windows outside of a POSIX env (Cygwin, MSYS2, etc.)
-		# We need Powershell to get any sort of decent functionality
+# Windows outside of a POSIX env (Cygwin, MSYS2, etc.)
+# We need Powershell to get any sort of decent functionality
 		$(warning Powershell is required to get basic functionality)
 		RM_RF := -del /q
 		MKDIR_P := -mkdir
@@ -38,12 +38,16 @@ RGBFIX  := $(RGBDS)rgbfix
 RGBGFX  := $(RGBDS)rgbgfx
 
 PROLOG := swipl
-SBCL := sbcl.exe
+SBCL := sbcl
 
 FURNACE := furnace
 VGMCMP := vgm_cmp
 GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(SBCL) --noinform --load src/tools/2bpp2code.lisp --eval "(main)"
+SUPERFAMICONV := superfamiconv
+
+SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
+COLORZERO = "\#00000000"
 
 ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
@@ -108,7 +112,7 @@ hardware.inc/hardware.inc rgbds-structs/structs.asm:
 #                                              #
 ################################################
 
-.PRECIOUS: $(RESDIR)/%.opt.vgm
+# .PRECIOUS: $(RESDIR)/%.opt.vgm
 
 # By default, asset recipes convert files in `res/` into other files in `res/`
 # This line causes assets not found in `res/` to be also looked for in `src/res/`
@@ -199,11 +203,6 @@ $(RESDIR)/%.pb8.size: $(RESDIR)/%
 #                     SGB                     #
 #                                             #
 ###############################################
-
-SUPERFAMICONV := superfamiconv.exe
-
-SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
-COLORZERO = "\#00000000"
 
 $(RESDIR)/borders/%.borderpal: $(RESDIR)/borders/%.png
 	@$(MKDIR_P) $(@D)

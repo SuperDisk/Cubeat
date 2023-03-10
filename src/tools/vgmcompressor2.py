@@ -65,8 +65,8 @@ def compress():
     outfile = sys.argv[1]
 
     frames = json.load(sys.stdin)
-    framelens = [len(q) for q in frames]
-    framedata = list(chain(*frames))
+    framelens = [len(q)-1 for q in frames]
+    framedata = list(chain(*[frame[:-1] for frame in frames]))
     print(len(frames), "frames in total")
 
     d = 0
@@ -78,7 +78,7 @@ def compress():
     size = len(data)
     print("Original file size", len(data), 'bytes')
 
-    frame_need = framelens.pop(0)
+    frame_need = 0
     this_bank = 0
 
     def flush_buffer():
@@ -103,15 +103,19 @@ def compress():
 
     megaframes = []
 
+    fprocessed = -1
     while d < size:
         if not frame_need:
+            fprocessed += 1
             if b:
                 flush_buffer()
 
             if not framelens:
                 break
 
-            writebytes(bytes([FLAG_EOF]))
+            if cur_bank and not isinstance(cur_bank[-1], tuple):
+                writebytes(bytes([FLAG_EOF]))
+
             frame_need = framelens.pop(0)
 
             # sometimes the compression makes stuff bigger so we add in some slack
@@ -122,7 +126,7 @@ def compress():
                 out_banks.append(cur_bank)
                 cur_bank = []
 
-            if frame_need > 300:
+            if frames[fprocessed][-1] == "mega":
                 print("Making megaframe",frame_need)
                 writebytes(bytes([FLAG_MEGAFRAME]))
                 megaframes.append(data[d:d+frame_need])
@@ -130,15 +134,17 @@ def compress():
                 size -= frame_need
                 write_megaframe_ref(len(megaframes)-1)
                 this_bank += len(megaframes[-1])
+                frame_need = 0
+                continue
 
-                if d<size and (data[d] not in [0x11, 0xc9]):
-                    input("something has gone wrong")
-
-                if framelens:
-                    frame_need = framelens.pop(0)
-                    continue
-                else:
-                    break
+            elif frames[fprocessed][-1] == "regular":
+                pass
+                # print('beginning normal frame', fprocessed, frames[fprocessed])
+                # print("db", ','.join(str(x) for x in data[d:d+frame_need]))
+                # if data[d+1]!=100: input()
+                # if data[d] not in [17,201]:input("seriously wrong 2")
+            else:
+                print("seriously wrong")
 
         # find best match
         best = find(data, d, size, frame_need)
@@ -166,6 +172,9 @@ def compress():
             # write literals if buffer is full or end of data reached
             if b == MAX_LENGTH or d == size:
                 flush_buffer()
+
+    print(len(megaframes), 'megaframes')
+    print(d,size)
 
     # mark end of compressed data
     cur_bank.append(FLAG_EOF)

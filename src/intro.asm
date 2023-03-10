@@ -763,11 +763,6 @@ do_music::
   ld a, [decompress_in+1]
   ld h, a
 
-  ld a, [decompress_out]
-  ld e, a
-  ld a, [decompress_out+1]
-  ld d, a
-
   ld a, [hl]
   cp $80
   jr nz, .regular_frame
@@ -777,18 +772,31 @@ do_music::
   inc hl
   ld d, [hl]
   inc hl
-  push de
 
+  ld a, [hl]
+  or a
+  jr nz, .no_new_bank0
+  inc hl
+  ld a, [hl]
+  ld [music_bank], a
+  ld hl, $4000
+.no_new_bank0:
   ld a, l
   ld [decompress_in], a
   ld a, h
   ld [decompress_in+1], a
 
-  ;; Jump to the DE we pushed previously
+  ;; Jump to DE
+  push de
   ld h, 0
   ret
 
 .regular_frame:
+  ld a, [decompress_out]
+  ld e, a
+  ld a, [decompress_out+1]
+  ld d, a
+
   push de
 
   ; xor a
@@ -801,7 +809,7 @@ do_music::
   or a
   jr nz, .no_new_bank
   inc hl
-  ld a, [hl+]
+  ld a, [hl]
   ld [music_bank], a
   ld hl, $4000
 .no_new_bank:

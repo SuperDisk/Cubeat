@@ -166,18 +166,18 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/zen.asm"
+include "res/josss.asm"
 
 SECTION "Intro", ROM0
 
 Intro::
-  ld a, BANK(zen0)
+  ld a, BANK(josss0)
   ld [music_bank], a
   ld [rROMB0], a
 
-  ld a, LOW(zen0)
+  ld a, LOW(josss0)
   ld [decompress_in], a
-  ld a, HIGH(zen0)
+  ld a, HIGH(josss0)
   ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
@@ -755,6 +755,8 @@ transition_stage:
   ret
 
 do_music::
+  ret
+
   ld a, [music_bank]
   ld [rROMB0], a
 

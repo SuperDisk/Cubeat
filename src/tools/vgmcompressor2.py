@@ -106,6 +106,9 @@ def compress():
 
     megaframes = []
 
+    loopbank = None
+    loopbyte = None
+
     fprocessed = -1
     while d < size:
         if not frame_need:
@@ -121,19 +124,22 @@ def compress():
 
             frame_need = framelens.pop(0)
 
-            if this_bank+frame_need >= 0x4000:
+            if this_bank+frame_need >= 0x4000-20:
                 print("splitting bank at", hex(this_bank))
                 this_bank = 0
                 cur_bank.append(FLAG_EOF) # Double EOF means bank switch
                 out_banks.append(cur_bank)
                 cur_bank = []
 
-            # if fprocessed == loopframe:
-            #     print("resetting compressor")
-            #     del data[:d]
-            #     size -= d
-            #     d = 0
-            #     writebytes(bytes[FLAG_RESET_DECOMPRESSOR])
+            if fprocessed == loopframe:
+                print("resetting compressor")
+                del data[:d]
+                size -= d
+                d = 0
+                writebytes(bytes([FLAG_RESET_DECOMPRESSOR]))
+
+                loopbank = len(out_banks)
+                loopbyte = len(cur_bank)-1 # include the reset command
 
             if frames[fprocessed][-1] == "mega":
                 print("Making megaframe",frame_need)
@@ -153,7 +159,7 @@ def compress():
                 # if data[d+1]!=100: input()
                 # if data[d] not in [17,201]:input("seriously wrong 2")
             else:
-                print("seriously wrong")
+                input("seriously wrong")
 
         # find best match
         best = find(data, d, size, frame_need)
@@ -182,10 +188,12 @@ def compress():
             if b == MAX_LENGTH or d == size:
                 flush_buffer()
 
-    print(len(megaframes), 'megaframes')
-    print(d,size)
+    # print(len(megaframes), 'megaframes')
+    # print(d,size)
 
     # mark end of compressed data
+    if not isinstance(cur_bank[-1], tuple):
+        cur_bank.append(FLAG_EOF)
     cur_bank.append(FLAG_EOF)
     out_banks.append(cur_bank)
 
@@ -202,8 +210,12 @@ def compress():
             print(f'SECTION "{stem}{idx}", ROMX[$4000]', file=f)
             print(f"{stem}{idx}::", file=f)
             print('db', ','.join(asm(x) for x in bank), file=f)
-            next_bank = idx+1 if idx != len(out_banks)-1 else 0
+            last = idx == len(out_banks)-1
+            next_bank = loopbank if last else idx+1
+            next_byte = 0x4000+loopbyte if last else 0x4000
             print(f'db BANK({stem}{next_bank})', file=f)
+            print(f'dw {next_byte}', file=f)
+
 
             for el in bank:
                 if isinstance(el, tuple):
@@ -211,7 +223,7 @@ def compress():
                     print(f"megaframe{x}:", file=f)
                     print('db', ','.join(str(q) for q in megaframes[x]), file=f)
 
-        print("Compressed to", sum(len(x) for x in out_banks)+sum(len(x) for x in megaframes), "bytes")
+        print("Compressed to", sum(len(x) for x in out_banks+megaframes), "bytes")
 
     # with open('/home/npfaro/dump.dat', 'wb') as f:
     #     for bank in out_banks:

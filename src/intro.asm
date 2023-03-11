@@ -166,18 +166,18 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/josss.asm"
+include "res/zen.asm"
 
 SECTION "Intro", ROM0
 
 Intro::
-  ld a, BANK(josss0)
+  ld a, BANK(zen0)
   ld [music_bank], a
   ld [rROMB0], a
 
-  ld a, LOW(josss0)
+  ld a, LOW(zen0)
   ld [decompress_in], a
-  ld a, HIGH(josss0)
+  ld a, HIGH(zen0)
   ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
@@ -764,18 +764,18 @@ do_music::
   ld h, a
 
   ld a, [hl]
-;   cp $81
-;   jr nz, .no_reset_decompressor
+  cp $81
+  jr nz, .no_reset_decompressor
 
-;   ld a, LOW(music_buffer)
-;   ld [decompress_out], a
-;   ld a, HIGH(music_buffer)
-;   ld [decompress_out+1], a
+  ld a, LOW(music_buffer)
+  ld [decompress_out], a
+  ld a, HIGH(music_buffer)
+  ld [decompress_out+1], a
 
-;   inc hl
-;   ld a, [hl]
+  inc hl
+  ld a, [hl]
 
-; .no_reset_decompressor:
+.no_reset_decompressor:
   cp $80
   jr nz, .regular_frame
 
@@ -789,9 +789,11 @@ do_music::
   or a
   jr nz, .no_new_bank0
   inc hl
-  ld a, [hl]
+  ld a, [hl+]
   ld [music_bank], a
-  ld hl, $4000
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
 .no_new_bank0:
   ld a, l
   ld [decompress_in], a
@@ -821,9 +823,11 @@ do_music::
   or a
   jr nz, .no_new_bank
   inc hl
-  ld a, [hl]
+  ld a, [hl+]
   ld [music_bank], a
-  ld hl, $4000
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
 .no_new_bank:
   ld a, l
   ld [decompress_in], a

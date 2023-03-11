@@ -122,23 +122,27 @@ megaframe_sm83([Cmd|Cmds], [Code|Codes]) :-
     command_sm83(Cmd, 0, Code, _),
     megaframe_sm83(Cmds, Codes).
 
-frames_sm83([], DP, [], DP).
-frames_sm83([Frame|Frames], DP0, [Code|Codes], DP2) :-
+frames_sm83([], DP, [], DP, _).
+frames_sm83([Frame|Frames], DP0, [Code|Codes], DP3, LoopFrame) :-
+    (
+        LoopFrame #= 0,
+        DP1 #= 0
+    ;
+        LoopFrame #\= 0,
+        DP1 #= DP0
+    ),
     length(Frame, FrameLen),
     (
         FrameLen #> 75,
         megaframe_sm83(Frame, Code0),
-        DP1 #= DP0
+        DP1 #= DP2
     ;
         FrameLen #=< 75,
-        frame_sm83(Frame, DP0, Code0, DP1)
+        frame_sm83(Frame, DP1, Code0, DP2)
     ),
     append(Code0, Code),
-    frames_sm83(Frames, DP1, Codes, DP2).
-
-print_frames(Frames) :-
-    frames_sm83(Frames, 0, SM83Frames, _),
-    print(SM83Frames).
+    LoopFrameMinus1 #= LoopFrame - 1,
+    frames_sm83(Frames, DP2, Codes, DP3, LoopFrameMinus1).
 
 loop_frame(Bytes, LoopOffset, LoopFrame) :-
     length(HeaderBytes, 0x100),
@@ -151,7 +155,7 @@ loop_frame(Bytes, LoopOffset, LoopFrame) :-
     cook(Cmds, CookedCmds),
     include(=(wait735), CookedCmds, OnlyWaits),
     length(OnlyWaits, LoopFrame0),
-    LoopFrame #= LoopFrame0 - 1.
+    LoopFrame #= LoopFrame0. % - 1.
 
 opt_type(in_file, in_file, file).
 main([]) :-
@@ -173,6 +177,6 @@ main(Argv) :-
     sound_frames(CookedCommands, Frames),
     writeln(user_error, "Done framing"),!,
 
-    print(LoopFrame), nl,
-    print_frames(Frames),
+    frames_sm83(Frames, 0, SM83Frames, _, LoopFrame),
+    print(LoopFrame), nl, print(SM83Frames),
     writeln(user_error, "Done!"),!.

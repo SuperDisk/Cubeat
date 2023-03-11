@@ -166,7 +166,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/josss.asm"
+include "res/music/josss.asm"
 
 SECTION "Intro", ROM0
 

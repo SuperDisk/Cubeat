@@ -91,6 +91,18 @@ cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
 
+song_buttons_gfx:
+incbin "res/menu/song_buttons.2bppu"
+.end:
+
+song_buttons_map:
+incbin "res/menu/song_buttons.tilemapu"
+.end:
+
+bg_scrolled_gfx:
+incbin "res/menu/bg-scrolled.2bpp"
+.end:
+
 SECTION "Menu vars", WRAM0
 menu_ui_ptr: dw
 menu_logic_ptr: dw
@@ -145,6 +157,8 @@ coords:
   y3: db
   y4: db
 
+x1highbit: db
+
 SECTION "Main Menu", ROM0
 
 button_coords:
@@ -167,8 +181,8 @@ credits_coords:
 .y: db 79, 79, 90, 90
 
 MainMenu::
-	xor a
-	ld [hLCDC], a
+  xor a
+  ld [hLCDC], a
 .wait_lcdc_off:
   ld a, [rLCDC]
   and %10000000
@@ -262,14 +276,6 @@ MainMenu::
   ld [selected_button], a
 
   ;; Load BG area
-  ld a, BANK(main_menu_buttons_gfx)
-  ld [rROMB0], a
-  ld hl, menu_init_ptr
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  rst CallHL
-
   ld hl, $95B0
   ld de, move_select_gfx
   ld bc, (move_select_gfx.end - move_select_gfx)
@@ -296,8 +302,16 @@ MainMenu::
   ld [rROMB0], a
   call update_playfield_buffer
 
+  ld a, BANK(main_menu_buttons_gfx)
+  ld [rROMB0], a
+  ld hl, menu_init_ptr
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  rst CallHL
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-	ld [rLCDC], a
+  ld [rLCDC], a
 
 menu_loop:
   ld a, IEF_VBLANK
@@ -312,7 +326,7 @@ menu_loop:
 
   ld a, [next_map_bank]
   ld [rROMB0], a
-  call update_playfield_buffer
+  ; call update_playfield_buffer
 
   ld hl, menu_ui_ptr
   ld a, [hl+]
@@ -355,22 +369,90 @@ music_player_init:
   xor a
   ld [scroll_amount], a
   ld [x1], a
+  ld [x1highbit], a
   ld [y1], a
 
-  ld de, main_menu_buttons_gfx
+  ld de, song_buttons_gfx
   ld hl, $9000
-  ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
-  jp Memcpy
+  ld bc, (song_buttons_gfx.end - song_buttons_gfx)
+  call Memcpy
+
+  ld a, BANK(song_buttons_gfx)
+  ld [rROMB0], a
+
+  ld hl, $98A0-$20
+  ld de, song_buttons_map
+
+  ld b, SCRN_X_B
+.loop1:
+  ld c, 11
+.loop:
+  ld a, [de]
+  ld [hl], a
+  inc de
+  ld a, $20
+  add_a_to_hl
+  dec c
+  jr nz, .loop
+
+  push bc
+  ld bc, -$20*11
+  add hl, bc
+  inc hl
+  pop bc
+  dec b
+  jr nz, .loop1
 
   ret
 
 music_player_ui:
-  ld a, BANK(main_menu_buttons_gfx)
+  ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
-  lb bc, 16, 10
-  ld de, $98A2
-  ld hl, main_menu_buttons_map
-  call MapRegion
+
+  ld a, [x1]
+  ld l, a
+  ld a, [x1highbit]
+  rrca
+  srl l
+  or l
+  srl a
+  srl a
+  add SCRN_X_B
+
+.no_wrap:
+
+  ld h, 0
+  ld l, a
+
+  ld d, h
+  ld e, l
+
+  add hl, hl ; 2
+  add hl, hl ; 4
+  add hl, hl ; 8
+  add hl, de ; 9
+  add hl, de ; 10
+  add hl, de ; 11
+
+  ld de, song_buttons_map
+  add hl, de
+
+  ld d, h
+  ld e, l
+
+  ld hl, $9880
+  and %11111
+  add_a_to_hl
+
+  ld c, 11
+.loop:
+  ld a, [de]
+  ld [hl], a
+  inc de
+  ld a, $20
+  add_a_to_hl
+  dec c
+  jr nz, .loop
 
   ;; fallthrough
 
@@ -380,8 +462,8 @@ music_player_logic:
 
 .wait_for_split
   ld a, [rLY]
-  cp 32
-  jr c, .wait_for_split
+  cp 31
+  jr nz, .wait_for_split
 
   wait_vram
   ld a, [x1]
@@ -389,7 +471,7 @@ music_player_logic:
 
 .wait_for_split2
   ld a, [rLY]
-  cp 112
+  cp 111+8
   jr c, .wait_for_split2
 
   wait_vram
@@ -429,6 +511,14 @@ music_player_logic:
   ld a, [tween_endx1]
   ld hl, tween_startx1
   call tween
+  ld hl, x1
+  ld b, [hl]
+  cp b
+  jr nc, .no_incr
+  ld hl, x1highbit
+  inc [hl]
+  res 1, [hl]
+.no_incr:
   ld [x1], a
 
 .no_tween:
@@ -887,27 +977,27 @@ MapRegion::
   push bc
 .copy:
 .waitVram:
-	ldh a, [rSTAT]
-	and a, STATF_BUSY
-	jr nz, .waitVram
-	ld a, [hli]
-	ld [de], a
-	inc de
-	dec b
-	jr nz, .copy
-	pop af
-	dec c
-	ret z
-	push af
-	ld b, a
-	ld a, SCRN_VX_B
-	sub a, b
-	add a, e
-	ld e, a
-	adc a, d
-	sub a, e
-	ld d, a
-	jr .copy
+  ldh a, [rSTAT]
+  and a, STATF_BUSY
+  jr nz, .waitVram
+  ld a, [hli]
+  ld [de], a
+  inc de
+  dec b
+  jr nz, .copy
+  pop af
+  dec c
+  ret z
+  push af
+  ld b, a
+  ld a, SCRN_VX_B
+  sub a, b
+  add a, e
+  ld e, a
+  adc a, d
+  sub a, e
+  ld d, a
+  jr .copy
 
 tweening_table:
 ; dw 0

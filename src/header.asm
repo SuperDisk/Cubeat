@@ -141,7 +141,8 @@ Reset::
 
   ; `Intro`'s bank has already been loaded earlier
   ; jp MainMenu
-  jp Intro
+  ; jp Intro
+  jp MainMenu
 
 SECTION "OAM DMA routine", ROMX
 

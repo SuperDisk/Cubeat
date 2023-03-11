@@ -12,10 +12,12 @@ var
   Q: Integer;
   Samp: Integer;
   Pos: Double;
+  dbgf: text;
 
 procedure sendsamples(value: integer);
 begin
   write(Format('%0.4X', [value]));
+  flush(output);
 end;
 
 {$R *.res}
@@ -25,6 +27,9 @@ begin
   OPL3_Reset(chip, 44100);
 
   Pos := 0;
+
+  //assign(dbgf, 'dbg.txt');
+  //rewrite(dbgf);
 
   while True do begin
     Read(Command);
@@ -59,12 +64,13 @@ begin
 
         case Hex2Dec(hexstr) of
           $0001: SavedVal := Hex2Dec(Bstr);
-          $0002: OPL3_WriteRegBuffered(chip, savedval, hex2dec(bstr));
+          $0002: begin OPL3_WriteRegBuffered(chip, savedval, hex2dec(bstr)); {writeln(dbgf, '5E ', IntToHex(savedval), ' ', inttohex(byte(hex2dec(bstr))));} end;
           $0003: SavedVal := Hex2Dec(Bstr);
-          $0004: OPL3_WriteRegBuffered(chip, $F00 or savedval, hex2dec(bstr));
+          $0004: begin OPL3_WriteRegBuffered(chip, $F00 or savedval, hex2dec(bstr)); {writeln(dbgf, '5F ', IntToHex(savedval), ' ', inttohex(byte(hex2dec(bstr))));} end;
         end;
 
         write('0');
+        flush(output);
       end;
       #10, #13: continue;
       else begin

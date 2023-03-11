@@ -1,16 +1,15 @@
-
 INCLUDE "defines.asm"
 
 SECTION "Rst $00", ROM0[$00]
 
 NULL::
-	; This traps jumps to $0000, which is a common "default" pointer
-	; $FFFF is another one, but reads rIE as the instruction byte
-	; Thus, we put two `nop`s that may serve as operands, before soft-crashing
-	; The operand will always be 0, so even jumps will work fine. Nice!
-	nop
-	nop
-	rst Crash
+  ; This traps jumps to $0000, which is a common "default" pointer
+  ; $FFFF is another one, but reads rIE as the instruction byte
+  ; Thus, we put two `nop`s that may serve as operands, before soft-crashing
+  ; The operand will always be 0, so even jumps will work fine. Nice!
+  nop
+  nop
+  rst Crash
 
 SECTION "Rst $08", ROM0[$08]
 
@@ -25,45 +24,38 @@ SECTION "Rst $08", ROM0[$08]
 ; and does not try to save registers if so. To be safe, consider all registers to be destroyed.
 ; @destroy Possibly every register. The VBlank handler stops preserving anything when executed from this function
 WaitVBlank::
-	ld a, 1
-	ldh [hVBlankFlag], a
+  ld a, 1
+  ldh [hVBlankFlag], a
 .wait
-	halt
-	jr .wait
+  halt
+  jr .wait
 
-SECTION "Rst $10", ROM0[$10 - 1]
+SECTION "Rst $10", ROM0[$10]
 
-MemsetLoop:
-	ld a, d
-
-	assert @ == $10
-; You probably don't want to use this for writing to VRAM while the LCD is on. See LCDMemset.
-Memset::
-	ld [hli], a
-	ld d, a
-	dec bc
-	ld a, b
-	or c
-	jr nz, MemsetLoop
-	ret
+Port1Write::
+  ld l, $03
+  ld [hl], e
+  inc l
+  ld [hl], d
+  ret
 
 SECTION "Rst $18", ROM0[$18]
 
 MemcpySmall::
-	ld a, [de]
-	ld [hli], a
-	inc de
-	dec c
-	jr nz, MemcpySmall
-	ret
+  ld a, [de]
+  ld [hli], a
+  inc de
+  dec c
+  jr nz, MemcpySmall
+  ret
 
 SECTION "Rst $20", ROM0[$20]
 
 MemsetSmall::
-	ld [hli], a
-	dec c
-	jr nz, MemsetSmall
-	ret
+  ld [hli], a
+  dec c
+  jr nz, MemsetSmall
+  ret
 
 SECTION "Rst $28", ROM0[$28 - 3]
 
@@ -72,161 +64,157 @@ SECTION "Rst $28", ROM0[$28 - 3]
 ; Soft-crashes if the jump target is in RAM
 ; @param hl Pointer to an address to jump to
 JumpToPtr::
-	ld a, [hli]
-	ld h, [hl]
-	ld l, a
+  ld a, [hli]
+  ld h, [hl]
+  ld l, a
 
-	assert @ == $28
+  assert @ == $28
 ; Jump to some address
 ; All registers are passed to the called code intact, except Z is reset
 ; (`jp CallHL` is equivalent to `jp hl`, but with the extra error checking on top)
 ; Soft-crashes if attempting to jump to RAM
 ; @param hl The address of the code to jump to
 CallHL::
-	bit 7, h
-	error nz
-	jp hl
+  bit 7, h
+  error nz
+  jp hl
 
 SECTION "Rst $30", ROM0[$30]
 
-; Jumps to some address
-; All registers are passed to the target code intact, except Z is reset
-; (`jp CallDE` would be equivalent to `jp de` if that instruction existed)
-; Soft-crashes if attempting to jump to RAM
-; @param de The address of the code to jump to
-CallDE::
-	bit 7, d
-	push de
-	ret z ; No jumping to RAM, boy!
-	rst Crash
+Port0Write::
+  ld l, $01
+  ld [hl], e
+  inc l
+  ld [hl], d
+  ret
 
 SECTION "Rst $38", ROM0[$38]
 
 ; Perform a soft-crash. Prints debug info on-screen
 Crash::
-	di ; Doing this as soon as possible to avoid interrupts messing up
-	jp HandleCrash
+  di ; Doing this as soon as possible to avoid interrupts messing up
+  jp HandleCrash
 
 SECTION "Handlers", ROM0[$40]
 
 ; VBlank handler
-	push af
-	ldh a, [hLCDC]
-	ldh [rLCDC], a
-	jp VBlankHandler
-	ds $48 - @
+  push af
+  ldh a, [hLCDC]
+  ldh [rLCDC], a
+  jp VBlankHandler
+  ds $48 - @
 
 ; STAT handler
-	rst $38
-	ds $50 - @
+  rst $38
+  ds $50 - @
 
 ; Timer handler
-	rst $38
-	ds $58 - @
+  rst $38
+  ds $58 - @
 
 ; Serial handler
-	rst $38
-	ds $60 - @
+  rst $38
+  ds $60 - @
 
 ; Joypad handler (useless)
-	rst $38
+  rst $38
 
 SECTION "VBlank handler", ROM0
 
 VBlankHandler:
-	ldh a, [hSCY]
-	ldh [rSCY], a
-	ldh a, [hSCX]
-	ldh [rSCX], a
-	ldh a, [hBGP]
-	ldh [rBGP], a
-	ldh a, [hOBP0]
-	ldh [rOBP0], a
-	ldh a, [hOBP1]
-	ldh [rOBP1], a
+  ldh a, [hSCY]
+  ldh [rSCY], a
+  ldh a, [hSCX]
+  ldh [rSCX], a
+  ldh a, [hBGP]
+  ldh [rBGP], a
+  ldh a, [hOBP0]
+  ldh [rOBP0], a
+  ldh a, [hOBP1]
+  ldh [rOBP1], a
 
-	; OAM DMA can occur late in the handler, because it will still work even
-	; outside of VBlank. Sprites just will not appear on the scanline(s)
-	; during which it's running.
-	ldh a, [hOAMHigh]
-	and a
-	jr z, .noOAMTransfer
-	call hOAMDMA
-	xor a
-	ldh [hOAMHigh], a
+  ; OAM DMA can occur late in the handler, because it will still work even
+  ; outside of VBlank. Sprites just will not appear on the scanline(s)
+  ; during which it's running.
+  ldh a, [hOAMHigh]
+  and a
+  jr z, .noOAMTransfer
+  call hOAMDMA
+  xor a
+  ldh [hOAMHigh], a
 .noOAMTransfer
 
-	; Put all operations that cannot be interrupted above this line
-	; For example, OAM DMA (can't jump to ROM in the middle of it),
-	; VRAM accesses (can't screw up timing), etc
-	ei
+  ; Put all operations that cannot be interrupted above this line
+  ; For example, OAM DMA (can't jump to ROM in the middle of it),
+  ; VRAM accesses (can't screw up timing), etc
+  ei
 
-	ldh a, [hVBlankFlag]
-	and a
-	jr z, .lagFrame
-	xor a
-	ldh [hVBlankFlag], a
+  ldh a, [hVBlankFlag]
+  and a
+  jr z, .lagFrame
+  xor a
+  ldh [hVBlankFlag], a
 
-	ld c, LOW(rP1)
-	ld a, $20 ; Select D-pad
-	ldh [c], a
+  ld c, LOW(rP1)
+  ld a, $20 ; Select D-pad
+  ldh [c], a
 REPT 6
-	ldh a, [c]
+  ldh a, [c]
 ENDR
-	or $F0 ; Set 4 upper bits (give them consistency)
-	ld b, a
+  or $F0 ; Set 4 upper bits (give them consistency)
+  ld b, a
 
-	; Filter impossible D-pad combinations
-	and $0C ; Filter only Down and Up
-	ld a, b
-	jr nz, .notUpAndDown
-	or $0C ; If both are pressed, "unpress" them
-	ld b, a
+  ; Filter impossible D-pad combinations
+  and $0C ; Filter only Down and Up
+  ld a, b
+  jr nz, .notUpAndDown
+  or $0C ; If both are pressed, "unpress" them
+  ld b, a
 .notUpAndDown
-	and $03 ; Filter only Left and Right
-	jr nz, .notLeftAndRight
-	; If both are pressed, "unpress" them
-	inc b
-	inc b
-	inc b
+  and $03 ; Filter only Left and Right
+  jr nz, .notLeftAndRight
+  ; If both are pressed, "unpress" them
+  inc b
+  inc b
+  inc b
 .notLeftAndRight
-	swap b ; Put D-pad buttons in upper nibble
+  swap b ; Put D-pad buttons in upper nibble
 
-	ld a, $10 ; Select buttons
-	ldh [c], a
+  ld a, $10 ; Select buttons
+  ldh [c], a
 REPT 6
-	ldh a, [c]
+  ldh a, [c]
 ENDR
-	; On SsAB held, soft-reset
-	and $0F
-	jr z, .perhapsReset
+  ; On SsAB held, soft-reset
+  and $0F
+  jr z, .perhapsReset
 .dontReset
 
-	or $F0 ; Set 4 upper bits
-	xor b ; Mix with D-pad bits, and invert all bits (such that pressed=1) thanks to "or $F0"
-	ld b, a
+  or $F0 ; Set 4 upper bits
+  xor b ; Mix with D-pad bits, and invert all bits (such that pressed=1) thanks to "or $F0"
+  ld b, a
 
-	; Release joypad
-	ld a, $30
-	ldh [c], a
+  ; Release joypad
+  ld a, $30
+  ldh [c], a
 
-	ldh a, [hHeldKeys]
-	cpl
-	and b
-	ldh [hPressedKeys], a
-	ld a, b
-	ldh [hHeldKeys], a
+  ldh a, [hHeldKeys]
+  cpl
+  and b
+  ldh [hPressedKeys], a
+  ld a, b
+  ldh [hHeldKeys], a
 
-	pop af ; Pop off return address as well to exit infinite loop
+  pop af ; Pop off return address as well to exit infinite loop
 .lagFrame
-	pop af
-	ret
+  pop af
+  ret
 
 .perhapsReset
-	ldh a, [hCanSoftReset]
-	and a
-	jr z, .dontReset
-	jp Reset
+  ldh a, [hCanSoftReset]
+  and a
+  jr z, .dontReset
+  jp Reset
 
 SECTION "VBlank HRAM", HRAM
 

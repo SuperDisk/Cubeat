@@ -1,4 +1,3 @@
-
 .SUFFIXES:
 
 ################################################
@@ -16,19 +15,19 @@ RESDIR := res
 
 # Program constants
 ifneq ($(shell which rm),)
-    # POSIX OSes
-    RM_RF := rm -rf
-    MKDIR_P := mkdir -p
-    PY :=
-    filesize = echo 'NB_PB$2_BLOCKS equ (' `wc -c $1 | cut -d ' ' -f 1` ' + $2 - 1) / $2'
+# POSIX OSes
+		RM_RF := rm -rf
+		MKDIR_P := mkdir -p
+		PY := python
+		filesize = echo 'NB_PB$2_BLOCKS equ (' `wc -c $1 | cut -d ' ' -f 1` ' + $2 - 1) / $2'
 else
-    # Windows outside of a POSIX env (Cygwin, MSYS2, etc.)
-    # We need Powershell to get any sort of decent functionality
-    $(warning Powershell is required to get basic functionality)
-    RM_RF := -del /q
-    MKDIR_P := -mkdir
-    PY := python
-    filesize = powershell Write-Output $$('NB_PB$2_BLOCKS equ ' + [string] [int] (([IO.File]::ReadAllBytes('$1').Length + $2 - 1) / $2))
+# Windows outside of a POSIX env (Cygwin, MSYS2, etc.)
+# We need Powershell to get any sort of decent functionality
+		$(warning Powershell is required to get basic functionality)
+		RM_RF := -del /q
+		MKDIR_P := -mkdir
+		PY := python
+		filesize = powershell Write-Output $$('NB_PB$2_BLOCKS equ ' + [string] [int] (([IO.File]::ReadAllBytes('$1').Length + $2 - 1) / $2))
 endif
 
 # Shortcut if you want to use a local copy of RGBDS
@@ -39,13 +38,16 @@ RGBFIX  := $(RGBDS)rgbfix
 RGBGFX  := $(RGBDS)rgbgfx
 
 PROLOG := swipl
-SBCL := sbcl.exe
-TCC := tcc
+SBCL := sbcl
 
 FURNACE := furnace
-VGMCMP := $(TCC) -lm -lz src/tools/vgmtools/chip_cmp.c -run src/tools/vgmtools/vgm_cmp.c
+VGMCMP := vgm_cmp
 GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(SBCL) --noinform --load src/tools/2bpp2code.lisp --eval "(main)"
+SUPERFAMICONV := superfamiconv
+
+SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
+COLORZERO = "\#00000000"
 
 ROM = $(BINDIR)/$(ROMNAME).$(ROMEXT)
 
@@ -110,6 +112,8 @@ hardware.inc/hardware.inc rgbds-structs/structs.asm:
 #                                              #
 ################################################
 
+# .PRECIOUS: $(RESDIR)/%.opt.vgm
+
 # By default, asset recipes convert files in `res/` into other files in `res/`
 # This line causes assets not found in `res/` to be also looked for in `src/res/`
 # "Source" assets can thus be safely stored there without `make clean` removing them
@@ -118,8 +122,8 @@ VPATH := $(SRCDIR)
 # VGM conversion
 
 # $(RESDIR)/%.vgm: $(RESDIR)/%.fur
-# 	@$(MKDIR_P) $(@D)
-# 	$(FURNACE) $(PWD)/$< -vgmout $(PWD)/$(RESDIR)/$*.vgm
+#		@$(MKDIR_P) $(@D)
+#		$(FURNACE) $(PWD)/$< -vgmout $(PWD)/$(RESDIR)/$*.vgm
 
 $(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
 	@$(MKDIR_P) $(@D)
@@ -127,7 +131,7 @@ $(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
 
 $(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
 	@$(MKDIR_P) $(@D)
-	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< > $(RESDIR)/$*.asm
+	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | python $(SRCDIR)/tools/vgmcompressor2.py $(RESDIR)/$*.asm
 
 # Background conversion
 
@@ -200,11 +204,6 @@ $(RESDIR)/%.pb8.size: $(RESDIR)/%
 #                                             #
 ###############################################
 
-SUPERFAMICONV := superfamiconv.exe
-
-SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
-COLORZERO = "\#00000000"
-
 $(RESDIR)/borders/%.borderpal: $(RESDIR)/borders/%.png
 	@$(MKDIR_P) $(@D)
 	$(SUPERFAMICONV) palette -i $< -d $@ $(SUPERFAMICONVFLAGS) -P 3 -C 16 --color-zero $(COLORZERO)
@@ -217,7 +216,7 @@ $(RESDIR)/borders/%.bordermap: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borde
 
 # SuperFamiconv can't generate palettes starting from #4 (mandatory for SGB borders, which can only use palettes 4-6, maybe also 7?)
 $(RESDIR)/borders/%.4.bordermap: $(SRCDIR)/tools/shift_border_palettes.py $(RESDIR)/borders/%.bordermap
-	$^ $@ && truncate -s 2048 $@
+	$(PY) $^ $@ && truncate -s 2048 $@
 
 $(RESDIR)/borders/%.borderattr: $(RESDIR)/borders/%.4.bordermap $(RESDIR)/borders/%.borderpal
 	cat $^ > $@

@@ -29,6 +29,7 @@
       <Unit>
         <Filename Value="project1.lpr"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="OPL3Vin"/>
       </Unit>
     </Units>
   </ProjectOptions>

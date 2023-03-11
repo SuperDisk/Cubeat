@@ -155,7 +155,7 @@ loop_frame(Bytes, LoopOffset, LoopFrame) :-
     cook(Cmds, CookedCmds),
     include(=(wait735), CookedCmds, OnlyWaits),
     length(OnlyWaits, LoopFrame0),
-    LoopFrame #= LoopFrame0. % - 1.
+    LoopFrame #= LoopFrame0 - 1.
 
 opt_type(in_file, in_file, file).
 main([]) :-

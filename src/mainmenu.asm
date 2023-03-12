@@ -192,15 +192,6 @@ credits_coords:
 .y: db 79, 79, 90, 90
 
 MainMenu::
-  xor a
-  ld [hLCDC], a
-.wait_lcdc_off:
-  ld a, [rLCDC]
-  and %10000000
-  jr nz, .wait_lcdc_off
-
-  di
-
   ;; temp
   ; ld hl, menu_ui_ptr
   ; ld [hl], LOW(main_menu_ui)
@@ -316,6 +307,8 @@ MainMenu::
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
+  call FadeIn
+
 menu_loop:
   ld a, IEF_VBLANK
   ldh [rIE], a
@@ -337,7 +330,7 @@ menu_loop:
   ld l, a
   rst CallHL
 
-  jp menu_loop
+  jr menu_loop
 
 main_menu_init:
   ld de, play_coords
@@ -369,6 +362,15 @@ levels_init:
   jp Memcpy
 
 paint_music_buttons_part1:
+  ld a, [scroll_x1]
+  ld l, a
+  ld a, [x1highbit]
+  rrca
+  srl l
+  or l
+  srl a
+  srl a
+
   ld hl, $9880
   ld de, song_buttons_map
   add_a_to_de
@@ -449,27 +451,12 @@ music_player_init:
   lb bc, 4, 2
   ld de, $9A0E
   ld hl, back_map
-  jp MapRegion ;tail call
-
-music_player_ui:
-  ld a, BANK(song_buttons_gfx)
-  ld [rROMB0], a
-
-  ld a, [scroll_x1]
-  ld l, a
-  ld a, [x1highbit]
-  rrca
-  srl l
-  or l
-  srl a
-  srl a
+  call MapRegion
 
   call paint_music_buttons_part1
-  push de
-  push hl
+  call paint_music_buttons_part2
 
-  ;; Update the scrolling bg tile
-
+.upload_scrolled_gfx:
   ld a, [scroll_x1]
   and %111
   swap a ; *= 16
@@ -494,7 +481,17 @@ music_player_ui:
   add_a_to_de
   ld hl, $9310
   ld bc, 16
-  call LCDMemcpy
+  jp LCDMemcpy ; tail call
+
+music_player_ui:
+  ld a, BANK(song_buttons_gfx)
+  ld [rROMB0], a
+
+  call paint_music_buttons_part1
+  push de
+  push hl
+
+  call music_player_init.upload_scrolled_gfx
 
   ld hl, menu_frame_counter
   inc [hl]

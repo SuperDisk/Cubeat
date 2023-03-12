@@ -5,15 +5,6 @@ include "res/menu/title_screen.menu.asm"
 SECTION "Title Screen", ROM0
 
 TitleScreen::
-  xor a
-  ld [hLCDC], a
-.wait_lcdc_off:
-  ld a, [rLCDC]
-  and %10000000
-  jr nz, .wait_lcdc_off
-
-  di
-
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
   ld bc, playfield_buffer_rom.end - playfield_buffer_rom
@@ -72,5 +63,15 @@ title_loop:
   ld [rROMB0], a
   call update_playfield_buffer
 
+  call poll_joystick
+  ld a, [hPressedKeys]
+  bit PADB_START, a
+  jr z, title_loop
 
-  jp title_loop
+  call FadeOut
+
+  call wait_vblank
+  xor a
+  ld [rLCDC], a
+
+  jp MainMenu

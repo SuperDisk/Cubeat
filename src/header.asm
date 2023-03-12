@@ -35,12 +35,6 @@ EntryPoint:
   call colorize
 
 Reset::
-  di ; Disable interrupts while we set up
-
-  ; Kill sound
-  xor a
-  ldh [rNR52], a
-
   ; Enable sound globally
   ld a, $80
   ld [rAUDENA], a
@@ -75,15 +69,13 @@ Reset::
   dec b
   jr nz, .copyOAMDMA
 
-  ;; WARN "Edit to set palettes here"
   ; CGB palettes maybe, DMG ones always
-
   ld a, %00_10_01_11
-  ld [hBGP], a
+  ld [rBGP], a
   ld a, %11_10_00_01
-  ld [hOBP0], a
+  ld [rOBP0], a
   ld a, %00_01_11_10
-  ld [hOBP1], a
+  ld [rOBP1], a
 
   ; You will also need to reset your handlers' variables below
   ; I recommend reading through, understanding, and customizing this file
@@ -101,29 +93,6 @@ Reset::
   dec a ; ld a, $FF
   ldh [hHeldKeys], a
 
-  ; Load the correct ROM bank for later
-  ; Important to do it before enabling interrupts
-  ; ld a, BANK(Intro)
-  ; ldh [hCurROMBank], a
-  ; ld [rROMB0], a
-
-  ; Select wanted interrupts here
-  ; You can also enable them later if you want
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ei ; Only takes effect after the following instruction
-  ldh [rIF], a ; Clears "accumulated" interrupts
-
-  ; Init shadow regs
-  ; xor a
-  ldh [hSCY], a
-  ldh [hSCX], a
-  ld a, LCDCF_ON | LCDCF_BGON
-  ldh [hLCDC], a
-  ; And turn the LCD on!
-  ldh [rLCDC], a
-
   ; Clear OAM, so it doesn't display garbage
   ; This will get committed to hardware OAM after the end of the first
   ; frame, but the hardware doesn't display it, so that's fine.
@@ -139,7 +108,6 @@ Reset::
   xor a
   rst MemsetSmall
 
-  ; `Intro`'s bank has already been loaded earlier
   ; jp Intro
   ; jp MainMenu
   jp TitleScreen

@@ -191,28 +191,19 @@ credits_coords:
 .x: db 87, 122, 87, 122
 .y: db 79, 79, 90, 90
 
-MainMenu::
-  ;; temp
-  ; ld hl, menu_ui_ptr
-  ; ld [hl], LOW(main_menu_ui)
-  ; inc hl
-  ; ld [hl], HIGH(main_menu_ui)
-  ; inc hl
-  ; ld [hl], LOW(main_menu_init)
-  ; inc hl
-  ; ld [hl], HIGH(main_menu_init)
-  ; inc hl
 
-  ; ld hl, menu_ui_ptr
-  ; ld [hl], LOW(levels_ui)
-  ; inc hl
-  ; ld [hl], HIGH(levels_ui)
-  ; inc hl
-  ; ld [hl], LOW(levels_init)
-  ; inc hl
-  ; ld [hl], HIGH(levels_init)
-  ; inc hl
+LevelsMenu::
+  ld hl, menu_ui_ptr
+  ld [hl], LOW(levels_ui)
+  inc hl
+  ld [hl], HIGH(levels_ui)
+  inc hl
+  ld [hl], LOW(levels_init)
+  inc hl
+  ld [hl], HIGH(levels_init)
+  jr Menu
 
+MusicPlayerMenu::
   ld hl, menu_ui_ptr
   ld [hl], LOW(music_player_ui)
   inc hl
@@ -221,8 +212,20 @@ MainMenu::
   ld [hl], LOW(music_player_init)
   inc hl
   ld [hl], HIGH(music_player_init)
-  inc hl
+  jr Menu
 
+MainMenu::
+  ld hl, menu_ui_ptr
+  ld [hl], LOW(main_menu_ui)
+  inc hl
+  ld [hl], HIGH(main_menu_ui)
+  inc hl
+  ld [hl], LOW(main_menu_init)
+  inc hl
+  ld [hl], HIGH(main_menu_init)
+  ;; fallthrough
+
+Menu:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
@@ -754,6 +757,14 @@ music_player_ui:
   ld [tweening2], a
 
 .no_up:
+  ld a, [hPressedKeys]
+  bit PADB_B, a
+  ret z
+  call FadeOut
+  xor a
+  ld [rLCDC], a
+  jp MainMenu
+
   ret
 
 levels_ui:
@@ -838,6 +849,15 @@ levels_ui:
 
   call poll_joystick
   call update_cursor_pos
+
+  ld a, [hPressedKeys]
+  bit PADB_B, a
+  jr z, .no_b
+  call FadeOut
+  xor a
+  ld [rLCDC], a
+  jp MainMenu
+.no_b:
 
   ld a, [hPressedKeys]
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
@@ -1007,6 +1027,35 @@ main_menu_ui:
 .no_tween:
   call poll_joystick
   call update_cursor_pos
+
+  ld a, [hPressedKeys]
+  ld d, a
+  bit PADB_B, a
+  jr z, .no_b
+  call FadeOut
+  xor a
+  ld [rLCDC], a
+  jp TitleScreen
+.no_b:
+  bit PADB_A, a
+  jr z, .no_a
+  call FadeOut
+  xor a
+  ld [rLCDC], a
+
+  ld a, [selected_button]
+  ld d, a
+  add d
+  add d
+  ld hl, .jump
+  add_a_to_hl
+  jp hl
+.jump:
+  jp Intro
+  jp LevelsMenu
+  jp MusicPlayerMenu
+  jp LevelsMenu
+.no_a:
 
   ld a, [hPressedKeys]
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN

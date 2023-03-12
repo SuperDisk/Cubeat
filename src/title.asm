@@ -42,8 +42,18 @@ TitleScreen::
   ld [rROMB0], a
   call update_playfield_buffer
 
+  ;; Clear sprites
+  ld hl, wShadowOAM
+  ld c, NB_SPRITES * 4
+  xor a
+  rst MemsetSmall
+  ld a, h ; ld a, HIGH(wShadowOAM)
+  call hOAMDMA
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
+
+  call FadeIn
 
 title_loop:
   ; Wait 2 VBlanks
@@ -69,8 +79,6 @@ title_loop:
   jr z, title_loop
 
   call FadeOut
-
-  call wait_vblank
   xor a
   ld [rLCDC], a
 

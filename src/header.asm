@@ -70,11 +70,9 @@ Reset::
   jr nz, .copyOAMDMA
 
   ; CGB palettes maybe, DMG ones always
-  ld a, %00_10_01_11
+  xor a
   ld [rBGP], a
-  ld a, %11_10_00_01
   ld [rOBP0], a
-  ld a, %00_01_11_10
   ld [rOBP1], a
 
   ; You will also need to reset your handlers' variables below

@@ -121,7 +121,7 @@ selected_level: db
 true_x: db
 true_y: db
 
-scroll_amount: db
+scroll_amount: dw
 
 SECTION "Tweening vars", WRAM0
 tween_dist: db
@@ -409,6 +409,7 @@ ENDR
 music_player_init:
   xor a
   ld [scroll_amount], a
+  ld [scroll_amount+1], a
   ld [x1], a
   ld [x1highbit], a
   ld [y1], a
@@ -467,7 +468,6 @@ music_player_ui:
   ld bc, 16
   call LCDMemcpy
 
-music_player_logic:
   ld hl, menu_frame_counter
   inc [hl]
 
@@ -552,7 +552,20 @@ music_player_logic:
   ld [hl], 1
 
 .no_tween:
+  ld a, [x1]
+  ld [x3], a
+  add 11
+  ld [x2], a
+  ld [x4], a
+
+  ld a, [y1]
+  ld [y2], a
+  add 11
+  ld [y3], a
+  ld [y4], a
+
   call poll_joystick
+  call update_cursor_pos
 
   ld a, [hPressedKeys]
   or a
@@ -563,11 +576,25 @@ music_player_logic:
   bit PADB_RIGHT, d
   jr z, .no_right
 
-  ld a, [scroll_amount]
+  ld hl, scroll_amount
+  ld a, [hl+]
+
   ld [tween_startx1], a
   ld [x1], a
-  add 88
+
+  ld h, [hl]
+  ld l, a
+
+  ld a, h
+  ld [x1highbit], a
+
+  ld de, 88
+  add hl, de
+
+  ld a, l
   ld [scroll_amount], a
+  ld a, h
+  ld [scroll_amount+1], a
 
   ld a, 88
   ld [tween_endx1], a
@@ -581,11 +608,25 @@ music_player_logic:
   bit PADB_LEFT, d
   jr z, .no_left
 
-  ld a, [scroll_amount]
+  ld hl, scroll_amount
+  ld a, [hl+]
+
   ld [tween_startx1], a
   ld [x1], a
-  sub 88
+
+  ld h, [hl]
+  ld l, a
+
+  ld a, h
+  ld [x1highbit], a
+
+  ld de, -88
+  add hl, de
+
+  ld a, l
   ld [scroll_amount], a
+  ld a, h
+  ld [scroll_amount+1], a
 
   ld a, -88
   ld [tween_endx1], a
@@ -621,9 +662,6 @@ levels_ui:
   ld hl, text_select_level_map
   call MapRegion
 
-  ;; fallthrough
-
-levels_logic:
   ld hl, menu_frame_counter
   inc [hl]
 
@@ -772,9 +810,6 @@ main_menu_ui:
   ld hl, move_select_map
   call MapRegion
 
-  ;; fallthrough
-
-main_menu_logic:
   ld hl, menu_frame_counter
   inc [hl]
 

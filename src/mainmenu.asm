@@ -112,7 +112,6 @@ incbin "res/menu/bg_scrolled_topbar.2bpp"
 
 SECTION "Menu vars", WRAM0
 menu_ui_ptr: dw
-menu_logic_ptr: dw
 menu_init_ptr: dw
 
 menu_frame_counter: db
@@ -203,10 +202,6 @@ MainMenu::
   ; inc hl
   ; ld [hl], HIGH(main_menu_ui)
   ; inc hl
-  ; ld [hl], LOW(main_menu_logic)
-  ; inc hl
-  ; ld [hl], HIGH(main_menu_logic)
-  ; inc hl
   ; ld [hl], LOW(main_menu_init)
   ; inc hl
   ; ld [hl], HIGH(main_menu_init)
@@ -217,10 +212,6 @@ MainMenu::
   ; inc hl
   ; ld [hl], HIGH(levels_ui)
   ; inc hl
-  ; ld [hl], LOW(levels_logic)
-  ; inc hl
-  ; ld [hl], HIGH(levels_logic)
-  ; inc hl
   ; ld [hl], LOW(levels_init)
   ; inc hl
   ; ld [hl], HIGH(levels_init)
@@ -230,10 +221,6 @@ MainMenu::
   ld [hl], LOW(music_player_ui)
   inc hl
   ld [hl], HIGH(music_player_ui)
-  inc hl
-  ld [hl], LOW(music_player_logic)
-  inc hl
-  ld [hl], HIGH(music_player_logic)
   inc hl
   ld [hl], LOW(music_player_init)
   inc hl
@@ -374,6 +361,51 @@ levels_init:
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   jp Memcpy
 
+paint_music_buttons_part1:
+  ld hl, $9880
+  ld de, song_buttons_map
+  add_a_to_de
+
+  ld b, 6
+.loop0:
+REPT 21
+  ld a, [de]
+  ld [hl+], a
+  inc de
+ENDR
+
+  ld a, $20-21
+  add_a_to_hl
+
+  ld a, 65-21
+  add_a_to_de
+
+  dec b
+  jr nz, .loop0
+
+  ret
+
+paint_music_buttons_part2:
+  ld b, 5
+.loop0:
+REPT 21
+  wait_vram
+  ld a, [de]
+  ld [hl+], a
+  inc de
+ENDR
+
+  ld a, $20-21
+  add_a_to_hl
+
+  ld a, 65-21
+  add_a_to_de
+
+  dec b
+  jp nz, .loop0
+
+  ret
+
 music_player_init:
   xor a
   ld [scroll_amount], a
@@ -386,49 +418,26 @@ music_player_init:
   ld bc, (song_buttons_gfx.end - song_buttons_gfx)
   call Memcpy
 
-  ld a, BANK(song_buttons_gfx)
-  ld [rROMB0], a
-
-  ld hl, $98A0-$20
-  ld de, song_buttons_map
-
-  ld b, SCRN_X_B
-.loop1:
-  ld c, 11
-.loop:
-  ld a, [de]
-  ld [hl], a
-  inc de
-  ld a, $20
-  add_a_to_hl
-  dec c
-  jr nz, .loop
-
-  push bc
-  ld bc, -$20*11
-  add hl, bc
-  inc hl
-  pop bc
-  dec b
-  jr nz, .loop1
-
-  ret
+  xor a
+  call paint_music_buttons_part1
+  jp paint_music_buttons_part2
 
 music_player_ui:
   ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
 
-  ld c, -2
-  call draw_strip
+  ld a, [x1]
+  ld l, a
+  ld a, [x1highbit]
+  rrca
+  srl l
+  or l
+  srl a
+  srl a
 
-  ld c, -1
-  call draw_strip
-
-  ld c, SCRN_X_B
-  call draw_strip
-
-  ld c, SCRN_X_B+1
-  call draw_strip
+  call paint_music_buttons_part1
+  push de
+  push hl
 
   ;; Update the scrolling bg tile
 
@@ -447,18 +456,16 @@ music_player_ui:
   pop af
   ld de, bg_scrolled_leftbar_gfx
   add_a_to_de
-  ld hl, $9310
+  ld hl, $90E0
   ld bc, 16
   call LCDMemcpy
 
   pop af
   ld de, bg_scrolled_topbar_gfx
   add_a_to_de
-  ld hl, $9030
+  ld hl, $9310
   ld bc, 16
   call LCDMemcpy
-
-  ;; fallthrough
 
 music_player_logic:
   ld hl, menu_frame_counter
@@ -471,7 +478,12 @@ music_player_logic:
 
   wait_vram
   ld a, [x1]
+  and %111
   ld [rSCX], a
+
+  pop hl
+  pop de
+  call paint_music_buttons_part2
 
 .wait_for_split2
   ld a, [rLY]
@@ -556,6 +568,7 @@ music_player_logic:
   ld [x1], a
   add 88
   ld [scroll_amount], a
+
   ld a, 88
   ld [tween_endx1], a
 
@@ -573,6 +586,7 @@ music_player_logic:
   ld [x1], a
   sub 88
   ld [scroll_amount], a
+
   ld a, -88
   ld [tween_endx1], a
 
@@ -583,50 +597,6 @@ music_player_logic:
 
 .no_left:
   ret
-
-draw_strip:
-  ld a, [x1]
-  ld l, a
-  ld a, [x1highbit]
-  rrca
-  srl l
-  or l
-  srl a
-  srl a
-  add c
-
-  ld h, 0
-  ld l, a
-
-  ld d, h
-  ld e, l
-
-  add hl, hl ; 2
-  add hl, hl ; 4
-  add hl, hl ; 8
-  add hl, de ; 9
-  add hl, de ; 10
-  add hl, de ; 11
-
-  ld de, song_buttons_map
-  add hl, de
-
-  ld d, h
-  ld e, l
-
-  ld hl, $9880
-  and %11111
-  add_a_to_hl
-
-  ld bc, $20
-REPT 11
-  ld a, [de]
-  ld [hl], a
-  inc de
-  add hl, bc
-ENDR
-  ret
-
 
 levels_ui:
   ld a, BANK(levels_gfx)

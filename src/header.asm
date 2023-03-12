@@ -140,9 +140,9 @@ Reset::
   rst MemsetSmall
 
   ; `Intro`'s bank has already been loaded earlier
-  ; jp MainMenu
   ; jp Intro
-  jp MainMenu
+  ; jp MainMenu
+  jp TitleScreen
 
 SECTION "OAM DMA routine", ROMX
 

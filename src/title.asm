@@ -1,0 +1,76 @@
+include "defines.asm"
+
+include "res/menu/title_screen.menu.asm"
+
+SECTION "Title Screen", ROM0
+
+TitleScreen::
+  xor a
+  ld [hLCDC], a
+.wait_lcdc_off:
+  ld a, [rLCDC]
+  and %10000000
+  jr nz, .wait_lcdc_off
+
+  di
+
+  ld de, playfield_buffer_rom
+  ld hl, playfield_buffer
+  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
+  call Memcpy
+
+  ld de, static_ram_code
+  ld hl, ram_code
+  ld c, static_ram_code.end - static_ram_code
+  rst MemcpySmall
+
+  ld a, $31 ; ld sp, xxxx
+  ld [update_bg_done], a
+
+  ld a, $C3 ; jp xxxx
+  ld [update_playfield_buffer], a
+
+  ;; Copy initial tile data
+  ld a, BANK(title_screen_gfx_init)
+  ld [rROMB0], a
+
+  ld a, LOW(title_screen_gfx_init)
+  ld [ptr_next_update_bg], a
+  ld a, HIGH(title_screen_gfx_init)
+  ld [ptr_next_update_bg+1], a
+  call update_bg
+
+  ld a, BANK(title_screen_map_init)
+  ld [next_map_bank], a
+  ld a, LOW(title_screen_map_init)
+  ld [update_playfield_buffer+1], a
+  ld a, HIGH(title_screen_map_init)
+  ld [update_playfield_buffer+2], a
+
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+  ld [rLCDC], a
+
+title_loop:
+  ; Wait 2 VBlanks
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt
+  xor a
+  ld [rIF], a
+  halt
+
+  ld a, HIGH(wShadowOAM)
+  call hOAMDMA
+
+  ld a, [next_map_bank]
+  ld [rROMB0], a
+  call update_playfield_buffer
+
+
+  jp title_loop

@@ -430,9 +430,6 @@ music_player_ui:
   ld c, SCRN_X_B+1
   call draw_strip
 
-  ; ld c, SCRN_X_B+1
-  ; call draw_strip
-
   ;; Update the scrolling bg tile
 
   ld a, [x1]
@@ -522,25 +519,25 @@ music_player_logic:
   ld c, [hl]
   ld [hl], a
 
-  ; ld a, [tween_endx1]
-  ; bit 7, a
-  ; jr z, .scrolling_right
+  ld a, [tween_endx1]
+  bit 7, a
+  jr z, .scrolling_right
 
-  ; ld a, [hl]
-  ; cp c
-  ; jr c, .no_tween
-  ; jr z, .no_tween
-  ; ld hl, x1highbit
-  ; ld [hl], 0
+  ld a, [hl]
+  cp c
+  jr c, .no_tween
+  jr z, .no_tween
+  ld hl, x1highbit
+  ld [hl], 0
 
   jr .no_tween
 
 .scrolling_right:
-  ; ld a, [hl]
-  ; cp c
-  ; jr nc, .no_tween
-  ; ld hl, x1highbit
-  ; ld [hl], 1
+  ld a, [hl]
+  cp c
+  jr nc, .no_tween
+  ld hl, x1highbit
+  ld [hl], 1
 
 .no_tween:
   call poll_joystick
@@ -556,6 +553,7 @@ music_player_logic:
 
   ld a, [scroll_amount]
   ld [tween_startx1], a
+  ld [x1], a
   add 88
   ld [scroll_amount], a
   ld a, 88
@@ -572,6 +570,7 @@ music_player_logic:
 
   ld a, [scroll_amount]
   ld [tween_startx1], a
+  ld [x1], a
   sub 88
   ld [scroll_amount], a
   ld a, -88

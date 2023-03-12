@@ -42,10 +42,9 @@ MACRO spriteY ; which sprite
   ld [wShadowOAM+(4*(\1))], a
 ENDM
 
+include "res/menu/bgmenu.menu.asm"
 
 SECTION "Main Menu Graphics", ROMX
-
-include "res/menu/bgmenu.menu.asm"
 
 main_menu_buttons_gfx:
 incbin "res/menu/main_menu_buttons.2bppu"
@@ -100,7 +99,15 @@ incbin "res/menu/song_buttons.tilemapu"
 .end:
 
 bg_scrolled_gfx:
-incbin "res/menu/bg-scrolled.2bpp"
+incbin "res/menu/bg_scrolled.2bpp"
+.end:
+
+bg_scrolled_leftbar_gfx:
+incbin "res/menu/bg_scrolled_leftbar.2bpp"
+.end:
+
+bg_scrolled_topbar_gfx:
+incbin "res/menu/bg_scrolled_topbar.2bpp"
 .end:
 
 SECTION "Menu vars", WRAM0
@@ -276,6 +283,8 @@ MainMenu::
   ld [selected_button], a
 
   ;; Load BG area
+  ld a, BANK(move_select_gfx)
+  ld [rROMB0], a
   ld hl, $95B0
   ld de, move_select_gfx
   ld bc, (move_select_gfx.end - move_select_gfx)
@@ -409,50 +418,48 @@ music_player_ui:
   ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
 
+  ld c, -2
+  call draw_strip
+
+  ld c, -1
+  call draw_strip
+
+  ld c, SCRN_X_B
+  call draw_strip
+
+  ld c, SCRN_X_B+1
+  call draw_strip
+
+  ; ld c, SCRN_X_B+1
+  ; call draw_strip
+
+  ;; Update the scrolling bg tile
+
   ld a, [x1]
-  ld l, a
-  ld a, [x1highbit]
-  rrca
-  srl l
-  or l
-  srl a
-  srl a
-  add SCRN_X_B
+  and %111
+  swap a ; *= 16
+  push af
+  push af
 
-.no_wrap:
+  ld de, bg_scrolled_gfx
+  add_a_to_de
+  ld hl, $9000
+  ld bc, 16
+  call LCDMemcpy
 
-  ld h, 0
-  ld l, a
+  pop af
+  ld de, bg_scrolled_leftbar_gfx
+  add_a_to_de
+  ld hl, $9310
+  ld bc, 16
+  call LCDMemcpy
 
-  ld d, h
-  ld e, l
-
-  add hl, hl ; 2
-  add hl, hl ; 4
-  add hl, hl ; 8
-  add hl, de ; 9
-  add hl, de ; 10
-  add hl, de ; 11
-
-  ld de, song_buttons_map
-  add hl, de
-
-  ld d, h
-  ld e, l
-
-  ld hl, $9880
-  and %11111
-  add_a_to_hl
-
-  ld c, 11
-.loop:
-  ld a, [de]
-  ld [hl], a
-  inc de
-  ld a, $20
-  add_a_to_hl
-  dec c
-  jr nz, .loop
+  pop af
+  ld de, bg_scrolled_topbar_gfx
+  add_a_to_de
+  ld hl, $9030
+  ld bc, 16
+  call LCDMemcpy
 
   ;; fallthrough
 
@@ -512,14 +519,28 @@ music_player_logic:
   ld hl, tween_startx1
   call tween
   ld hl, x1
-  ld b, [hl]
-  cp b
-  jr nc, .no_incr
-  ld hl, x1highbit
-  inc [hl]
-  res 1, [hl]
-.no_incr:
-  ld [x1], a
+  ld c, [hl]
+  ld [hl], a
+
+  ; ld a, [tween_endx1]
+  ; bit 7, a
+  ; jr z, .scrolling_right
+
+  ; ld a, [hl]
+  ; cp c
+  ; jr c, .no_tween
+  ; jr z, .no_tween
+  ; ld hl, x1highbit
+  ; ld [hl], 0
+
+  jr .no_tween
+
+.scrolling_right:
+  ; ld a, [hl]
+  ; cp c
+  ; jr nc, .no_tween
+  ; ld hl, x1highbit
+  ; ld [hl], 1
 
 .no_tween:
   call poll_joystick
@@ -530,8 +551,8 @@ music_player_logic:
 
   ld d, a
 
-  bit PADB_START, d
-  jr z, .no_start
+  bit PADB_RIGHT, d
+  jr z, .no_right
 
   ld a, [scroll_amount]
   ld [tween_startx1], a
@@ -545,8 +566,68 @@ music_player_logic:
   inc a
   ld [tweening], a
 
-.no_start:
+.no_right:
+  bit PADB_LEFT, d
+  jr z, .no_left
+
+  ld a, [scroll_amount]
+  ld [tween_startx1], a
+  sub 88
+  ld [scroll_amount], a
+  ld a, -88
+  ld [tween_endx1], a
+
+  xor a
+  ld [tween_step], a
+  inc a
+  ld [tweening], a
+
+.no_left:
   ret
+
+draw_strip:
+  ld a, [x1]
+  ld l, a
+  ld a, [x1highbit]
+  rrca
+  srl l
+  or l
+  srl a
+  srl a
+  add c
+
+  ld h, 0
+  ld l, a
+
+  ld d, h
+  ld e, l
+
+  add hl, hl ; 2
+  add hl, hl ; 4
+  add hl, hl ; 8
+  add hl, de ; 9
+  add hl, de ; 10
+  add hl, de ; 11
+
+  ld de, song_buttons_map
+  add hl, de
+
+  ld d, h
+  ld e, l
+
+  ld hl, $9880
+  and %11111
+  add_a_to_hl
+
+  ld bc, $20
+REPT 11
+  ld a, [de]
+  ld [hl], a
+  inc de
+  add hl, bc
+ENDR
+  ret
+
 
 levels_ui:
   ld a, BANK(levels_gfx)

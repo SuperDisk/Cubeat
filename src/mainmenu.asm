@@ -304,6 +304,9 @@ MainMenu::
   ld l, a
   rst CallHL
 
+  ld a, HIGH(wShadowOAM)
+  call hOAMDMA
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
@@ -341,7 +344,8 @@ main_menu_init:
   ld de, main_menu_buttons_gfx
   ld hl, $9000
   ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
-  jp Memcpy
+  call Memcpy
+  jp main_menu_ui
 
 levels_init:
   xor a
@@ -359,7 +363,8 @@ levels_init:
 
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
-  jp Memcpy
+  call Memcpy
+  jp levels_ui
 
 paint_music_buttons_part1:
   ld a, [scroll_x1]
@@ -424,9 +429,20 @@ music_player_init:
 
   ld a, 24+8-1
   ld [x1], a
+  ld [x3], a
+  add 89-6
+  ld [x2], a
+  ld [x4], a
+
   ld a, 32-1
   ld [y1], a
   ld [true_y], a
+  ld [y2], a
+  add 17-6
+  ld [y3], a
+  ld [y4], a
+
+  call update_cursor_pos
 
   ld de, song_buttons_gfx
   ld hl, $9000

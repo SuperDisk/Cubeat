@@ -101,7 +101,7 @@ Reset::
   xor a
   rst MemsetSmall
   ld a, h ; ld a, HIGH(wShadowOAM)
-  ldh [hOAMHigh], a
+  call hOAMDMA
 
   ld hl, wShadowOAM2
   ld c, NB_SPRITES * 4

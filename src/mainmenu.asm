@@ -128,7 +128,14 @@ tween_dist: db
 tween_step: db
 tweening: db
 
+tween_dist2: db
+tween_step2: db
+tweening2: db
+
 dest_coords_ptr: dw
+
+scroll_x1: db
+x1highbit: db
 
 tween_start_coords:
   tween_startx1: db
@@ -162,8 +169,6 @@ coords:
   y2: db
   y3: db
   y4: db
-
-x1highbit: db
 
 SECTION "Main Menu", ROM0
 
@@ -267,6 +272,8 @@ MainMenu::
   ld [menu_frame_counter], a
   ld [tween_step], a
   ld [tweening], a
+  ld [tween_step2], a
+  ld [tweening2], a
   ld [selected_button], a
 
   ;; Load BG area
@@ -322,7 +329,7 @@ menu_loop:
 
   ld a, [next_map_bank]
   ld [rROMB0], a
-  ; call update_playfield_buffer
+  call update_playfield_buffer
 
   ld hl, menu_ui_ptr
   ld a, [hl+]
@@ -366,7 +373,7 @@ paint_music_buttons_part1:
   ld de, song_buttons_map
   add_a_to_de
 
-  ld b, 6
+  ld b, 5
 .loop0:
 REPT 21
   ld a, [de]
@@ -386,7 +393,7 @@ ENDR
   ret
 
 paint_music_buttons_part2:
-  ld b, 5
+  ld b, 6
 .loop0:
 REPT 21
   wait_vram
@@ -410,24 +417,45 @@ music_player_init:
   xor a
   ld [scroll_amount], a
   ld [scroll_amount+1], a
-  ld [x1], a
+  ld [scroll_x1], a
   ld [x1highbit], a
+
+  ld a, 24+8-1
+  ld [x1], a
+  ld a, 32-1
   ld [y1], a
+  ld [true_y], a
 
   ld de, song_buttons_gfx
   ld hl, $9000
   ld bc, (song_buttons_gfx.end - song_buttons_gfx)
   call Memcpy
 
-  xor a
-  call paint_music_buttons_part1
-  jp paint_music_buttons_part2
+  ld hl, $93C0
+  ld de, text_select_level_gfx
+  ld bc, (text_select_level_gfx.end - text_select_level_gfx)
+  call Memcpy
+
+  lb bc, 7, 1
+  ld de, $9843
+  ld hl, text_select_level_map
+  call MapRegion
+
+  lb bc, 13, 3
+  ld de, $99E1
+  ld hl, move_select_map
+  call MapRegion
+
+  lb bc, 4, 2
+  ld de, $9A0E
+  ld hl, back_map
+  jp MapRegion ;tail call
 
 music_player_ui:
   ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
 
-  ld a, [x1]
+  ld a, [scroll_x1]
   ld l, a
   ld a, [x1highbit]
   rrca
@@ -442,7 +470,7 @@ music_player_ui:
 
   ;; Update the scrolling bg tile
 
-  ld a, [x1]
+  ld a, [scroll_x1]
   and %111
   swap a ; *= 16
   push af
@@ -477,7 +505,7 @@ music_player_ui:
   jr nz, .wait_for_split
 
   wait_vram
-  ld a, [x1]
+  ld a, [scroll_x1]
   and %111
   ld [rSCX], a
 
@@ -505,7 +533,7 @@ music_player_ui:
   ld [tweening], a
 
   ld a, [scroll_amount]
-  ld [x1], a
+  ld [scroll_x1], a
 
   jp .no_tween
 
@@ -527,7 +555,7 @@ music_player_ui:
   ld a, [tween_endx1]
   ld hl, tween_startx1
   call tween
-  ld hl, x1
+  ld hl, scroll_x1
   ld c, [hl]
   ld [hl], a
 
@@ -552,15 +580,50 @@ music_player_ui:
   ld [hl], 1
 
 .no_tween:
+  ld a, [tweening2]
+  or a
+  jp z, .no_tween2
+
+  ld a, [tween_step2]
+  cp 40
+  jr c, .continue2
+  xor a
+  ld [tweening2], a
+
+  ld a, [true_y]
+  ld [y1], a
+
+  jp .no_tween2
+.continue2:
+  inc a
+  inc a
+  ld [tween_step2], a
+  dec a
+  dec a
+  add a
+
+  ld hl, tweening_table
+  add_a_to_hl
+
+  ld c, [hl]
+  inc hl
+  ld b, [hl]
+
+  ld a, [tween_endy1]
+  ld hl, tween_starty1
+  call tween
+  ld [y1], a
+
+.no_tween2:
   ld a, [x1]
   ld [x3], a
-  add 11
+  add 89-6
   ld [x2], a
   ld [x4], a
 
   ld a, [y1]
   ld [y2], a
-  add 11
+  add 17-6
   ld [y3], a
   ld [y4], a
 
@@ -571,16 +634,16 @@ music_player_ui:
   or a
   ret z
 
-  ld d, a
-
-  bit PADB_RIGHT, d
+  bit PADB_RIGHT, a
   jr z, .no_right
 
   ld hl, scroll_amount
   ld a, [hl+]
+  cp $60
+  jr z, .no_right
 
   ld [tween_startx1], a
-  ld [x1], a
+  ld [scroll_x1], a
 
   ld h, [hl]
   ld l, a
@@ -605,14 +668,17 @@ music_player_ui:
   ld [tweening], a
 
 .no_right:
-  bit PADB_LEFT, d
+  ld a, [hPressedKeys]
+  bit PADB_LEFT, a
   jr z, .no_left
 
   ld hl, scroll_amount
   ld a, [hl+]
+  or a
+  jr z, .no_left
 
   ld [tween_startx1], a
-  ld [x1], a
+  ld [scroll_x1], a
 
   ld h, [hl]
   ld l, a
@@ -637,6 +703,44 @@ music_player_ui:
   ld [tweening], a
 
 .no_left:
+  ld a, [hPressedKeys]
+  bit PADB_DOWN, a
+  jr z, .no_down
+
+  ld a, [true_y]
+  cp $5F
+  jr z, .no_up
+  ld [tween_starty1], a
+  add 16
+  ld [true_y], a
+  ld a, 16
+  ld [tween_endy1], a
+
+  xor a
+  ld [tween_step2], a
+  inc a
+  ld [tweening2], a
+
+.no_down:
+  ld a, [hPressedKeys]
+  bit PADB_UP, a
+  jr z, .no_up
+
+  ld a, [true_y]
+  cp $1F
+  jr z, .no_up
+  ld [tween_starty1], a
+  sub 16
+  ld [true_y], a
+  ld a, -16
+  ld [tween_endy1], a
+
+  xor a
+  ld [tween_step2], a
+  inc a
+  ld [tweening2], a
+
+.no_up:
   ret
 
 levels_ui:

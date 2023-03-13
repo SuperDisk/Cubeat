@@ -53,7 +53,72 @@ TitleScreen::
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
-  call FadeIn
+  ; call FadeIn
+ohyeah:
+
+  ld a, 8 ;$80
+  ld [wFadeSteps], a
+  ld a, 16
+  ld [wFadeDelta], a
+  xor a
+  ld [wFadeAmount], a
+
+  ld a, %10000000
+  ld [wBGPaletteMask], a
+  xor a
+  ld [wOBJPaletteMask], a
+
+  ld de, wBGPaletteBuffer
+  ld hl, pal0+9
+  REPT 4*3
+  ld a, [hl+]
+  ld [de], a
+  inc de
+  ENDR
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+
+yeah:
+  xor a
+  ld [rIF], a
+  halt
+  call FadePaletteBuffers
+
+  ld a, [wFadeSteps]
+  or a
+  jr nz, yeah
+
+  ld a, 8 ;$80
+  ld [wFadeSteps], a
+  ld a, -16
+  ld [wFadeDelta], a
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+
+REPT 60
+  xor a
+  ld [rIF], a
+  halt
+ENDR
+
+yeah2:
+  xor a
+  ld [rIF], a
+  halt
+  call FadePaletteBuffers
+
+  ld a, [wFadeSteps]
+  or a
+  jr nz, yeah2
+REPT 60
+  xor a
+  ld [rIF], a
+  halt
+ENDR
+
+  jp ohyeah
 
 title_loop:
   ; Wait 2 VBlanks

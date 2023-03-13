@@ -192,17 +192,6 @@ Intro::
   inc l
   ld [hl], $D0
 
-
-  ; Turn the LCD off
-  xor a
-  ld [hLCDC], a
-.wait_lcdc_off:
-  ld a, [rLCDC]
-  and %10000000
-  jr nz, .wait_lcdc_off
-
-  di
-
   ;; Beyond this point, IME never comes back on
 
   xor a

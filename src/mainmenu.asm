@@ -313,6 +313,7 @@ Menu:
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
+  ld hl, KnownRet
   call FadeIn
 
 menu_loop:
@@ -335,6 +336,8 @@ menu_loop:
   ld h, [hl]
   ld l, a
   rst CallHL
+
+  call FadeStep
 
   jr menu_loop
 
@@ -760,7 +763,7 @@ music_player_ui:
   ld a, [hPressedKeys]
   bit PADB_B, a
   ret z
-  call FadeOut
+  ; TODO: Fade out
   xor a
   ld [rLCDC], a
   jp MainMenu
@@ -853,7 +856,7 @@ levels_ui:
   ld a, [hPressedKeys]
   bit PADB_B, a
   jr z, .no_b
-  call FadeOut
+  ; TODO: Fade out
   xor a
   ld [rLCDC], a
   jp MainMenu
@@ -1032,14 +1035,14 @@ main_menu_ui:
   ld d, a
   bit PADB_B, a
   jr z, .no_b
-  call FadeOut
+  ; TODO: Fade out
   xor a
   ld [rLCDC], a
   jp TitleScreen
 .no_b:
   bit PADB_A, a
   jr z, .no_a
-  call FadeOut
+  ; TODO: Fade out
   xor a
   ld [rLCDC], a
 

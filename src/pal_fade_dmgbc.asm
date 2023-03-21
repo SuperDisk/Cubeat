@@ -5,8 +5,62 @@ include "defines.asm"
 
 section "Fading", rom0
 
+FadeInit::
+  ld a, $FF
+  ld [wFadeAmount], a
+  cpl
+  ld [wFading], a
+  ld [wFadeSteps], a
+
+  ld a, %10000000
+  ld [wBGPaletteMask], a
+  ld a, %11000000
+  ld [wOBJPaletteMask], a
+  ret
+
+FadeOut::
+  ld a, 8 ;$80
+  ld [wFadeSteps], a
+  ld a, 16
+  ld [wFadeDelta], a
+  jr FadeIn.load_callback
+
+FadeIn::
+  ld a, 8 ;$80
+  ld [wFadeSteps], a
+  ld a, -16
+  ld [wFadeDelta], a
+
+.load_callback:
+  ld a, l
+  ld [wFadeCallback], a
+  ld a, h
+  ld [wFadeCallback+1], a
+  ld a, 1
+  ld [wFading], a
+KnownRet::
+  ret
+
+FadeStep::
+  ld a, [wFadeSteps]
+  or a
+  jr nz, FadePaletteBuffers
+
+  ld a, [wFading]
+  or a
+  ret z
+
+  xor a
+  ld [wFading], a
+
+  ld a, [wFadeCallback]
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  jp hl
+
 FadeDMGToWhite:
-  ld c, low(hBGP)
+  ld c, low(rBGP)
   ld hl, wBGP
 .fadeDMGPalToWhite
   ld a, [hli]
@@ -31,7 +85,7 @@ FadeDMGToWhite:
   ret z
   ld a, c
   inc c
-  cp low(hOBP1)
+  cp low(rOBP1)
   jr nz, .fadeDMGPalToWhite
   ret
 
@@ -235,7 +289,7 @@ FadePaletteBuffers:: ;; --------- ENTRY POINT ------
   jr .fadedPaletteBlack
 
 .fadeDMGToBlack
-  ld c, low(hBGP)
+  ld c, low(rBGP)
   ld hl, wBGP
 .fadeDMGPalToBlack
   ld a, [hli]
@@ -260,7 +314,7 @@ FadePaletteBuffers:: ;; --------- ENTRY POINT ------
   ret z
   ld a, c
   inc c
-  cp low(hOBP1)
+  cp low(rOBP1)
   jr nz, .fadeDMGPalToBlack
   ret
 
@@ -270,7 +324,6 @@ section UNION "Scratch buffer", hram
 hPaletteMask: db
 
 section "Fade state memory", wram0
-
 wFadeSteps:: db ; Number of fade steps to take
 wFadeDelta:: db ; Value to add to wFadeAmount on each step
 
@@ -291,7 +344,5 @@ wBGP:: db
 wOBP0:: db
 wOBP1:: db
 
-; section "Shadow Pals", hram
-; hBGP:: db
-; hOBP0:: db
-; hOBP1:: db
+wFadeCallback:: dw
+wFading: db

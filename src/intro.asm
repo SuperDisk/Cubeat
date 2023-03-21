@@ -325,7 +325,8 @@ Intro::
   ld [rLCDC], a
 
   call UnfreezeScreen
-  call FadeIn
+
+  ; TODO: fade in
 
   call init_game
   ;; fallthrough

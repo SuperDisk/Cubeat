@@ -53,80 +53,22 @@ TitleScreen::
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
-  ; call FadeIn
-ohyeah:
+  call FadeInit
 
-  ld a, 8 ;$80
-  ld [wFadeSteps], a
-  ld a, 16
-  ld [wFadeDelta], a
-  xor a
-  ld [wFadeAmount], a
-
-  ld a, %10000000
-  ld [wBGPaletteMask], a
-  xor a
-  ld [wOBJPaletteMask], a
-
-  ld de, wBGPaletteBuffer
-  ld hl, pal0+9
-  REPT 4*3
-  ld a, [hl+]
-  ld [de], a
-  inc de
-  ENDR
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-
-yeah:
-  xor a
-  ld [rIF], a
-  halt
-  call FadePaletteBuffers
-
-  ld a, [wFadeSteps]
-  or a
-  jr nz, yeah
-
-  ld a, 8 ;$80
-  ld [wFadeSteps], a
-  ld a, -16
-  ld [wFadeDelta], a
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-
-REPT 60
-  xor a
-  ld [rIF], a
-  halt
-ENDR
-
-yeah2:
-  xor a
-  ld [rIF], a
-  halt
-  call FadePaletteBuffers
-
-  ld a, [wFadeSteps]
-  or a
-  jr nz, yeah2
-REPT 60
-  xor a
-  ld [rIF], a
-  halt
-ENDR
-
-  jp ohyeah
+  ld hl, KnownRet
+  call FadeIn
 
 title_loop:
-  ; Wait 2 VBlanks
+  ; First frame don't do anything since bgs run at 30hz
   ld a, IEF_VBLANK
   ldh [rIE], a
   xor a
   ld [rIF], a
   halt
+
+  call FadeStep
+
+  ;; Second frame
   xor a
   ld [rIF], a
   halt
@@ -138,13 +80,20 @@ title_loop:
   ld [rROMB0], a
   call update_playfield_buffer
 
+  call FadeStep
+
   call poll_joystick
   ld a, [hPressedKeys]
   bit PADB_START, a
   jr z, title_loop
 
+  ld hl, .goto_mainmenu
   call FadeOut
+  jr title_loop
+
+.goto_mainmenu:
   xor a
   ld [rLCDC], a
 
+  pop af
   jp MainMenu

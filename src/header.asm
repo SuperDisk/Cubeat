@@ -70,10 +70,17 @@ Reset::
   jr nz, .copyOAMDMA
 
   ; CGB palettes maybe, DMG ones always
-  xor a
-  ld [rBGP], a
-  ld [rOBP0], a
-  ld [rOBP1], a
+  ; xor a
+  ; ld [rBGP], a
+  ; ld [rOBP0], a
+  ; ld [rOBP1], a
+  ld a, %00_10_01_11
+  ld [wBGP], a
+  ld a, %11_10_00_01
+  ld [wOBP0], a
+  ld a, %00_01_11_10
+  ld [wOBP1], a
+
 
   ; You will also need to reset your handlers' variables below
   ; I recommend reading through, understanding, and customizing this file
@@ -106,7 +113,7 @@ Reset::
   xor a
   rst MemsetSmall
 
-  jp Intro
+  ; jp Intro
   ; jp MainMenu
   jp TitleScreen
 

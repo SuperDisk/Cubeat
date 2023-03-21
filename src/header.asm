@@ -31,8 +31,8 @@ EntryPoint:
   call DisableManualPaletting
 
 .not_sgb:
-  ld hl, skin0.border_bank
-  call colorize
+  ; ld hl, skin0.border_bank
+  ; call colorize
 
 Reset::
   ; Enable sound globally

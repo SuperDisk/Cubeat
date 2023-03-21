@@ -44,32 +44,26 @@ colorize::
   jp ChangeSGBBorder
 
 .cgb:
-  ld de, 17-12
-  add hl, de
+  ld de, wBGPaletteBuffer
 
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-
-  ld de, 9
-  add hl, de
-
-  ld a, %10000000
-  ld [rBCPS], a
-
-  ld de, rBCPD
-  REPT 8
+  ld c, 3*4
+.loop:
   ld a, [hl+]
   ld [de], a
-  ENDR
+  inc de
 
-  ld a, %10000000
-  ld [rOCPS], a
+  dec c
+  jr nz, .loop
 
-  ld de, rOCPD
-  REPT 16
+  ld de, wOBJPaletteBuffer
+
+  ld c, 3*6
+.loop2:
   ld a, [hl+]
   ld [de], a
-  ENDR
+  inc de
+
+  dec c
+  jr nz, .loop2
 
   ret

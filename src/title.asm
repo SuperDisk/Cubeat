@@ -50,6 +50,10 @@ TitleScreen::
   ld a, h ; ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
+  ;; Load colors to fade buffers
+  ld hl, pal_title.cgb
+  call colorize
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
@@ -87,13 +91,6 @@ title_loop:
   bit PADB_START, a
   jr z, title_loop
 
-  ld hl, .goto_mainmenu
+  ld hl, goto_mainmenu
   call FadeOut
   jr title_loop
-
-.goto_mainmenu:
-  xor a
-  ld [rLCDC], a
-
-  pop af
-  jp MainMenu

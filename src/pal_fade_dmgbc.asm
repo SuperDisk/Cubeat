@@ -8,7 +8,7 @@ section "Fading", rom0
 FadeInit::
   ld a, $FF
   ld [wFadeAmount], a
-  cpl
+  xor a
   ld [wFading], a
   ld [wFadeSteps], a
 
@@ -19,6 +19,10 @@ FadeInit::
   ret
 
 FadeOut::
+  ld a, [wFading]
+  or a
+  ret nz
+
   ld a, 8 ;$80
   ld [wFadeSteps], a
   ld a, 16
@@ -26,6 +30,10 @@ FadeOut::
   jr FadeIn.load_callback
 
 FadeIn::
+  ld a, [wFading]
+  or a
+  ret nz
+
   ld a, 8 ;$80
   ld [wFadeSteps], a
   ld a, -16
@@ -42,18 +50,18 @@ KnownRet::
   ret
 
 FadeStep::
-  ld a, [wFadeSteps]
-  or a
-  jr nz, FadePaletteBuffers
-
   ld a, [wFading]
   or a
   ret z
 
+  ld a, [wFadeSteps]
+  or a
+  jr nz, FadePaletteBuffers
+
   xor a
   ld [wFading], a
 
-  ld a, [wFadeCallback]
+  ld hl, wFadeCallback
   ld a, [hl+]
   ld h, [hl]
   ld l, a

@@ -321,8 +321,9 @@ menu_loop:
   ldh [rIE], a
   xor a
   ld [rIF], a
-  halt ; wait for VBlank
-  nop
+  halt
+
+  call FadeStep
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
@@ -336,8 +337,6 @@ menu_loop:
   ld h, [hl]
   ld l, a
   rst CallHL
-
-  call FadeStep
 
   jr menu_loop
 
@@ -763,10 +762,9 @@ music_player_ui:
   ld a, [hPressedKeys]
   bit PADB_B, a
   ret z
-  ; TODO: Fade out
-  xor a
-  ld [rLCDC], a
-  jp MainMenu
+
+  ld hl, goto_mainmenu
+  call FadeOut
 
   ret
 
@@ -856,10 +854,10 @@ levels_ui:
   ld a, [hPressedKeys]
   bit PADB_B, a
   jr z, .no_b
-  ; TODO: Fade out
-  xor a
-  ld [rLCDC], a
-  jp MainMenu
+
+  ld hl, goto_mainmenu
+  call FadeOut
+
 .no_b:
 
   ld a, [hPressedKeys]
@@ -1033,33 +1031,31 @@ main_menu_ui:
 
   ld a, [hPressedKeys]
   ld d, a
-  bit PADB_B, a
+  bit PADB_B, d
   jr z, .no_b
-  ; TODO: Fade out
-  xor a
-  ld [rLCDC], a
-  jp TitleScreen
+
+  ld hl, goto_titlescreen
+  call FadeOut
+
 .no_b:
-  bit PADB_A, a
+  bit PADB_A, d
   jr z, .no_a
-  ; TODO: Fade out
-  xor a
-  ld [rLCDC], a
 
   ld a, [selected_button]
-  ld d, a
-  add d
-  add d
+  add a
   ld hl, .jump
   add_a_to_hl
-  jp hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  call FadeOut
+  jr .no_a
 .jump:
-  jp Intro
-  jp LevelsMenu
-  jp MusicPlayerMenu
-  jp LevelsMenu
+  dw goto_gameplay
+  dw goto_levelsmenu
+  dw goto_musicplayermenu
+  dw goto_levelsmenu
 .no_a:
-
   ld a, [hPressedKeys]
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
   ret z

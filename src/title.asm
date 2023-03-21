@@ -5,6 +5,13 @@ include "res/menu/title_screen.menu.asm"
 SECTION "Title Screen", ROM0
 
 TitleScreen::
+  ;; Load colors to fade buffers
+  ld hl, shit
+  call colorize
+
+  xor a
+  ld [rLCDC], a
+
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
   ld bc, playfield_buffer_rom.end - playfield_buffer_rom
@@ -50,12 +57,10 @@ TitleScreen::
   ld a, h ; ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
-  ;; Load colors to fade buffers
-  ld hl, pal_title.cgb
-  call colorize
-
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
+
+  call UnfreezeScreen
 
   call FadeInit
 

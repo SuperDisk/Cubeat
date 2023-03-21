@@ -98,6 +98,11 @@ ChangeSGBBorder::
 ;; This function is run while interrupts are disabled, so we're
 ;; just doing it the dirty way.
 .turnLCDOff:
+    ;; Exit early if it's already off
+    ldh a, [rLCDC]
+    or a
+    ret z
+
     ldh a, [rLY]
     cp SCRN_Y
     jr c, .turnLCDOff

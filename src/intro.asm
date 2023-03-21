@@ -141,7 +141,7 @@ incbin "res/bg_block_gfx.2bpp"
 .end:
 
 block_highlight:
-;; incbin "res/HighLight_blocks.2bpp"
+incbin "res/HighLight_blocks.2bpp"
 .end:
 
 block_match_anim:

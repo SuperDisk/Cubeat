@@ -166,19 +166,19 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-; include "res/music/sxtnt.asm"
+include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
 Intro::
-  ; ld a, BANK(sxtnt0)
-  ; ld [music_bank], a
-  ; ld [rROMB0], a
+  ld a, BANK(sxtnt0)
+  ld [music_bank], a
+  ld [rROMB0], a
 
-  ; ld a, LOW(sxtnt0)
-  ; ld [decompress_in], a
-  ; ld a, HIGH(sxtnt0)
-  ; ld [decompress_in+1], a
+  ld a, LOW(sxtnt0)
+  ld [decompress_in], a
+  ld a, HIGH(sxtnt0)
+  ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
   ld [decompress_out], a
@@ -749,8 +749,6 @@ transition_stage:
   ret
 
 do_music::
-  ret
-
   ld a, [music_bank]
   ld [rROMB0], a
 

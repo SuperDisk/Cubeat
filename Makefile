@@ -38,12 +38,13 @@ RGBFIX  := $(RGBDS)rgbfix
 RGBGFX  := $(RGBDS)rgbgfx
 
 PROLOG := swipl
-SBCL := sbcl
+LISP := sbcl --noinform --disable-debugger
 
 FURNACE := furnace
 VGMCMP := vgm_cmp
-GIF2TILES := $(SBCL) --noinform --load src/tools/gif2tiles.lisp --eval "(main)"
-TWOBPP2CODE := $(SBCL) --noinform --load src/tools/2bpp2code.lisp --eval "(main)"
+GIF2TILES := $(LISP) --load src/tools/gif2tiles.lisp --eval "(main)"
+TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
+VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
 SUPERFAMICONV := superfamiconv
 
 SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
@@ -131,7 +132,7 @@ $(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
 
 $(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
 	@$(MKDIR_P) $(@D)
-	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | python $(SRCDIR)/tools/vgmcompressor2.py $(RESDIR)/$*.asm
+	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(VGMCOMPRESSOR3) $(RESDIR)/$*.asm
 
 # Background conversion
 

@@ -6,11 +6,9 @@ SECTION "Title Screen", ROM0
 
 TitleScreen::
   ;; Load colors to fade buffers
-  ld hl, shit
+  ld hl, skin_title
   call colorize
-
-  xor a
-  ld [rLCDC], a
+  call safe_turn_off_lcd
 
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
@@ -96,6 +94,6 @@ title_loop:
   bit PADB_START, a
   jr z, title_loop
 
-  ld hl, goto_mainmenu
+  ld hl, goto_mainmenu_with_sgb
   call FadeOut
   jr title_loop

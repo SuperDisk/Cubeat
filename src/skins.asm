@@ -30,6 +30,18 @@ MACRO pal_packet
   db (\1 & $00FF00)>>8, (\1 & $FF0000)>>16, (\1 & $FF)
 ENDM
 
+SECTION "Title border", ROMX
+frame_title_tiles:
+INCBIN "res/borders/SplashScreen_Clean.borderchr.pb16"
+frame_title_attrs:
+INCBIN "res/borders/SplashScreen_Clean.borderattr.pb16"
+
+SECTION "Menus border", ROMX
+frame_menus_tiles:
+INCBIN "res/borders/menus_Clean.borderchr.pb16"
+frame_menus_attrs:
+INCBIN "res/borders/menus_Clean.borderattr.pb16"
+
 FOR I, 1, NUM_SKINS+1
   include "res/backgrounds/bg{02d:I}.asm"
 ENDR
@@ -65,7 +77,7 @@ include "res/sprite_block_gfx.sep1.2bpp.asm"
 
 SECTION "Skins", ROM0
 
-pal_title:: pal_packet $ffffff, $e500e8, $7a1acc, $451bbe
+pal_title:: pal_packet $fff9f4, $6d94b1, $516a95, $29334d
 pal0:: pal_packet $ffffff, $00649e, $124882, $ff9d00
 pal1:  pal_packet $0036b2, $ffc4a2, $ff766e, $f4ff00
 pal2:  pal_packet $ded40f, $fffded, $57dbf1, $5a55ae
@@ -92,12 +104,17 @@ pal22: pal_packet $c3db7b, $8aa346, $617b38, $003d2e
 pal23: pal_packet $ffff00, $000091, $000000, $ff0000
 pal24: pal_packet $9c00cd, $fdc540, $e99418, $ffffff
 
-skins::
-
-shit::
-db BANK(frame_01_tiles)
-dw frame_01_tiles, frame_01_attrs
+skin_title::
+db BANK(frame_title_tiles)
+dw frame_title_tiles, frame_title_attrs
 dw pal_title
+
+skin_menus::
+db BANK(frame_menus_tiles)
+dw frame_menus_tiles, frame_menus_attrs
+dw pal_title
+
+skins::
 
 skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
 skin1:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_02_tiles, frame_02_attrs, pal1

@@ -9,3 +9,13 @@ wait_vblank::
   ld [rIF], a
   halt
   ret
+
+safe_turn_off_lcd::
+  ld a, [rLCDC]
+  or a
+  ret z
+
+  call wait_vblank
+  xor a
+  ld [rLCDC], a
+  ret

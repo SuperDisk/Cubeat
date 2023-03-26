@@ -57,36 +57,6 @@ MACRO spriteX1 ; which sprite
   ld [wShadowOAM+(4*(\1))+1], a
 ENDM
 
-MACRO add_a_to_r16
-  add \2
-  ld \2, a
-  adc \1
-  sub \2
-  ld \1, a
-ENDM
-
-;; Thanks PinoBatch!
-MACRO sub_from_r16 ;; (high, low, value)
-  ld a, \2
-  sub \3
-  ld \2, a
-  sbc a  ; A = -1 if borrow or 0 if not
-  add \1
-  ld \1, a
-ENDM
-
-MACRO add_a_to_hl
-  add_a_to_r16 h, l
-ENDM
-
-MACRO add_a_to_de
-  add_a_to_r16 d, e
-ENDM
-
-MACRO add_a_to_bc
-  add_a_to_r16 b, c
-ENDM
-
 MACRO deflevel
   ; Level number
   db \1
@@ -1915,55 +1885,55 @@ goto_xy_pos:
   ret
 
 poll_joystick::
-	ld c, LOW(rP1)
-	ld a, $20 ; Select D-pad
-	ldh [c], a
+  ld c, LOW(rP1)
+  ld a, $20 ; Select D-pad
+  ldh [c], a
 REPT 6
-	ldh a, [c]
+  ldh a, [c]
 ENDR
-	or $F0 ; Set 4 upper bits (give them consistency)
-	ld b, a
+  or $F0 ; Set 4 upper bits (give them consistency)
+  ld b, a
 
-	; Filter impossible D-pad combinations
-	and $0C ; Filter only Down and Up
-	ld a, b
-	jr nz, .notUpAndDown
-	or $0C ; If both are pressed, "unpress" them
-	ld b, a
+  ; Filter impossible D-pad combinations
+  and $0C ; Filter only Down and Up
+  ld a, b
+  jr nz, .notUpAndDown
+  or $0C ; If both are pressed, "unpress" them
+  ld b, a
 .notUpAndDown
-	and $03 ; Filter only Left and Right
-	jr nz, .notLeftAndRight
-	; If both are pressed, "unpress" them
-	inc b
-	inc b
-	inc b
+  and $03 ; Filter only Left and Right
+  jr nz, .notLeftAndRight
+  ; If both are pressed, "unpress" them
+  inc b
+  inc b
+  inc b
 .notLeftAndRight
-	swap b ; Put D-pad buttons in upper nibble
+  swap b ; Put D-pad buttons in upper nibble
 
-	ld a, $10 ; Select buttons
-	ldh [c], a
+  ld a, $10 ; Select buttons
+  ldh [c], a
 REPT 6
-	ldh a, [c]
+  ldh a, [c]
 ENDR
-	; On SsAB held, soft-reset
-	and $0F
-	; jr z, .perhapsReset
+  ; On SsAB held, soft-reset
+  and $0F
+  ; jr z, .perhapsReset
 .dontReset
 
-	or $F0 ; Set 4 upper bits
-	xor b ; Mix with D-pad bits, and invert all bits (such that pressed=1) thanks to "or $F0"
-	ld b, a
+  or $F0 ; Set 4 upper bits
+  xor b ; Mix with D-pad bits, and invert all bits (such that pressed=1) thanks to "or $F0"
+  ld b, a
 
-	; Release joypad
-	ld a, $30
-	ldh [c], a
+  ; Release joypad
+  ld a, $30
+  ldh [c], a
 
-	ldh a, [hHeldKeys]
-	cpl
-	and b
-	ldh [hPressedKeys], a
-	ld a, b
-	ldh [hHeldKeys], a
+  ldh a, [hHeldKeys]
+  cpl
+  and b
+  ldh [hPressedKeys], a
+  ld a, b
+  ldh [hHeldKeys], a
   ret
 
 MACRO anim_sprite

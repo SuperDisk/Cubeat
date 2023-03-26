@@ -7,6 +7,15 @@ goto_mainmenu::
   ld [rLCDC], a
 
   pop af
+  scf
+  jp MainMenu
+
+goto_mainmenu_with_sgb::
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  or a
   jp MainMenu
 
 goto_titlescreen::

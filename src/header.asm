@@ -113,7 +113,7 @@ Reset::
   xor a
   rst MemsetSmall
 
-  jp Intro
+  ; jp Intro
   ; jp MainMenu
   jp TitleScreen
 

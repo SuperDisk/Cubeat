@@ -5,22 +5,6 @@ DEF BUTTON_SELECT = %01
 DEF BUTTON_MUSIC = %10
 DEF BUTTON_CREDITS = %11
 
-MACRO add_a_to_r16
-  add \2
-  ld \2, a
-  adc \1
-  sub \2
-  ld \1, a
-ENDM
-
-MACRO add_a_to_hl
-  add_a_to_r16 h, l
-ENDM
-
-MACRO add_a_to_de
-    add_a_to_r16 d, e
-ENDM
-
 MACRO spriteAttr  ; which sprite, x, y, tile
   ld a, \2
   ld [wShadowOAM+(4*\1)+3], a
@@ -201,7 +185,7 @@ LevelsMenu::
   ld [hl], LOW(levels_init)
   inc hl
   ld [hl], HIGH(levels_init)
-  jr Menu
+  jr Menu.no_sgb
 
 MusicPlayerMenu::
   ld hl, menu_ui_ptr
@@ -212,7 +196,7 @@ MusicPlayerMenu::
   ld [hl], LOW(music_player_init)
   inc hl
   ld [hl], HIGH(music_player_init)
-  jr Menu
+  jr Menu.no_sgb
 
 MainMenu::
   ld hl, menu_ui_ptr
@@ -223,9 +207,14 @@ MainMenu::
   ld [hl], LOW(main_menu_init)
   inc hl
   ld [hl], HIGH(main_menu_init)
-  ;; fallthrough
+  jr c, Menu.no_sgb
 
 Menu:
+  ld hl, skin_menus
+  call colorize
+  call safe_turn_off_lcd
+
+.no_sgb:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ld de, playfield_buffer_rom
   ld hl, playfield_buffer
@@ -312,6 +301,8 @@ Menu:
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
+
+  call UnfreezeScreen
 
   ld hl, KnownRet
   call FadeIn

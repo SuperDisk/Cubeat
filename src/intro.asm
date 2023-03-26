@@ -1,31 +1,5 @@
 include "defines.asm"
 
-MACRO add_a_to_r16
-    add \2
-    ld \2, a
-    adc \1
-    sub \2
-    ld \1, a
-ENDM
-
-;; Thanks PinoBatch!
-MACRO sub_from_r16  ;; (high, low, value)
-    ld a, \2
-    sub \3
-    ld \2, a
-    sbc a  ; A = -1 if borrow or 0 if not
-    add \1
-    ld \1, a
-ENDM
-
-MACRO add_a_to_hl
-    add_a_to_r16 h, l
-ENDM
-
-MACRO add_a_to_de
-    add_a_to_r16 d, e
-ENDM
-
 MACRO update_sprite  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM+(4*\1)], a
@@ -426,7 +400,7 @@ kernel_loop:
   call z, draw_block0
   call nz, draw_block1
 
-  call FadeStep
+  ; call FadeStep
 
 .wait_for_before_radar
   ld a, [rLY]

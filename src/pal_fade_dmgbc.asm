@@ -60,6 +60,9 @@ FadeStep::
 
   xor a
   ld [wFading], a
+  inc a ; ld a, 1
+  ld [wFadeDelta], a
+  call FadePaletteBuffers
 
   ld hl, wFadeCallback
   ld a, [hl+]

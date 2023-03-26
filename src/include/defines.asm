@@ -1,8 +1,7 @@
-
 ; First, let's include libraries
 
 INCLUDE "hardware.inc/hardware.inc"
-	rev_Check_hardware_inc 4.0
+  rev_Check_hardware_inc 4.0
 
 INCLUDE "rgbds-structs/structs.asm"
 
@@ -16,18 +15,18 @@ NB_SPRITES equ 40
 ; but this one includes a label, and manually giving them different names is tedious.
 MACRO wait_vram
 .waitVRAM\@
-	ldh a, [rSTAT]
-	and STATF_BUSY
-	jr nz, .waitVRAM\@
+  ldh a, [rSTAT]
+  and STATF_BUSY
+  jr nz, .waitVRAM\@
 ENDM
 
 ; `ld b, X` followed by `ld c, Y` is wasteful (same with other reg pairs).
 ; This writes to both halves of the pair at once, without sacrificing readability
 ; Example usage: `lb bc, X, Y`
 MACRO lb
-	assert -128 <= (\2) && (\2) <= 255, "Second argument to `lb` must be 8-bit!"
-	assert -128 <= (\3) && (\3) <= 255, "Third argument to `lb` must be 8-bit!"
-	ld \1, (LOW(\2) << 8) | LOW(\3)
+  assert -128 <= (\2) && (\2) <= 255, "Second argument to `lb` must be 8-bit!"
+  assert -128 <= (\3) && (\3) <= 255, "Third argument to `lb` must be 8-bit!"
+  ld \1, (LOW(\2) << 8) | LOW(\3)
 ENDM
 
 ; SGB packet types
@@ -63,11 +62,11 @@ SGB_PACKET_SIZE equ 16
 
 ; sgb_packet packet_type, nb_packets, data...
 MACRO sgb_packet
-	db (\1 << 3) | (\2)
-	REPT _NARG - 2
-		SHIFT
-		db \2
-	ENDR
+  db (\1 << 3) | (\2)
+  REPT _NARG - 2
+    SHIFT
+    db \2
+  ENDR
 ENDM
 
 
@@ -81,13 +80,45 @@ STACK_SIZE equ $40
 ; `call cc, Crash` is 3 bytes (`cc` being a condition); `error cc` is only 2 bytes
 ; This should help minimize the impact of error checking
 MACRO error
-	IF _NARG == 0
-		rst Crash
-	ELSE
-		assert Crash == $0038
-		; This assembles to XX FF (with XX being the `jr` instruction)
-		; If the condition is fulfilled, this jumps to the operand: $FF
-		; $FF encodes the instruction `rst $38`!
-		jr \1, @+1
-	ENDC
+  IF _NARG == 0
+    rst Crash
+  ELSE
+    assert Crash == $0038
+    ; This assembles to XX FF (with XX being the `jr` instruction)
+    ; If the condition is fulfilled, this jumps to the operand: $FF
+    ; $FF encodes the instruction `rst $38`!
+    jr \1, @+1
+  ENDC
+ENDM
+
+; Some extra psuedo-op macros that ISSO ain't gonna like ;)
+
+MACRO add_a_to_r16
+  add \2
+  ld \2, a
+  adc \1
+  sub \2
+  ld \1, a
+ENDM
+
+MACRO add_a_to_hl
+  add_a_to_r16 h, l
+ENDM
+
+MACRO add_a_to_de
+    add_a_to_r16 d, e
+ENDM
+
+MACRO add_a_to_bc
+  add_a_to_r16 b, c
+ENDM
+
+;; Thanks PinoBatch!
+MACRO sub_from_r16 ;; (high, low, value)
+  ld a, \2
+  sub \3
+  ld \2, a
+  sbc a  ; A = -1 if borrow or 0 if not
+  add \1
+  ld \1, a
 ENDM

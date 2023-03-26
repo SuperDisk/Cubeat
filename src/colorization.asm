@@ -44,6 +44,15 @@ colorize::
   jp ChangeSGBBorder
 
 .cgb:
+  ld de, 5
+  add hl, de
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+
+  ld de, 9
+  add hl, de
+
   ld de, wBGPaletteBuffer
 
   ld c, 3*4

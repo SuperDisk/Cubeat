@@ -19,3 +19,11 @@ safe_turn_off_lcd::
   xor a
   ld [rLCDC], a
   ret
+
+clear_oam::
+  ld hl, wShadowOAM
+  ld c, NB_SPRITES * 4
+  xor a
+  rst MemsetSmall
+  ld a, h ; ld a, HIGH(wShadowOAM)
+  jp hOAMDMA

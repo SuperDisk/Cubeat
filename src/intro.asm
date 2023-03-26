@@ -140,18 +140,24 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/sxtnt.asm"
+include "res/music/jazzberr.asm"
 
 SECTION "Intro", ROM0
 
 Intro::
-  ld a, BANK(sxtnt0)
+  call clear_oam
+
+  ld hl, skin0.border_bank
+  call colorize
+  call safe_turn_off_lcd
+
+  ld a, BANK(jazzberr0)
   ld [music_bank], a
   ld [rROMB0], a
 
-  ld a, LOW(sxtnt0)
+  ld a, LOW(jazzberr0)
   ld [decompress_in], a
-  ld a, HIGH(sxtnt0)
+  ld a, HIGH(jazzberr0)
   ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
@@ -400,7 +406,7 @@ kernel_loop:
   call z, draw_block0
   call nz, draw_block1
 
-  ; call FadeStep
+  call FadeStep
 
 .wait_for_before_radar
   ld a, [rLY]

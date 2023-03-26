@@ -69,6 +69,7 @@
          (loopbank nil)
          (loopbyte nil)
          (fprocessed -1))
+    (format t "Original file size ~a bytes~%" size)
     (labels ((writebytes (b)
                (incf this-bank (length b))
                (setf cur-bank (append b cur-bank)))
@@ -155,7 +156,7 @@
       (push +flag-eof+ cur-bank)
       (push cur-bank out-banks)
 
-      (setf megaframes (nreverse megaframes))
+      (setf megaframes (reverse megaframes))
 
       (flet ((asm (el)
                (if (listp el)
@@ -165,8 +166,8 @@
                              :direction :output
                              :if-exists :supersede)
           (let ((stem (file-stem outfile)))
-            (loop for (bank . banks) on (nreverse out-banks)
-                  for rbank = (nreverse bank)
+            (loop for (bank . banks) on (reverse out-banks)
+                  for rbank = (reverse bank)
                   for idx from 0 do
                     (format out "SECTION \"~a~a\", ROMX[$4000]~%" stem idx)
                     (format out "~a~a::~%" stem idx)
@@ -178,4 +179,7 @@
                       (format out "megaframe~a:~%" (car el))
                       (format out "db ~{~a~^,~}~%"
                               (coerce (elt megaframes (car el)) 'list)))))))
+      (format t "Compressed to ~a bytes~%"
+              (+ (apply #'+ (mapcar #'length megaframes))
+                 (apply #'+ (mapcar #'length out-banks))))
       (exit))))

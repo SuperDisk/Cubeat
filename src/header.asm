@@ -101,13 +101,9 @@ Reset::
   ; Clear OAM, so it doesn't display garbage
   ; This will get committed to hardware OAM after the end of the first
   ; frame, but the hardware doesn't display it, so that's fine.
-  ld hl, wShadowOAM
-  ld c, NB_SPRITES * 4
-  xor a
-  rst MemsetSmall
-  ld a, h ; ld a, HIGH(wShadowOAM)
-  call hOAMDMA
+  call clear_oam
 
+  ;; Clear the second shadow oam
   ld hl, wShadowOAM2
   ld c, NB_SPRITES * 4
   xor a

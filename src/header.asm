@@ -81,7 +81,6 @@ Reset::
   ld a, %00_01_11_10
   ld [wOBP1], a
 
-
   ; You will also need to reset your handlers' variables below
   ; I recommend reading through, understanding, and customizing this file
   ; in its entirety anyways. This whole file is the "global" game init,
@@ -108,6 +107,10 @@ Reset::
   ld c, NB_SPRITES * 4
   xor a
   rst MemsetSmall
+
+  ;; Mark main menu as not initialized
+  xor a
+  ld [main_menu_inited], a
 
   ; jp Intro
   ; jp MainMenu

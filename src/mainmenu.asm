@@ -126,6 +126,8 @@ scroll_amount: dw
 credits_scroll_amount: db
 credits_row_offset: db
 
+main_menu_inited:: db
+
 SECTION "Tweening vars", WRAM0
 tween_dist: db
 tween_step: db
@@ -286,7 +288,15 @@ Menu:
   ld [tweening], a
   ld [tween_step2], a
   ld [tweening2], a
+
+  ld a, [main_menu_inited]
+  or a
+  jr nz, .no_init_selected_button
+  xor a
   ld [selected_button], a
+  inc a
+  ld [main_menu_inited], a
+.no_init_selected_button:
 
   ;; Load BG area
   ld a, BANK(move_select_gfx)
@@ -541,7 +551,13 @@ ENDR
   ret
 
 main_menu_init:
-  ld de, play_coords
+  ld a, [selected_button]
+  ld de, button_coords
+  add a
+  add a
+  add a
+  add_a_to_de
+
   ld hl, coords
   ld c, (play_coords.end - play_coords)
   rst MemcpySmall

@@ -140,7 +140,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/jazzberr.asm"
+; include "res/music/jazzberr.asm"
 
 SECTION "Intro", ROM0
 
@@ -151,14 +151,14 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ld a, BANK(jazzberr0)
-  ld [music_bank], a
-  ld [rROMB0], a
+  ; ld a, BANK(jazzberr0)
+  ; ld [music_bank], a
+  ; ld [rROMB0], a
 
-  ld a, LOW(jazzberr0)
-  ld [decompress_in], a
-  ld a, HIGH(jazzberr0)
-  ld [decompress_in+1], a
+  ; ld a, LOW(jazzberr0)
+  ; ld [decompress_in], a
+  ; ld a, HIGH(jazzberr0)
+  ; ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
   ld [decompress_out], a
@@ -171,8 +171,6 @@ Intro::
   ld [hl], $00
   inc l
   ld [hl], $D0
-
-  ;; Beyond this point, IME never comes back on
 
   xor a
   ld [hPressedKeys], a
@@ -729,6 +727,7 @@ transition_stage:
   ret
 
 do_music::
+  ret
   ld a, [music_bank]
   ld [rROMB0], a
 

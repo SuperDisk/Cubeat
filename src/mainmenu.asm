@@ -288,6 +288,8 @@ Menu:
   ld [tweening], a
   ld [tween_step2], a
   ld [tweening2], a
+  ;; Set up other vars
+  ld [level_num], a
 
   ld a, [main_menu_inited]
   or a
@@ -1068,6 +1070,17 @@ levels_ui:
   call update_cursor_pos
 
   ld a, [hPressedKeys]
+  bit PADB_A, a
+  jr z, .no_a
+
+  ld a, [selected_level]
+  add a
+  add a
+  ld [level_num], a
+  ld hl, goto_gameplay
+  call FadeOut
+
+.no_a:
   bit PADB_B, a
   jr z, .no_b
 
@@ -1075,7 +1088,6 @@ levels_ui:
   call FadeOut
 
 .no_b:
-
   ld a, [hPressedKeys]
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN
   ret z

@@ -80,7 +80,7 @@ ENDM
 
 SECTION "Levels", ROM0
 
-levels:
+levels::
 include "levels.inc"
 
 level_table:
@@ -229,7 +229,7 @@ score: ds 4 ; 7 digits
 score_counter: dw
 score_curve: dw ; needed score to advance to the next level (3 digits)
 
-level_num: db
+level_num:: db
 
 drop_pos: db
 
@@ -345,7 +345,13 @@ ENDC
   ; ld a, 6
   ; ld [free_sprites_count], a
 
-  ld hl, levels
+  ld a, [level_num]
+  ld hl, level_table
+  add a
+  add_a_to_hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
   call load_level
 
   ld a, DPAD_HOLD_FRAMES
@@ -370,7 +376,7 @@ ENDC
 ;;; Generates a new block at the pointer in HL
 ;;; Param: HL = The level to load
 ;;; Destroy: HL BC AF
-load_level:
+load_level::
   ld a, [hl+]
   ld [level_num], a
 
@@ -422,18 +428,21 @@ game_step::
   bit PADB_START, a
   jp z, .no_shit
 
-  ld a, 10
-  ld [anim_sprites_needed], a
+  ld hl, goto_titlescreen
+  call FadeOut
 
-  ld e, 7
-  ld d, 75
+  ; ld a, 10
+  ; ld [anim_sprites_needed], a
 
-  xor a
-  ld [anim_y_temp], a
-  ld [anim_x_temp], a
+  ; ld e, 7
+  ; ld d, 75
 
-  ld bc, anim_bonus
-  call create_animation
+  ; xor a
+  ; ld [anim_y_temp], a
+  ; ld [anim_x_temp], a
+
+  ; ld bc, anim_bonus
+  ; call create_animation
 
 .no_shit:
 
@@ -1183,9 +1192,19 @@ ENDR
   spriteX1 3
 
   ld a, [level_num]
-  ld e, a
 
-  and $F
+  ld b, 0           ; Initialize B to store the tens digit
+.loop_tens:
+  sub 10             ; Compare A with 10
+  jr c, .done_tens  ; If A < 10, skip the tens subtraction
+  inc b             ; Increment B (the tens digit)
+  jr .loop_tens     ; Repeat the loop for the next tens digit
+.done_tens:
+  add 10
+  ld d, b           ; Move the tens digit to register D
+  ld e, a           ; Move the remaining value (ones digit) to register E
+
+  ld a, e
   add 8
   cp 9
   spriteTile1 3
@@ -1195,9 +1214,7 @@ ENDR
   spriteX1 3
 
 .normal_num:
-  ld a, e
-  and $F0
-  swap a
+  ld a, d
   add 8
   spriteTile1 2
 

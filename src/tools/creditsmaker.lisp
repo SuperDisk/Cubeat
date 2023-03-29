@@ -8,13 +8,15 @@
                       collect (subseq bs 0 16)))
          (rows (loop for rs = tiles then (nthcdr 10 rs)
                      while rs
-                     collect (subseq rs 0 10)))
+                     collect (cons :no-break (subseq rs 0 10))))
          (rows2 (loop with rs = rows
                       with out
                       finally (return (reverse out))
                       while rs do
-                        (if (apply #'= (apply #'append (car rs)))
-                            (setf rs (cdr rs))
+                        (if (apply #'= (apply #'append (cdar rs)))
+                            (progn
+                              (setf rs (cdr rs))
+                              (setf (caadr out) :break))
                             (progn
                               (push (car rs) out)
                               (push (cadr rs) out)
@@ -23,18 +25,24 @@
                          collect (cons a b)))
          (trimmed-rows (loop for (a . b) in rowpairs
                              collect
-                             (loop for t1 in a
-                                   for t2 in b
-                                   for x = (append t1 t2)
-                                   while (not (apply #'= x))
-                                   collect x))))
+                             (cons (car a)
+                                   (loop for t1 in (cdr a)
+                                         for t2 in (cdr b)
+                                         for x = (append t1 t2)
+                                         while (not (apply #'= x))
+                                         collect x)))))
     (loop for row in trimmed-rows
+          for (broken . tiles) = row
           with idx = 1 do
-            (write-sequence (apply #'append row) gfx)
-            (format asm "db ~{~a,~}0~%" (loop for i from idx
-                                              repeat (length row)
-                                              collect i
-                                              finally (setf idx i))))))
+            (write-sequence (apply #'append tiles) gfx)
+            (format asm "db ~{~a,~}0,~a~%"
+                    (loop for i from idx
+                          repeat (length tiles)
+                          collect i
+                          finally (setf idx i))
+                    (if (eq broken :break) 8 0)))
+    (loop repeat 9 do
+          (format asm "db 0,0~%"))))
 
 (defun main ()
   (destructuring-bind (gfx-file asm-file) (cdr sb-ext:*posix-argv*)

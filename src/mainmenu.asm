@@ -107,7 +107,7 @@ incbin "res/menu/credits_scroll.credits.2bpp"
 .end:
 
 credits_scroll_data:
-incbin "res/menu/credits_scroll.credits.asm"
+include "res/menu/credits_scroll.credits.asm"
 .end:
 
 SECTION "Menu vars", WRAM0
@@ -122,6 +122,9 @@ true_x: db
 true_y: db
 
 scroll_amount: dw
+
+credits_scroll_amount: db
+credits_row_offset: db
 
 SECTION "Tweening vars", WRAM0
 tween_dist: db
@@ -379,8 +382,15 @@ credits_init:
   ld hl, text_credits_map
   call MapRegion
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF
-  ld [rLCDC], a
+  spriteAttr 0, 0
+  spriteAttr 1, 0
+  spriteAttr 2, 0
+  spriteAttr 3, 0
+
+  ld a, 120+16
+  ld [credits_scroll_amount], a
+  xor a
+  ld [credits_row_offset], a
 
   ret
 
@@ -391,7 +401,7 @@ credits_ui:
   cp 33
   jr nz, .wait_for_split
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON | LCDCF_OBJ16
   ld [rLCDC], a
 
 .wait_for_split2:
@@ -399,10 +409,120 @@ credits_ui:
   cp 120
   jr nz, .wait_for_split2
 
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF | LCDCF_OBJ16
   ld [rLCDC], a
 
+  ld hl, wShadowOAM
+  ld c, NB_SPRITES * 4
+  xor a
+  rst MemsetSmall
+
   ;; Update scrolling sprites
+  ld a, BANK(credits_scroll_data)
+  ld [rROMB0], a
+
+  ld hl, credits_scroll_data
+  ld a, [credits_row_offset]
+  or a
+  jr z, .scan_done
+  ld c, a
+.scan_zeros:
+  ld a, [hl+]
+  or a
+  jr nz, .scan_zeros
+  inc hl
+  dec c
+  jr nz, .scan_zeros
+
+.scan_done:
+  push hl
+  ld d, h
+  ld e, l
+
+  ld hl, wShadowOAM
+
+  ld a, [credits_scroll_amount]
+  add c
+  ld c, a
+  ld b, 116-92+8
+
+REPT 6
+:
+  ld a, c
+  ld [hl+], a
+  ld a, b
+  ld [hl+], a
+  add 8
+  ld b, a
+  ld a, [de]
+  or a
+  jr z, :+
+  dec a
+  add a
+  ld [hl+], a
+  inc de
+  inc hl
+  jr :-
+:
+  dec hl
+  dec hl
+  inc de
+  ld a, [de]
+  add c
+  add 16
+  ld c, a
+  ld b, 116-92+8
+  inc de
+ENDR
+
+  xor a
+  ld [hl-], a
+  ld [hl-], a
+
+  ld a, [menu_frame_counter]
+  cp 9
+  jr nz, .not_equal
+
+  ld hl, credits_scroll_amount
+  dec [hl]
+
+  xor a
+.not_equal:
+  inc a
+  ld [menu_frame_counter], a
+
+  ld a, [credits_scroll_amount]
+  cp $21
+  jr z, .change_scroll
+  pop af
+  ret
+
+.change_scroll:
+  pop hl
+
+.scan_zeros2:
+  ld a, [hl+]
+  or a
+  jr nz, .scan_zeros2
+
+  ld a, [credits_scroll_amount]
+  add [hl]
+  add 16
+  ld [credits_scroll_amount], a
+
+  ld a, [credits_row_offset]
+  inc a
+  cp $9
+  jr nz, .no_reset_credits
+
+  ld a, 120+16
+  ld [credits_scroll_amount], a
+  xor a
+  ld [credits_row_offset], a
+  ret
+
+.no_reset_credits:
+  ld [credits_row_offset], a
 
   ret
 

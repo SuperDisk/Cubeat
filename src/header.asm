@@ -111,7 +111,8 @@ Reset::
 
   ; jp Intro
   ; jp MainMenu
-  jp TitleScreen
+  ; jp TitleScreen
+  jp CreditsMenu
 
 SECTION "OAM DMA routine", ROMX
 

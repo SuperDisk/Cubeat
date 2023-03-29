@@ -45,6 +45,7 @@ VGMCMP := vgm_cmp
 GIF2TILES := $(LISP) --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
+CREDITSMAKER := $(LISP) --load src/tools/creditsmaker.lisp --eval "(main)"
 SUPERFAMICONV := superfamiconv
 
 SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
@@ -151,6 +152,10 @@ $(RESDIR)/%.menu.asm: $(RESDIR)/%.deop.gif
 $(RESDIR)/%.2bpp.asm: $(RESDIR)/%.2bpp
 	@$(MKDIR_P) $(@D)
 	$(TWOBPP2CODE) $< > $@
+
+$(RESDIR)/%.credits.2bpp $(RESDIR)/%.credits.asm: $(RESDIR)/%.2bpp
+	@$(MKDIR_P) $(@D)
+	$(CREDITSMAKER) $(RESDIR)/$*.credits.2bpp $(RESDIR)/$*.credits.asm < $<
 
 # "Separated" images for 4-color sprites
 

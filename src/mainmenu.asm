@@ -70,6 +70,14 @@ text_select_level_map:
 incbin "res/menu/text_select_level.tilemapu"
 .end:
 
+text_credits_gfx:
+incbin "res/menu/text_credits.2bppu"
+.end:
+
+text_credits_map:
+incbin "res/menu/text_credits.tilemapu"
+.end:
+
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
@@ -92,6 +100,14 @@ incbin "res/menu/bg_scrolled_leftbar.2bpp"
 
 bg_scrolled_topbar_gfx:
 incbin "res/menu/bg_scrolled_topbar.2bpp"
+.end:
+
+credits_scroll_gfx:
+incbin "res/menu/credits_scroll.credits.2bpp"
+.end:
+
+credits_scroll_data:
+incbin "res/menu/credits_scroll.credits.asm"
 .end:
 
 SECTION "Menu vars", WRAM0
@@ -175,6 +191,16 @@ credits_coords:
 .x: db 87, 122, 87, 122
 .y: db 79, 79, 90, 90
 
+CreditsMenu::
+  ld hl, menu_ui_ptr
+  ld [hl], LOW(credits_ui)
+  inc hl
+  ld [hl], HIGH(credits_ui)
+  inc hl
+  ld [hl], LOW(credits_init)
+  inc hl
+  ld [hl], HIGH(credits_init)
+  jr Menu.no_sgb
 
 LevelsMenu::
   ld hl, menu_ui_ptr
@@ -304,6 +330,7 @@ Menu:
 
   call UnfreezeScreen
 
+  call FadeInit
   ld hl, KnownRet
   call FadeIn
 
@@ -330,6 +357,54 @@ menu_loop:
   rst CallHL
 
   jr menu_loop
+
+credits_init:
+  ld de, text_credits_gfx
+  ld hl, $8800
+  ld c, (text_credits_gfx.end - text_credits_gfx)
+  rst MemcpySmall
+
+  ld de, credits_scroll_gfx
+  ld hl, $8000
+  ld bc, (credits_scroll_gfx.end - credits_scroll_gfx)
+  call Memcpy
+
+  lb bc, 4, 2
+  ld de, $9A01
+  ld hl, back_map
+  call MapRegion
+
+  lb bc, 5, 1
+  ld de, $9843
+  ld hl, text_credits_map
+  call MapRegion
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF
+  ld [rLCDC], a
+
+  ret
+
+credits_ui:
+
+.wait_for_split:
+  ld a, [rLY]
+  cp 33
+  jr nz, .wait_for_split
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
+  ld [rLCDC], a
+
+.wait_for_split2:
+  ld a, [rLY]
+  cp 120
+  jr nz, .wait_for_split2
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF
+  ld [rLCDC], a
+
+  ;; Update scrolling sprites
+
+  ret
 
 main_menu_init:
   ld de, play_coords
@@ -508,7 +583,7 @@ music_player_ui:
   ld hl, menu_frame_counter
   inc [hl]
 
-.wait_for_split
+.wait_for_split:
   ld a, [rLY]
   cp 31
   jr nz, .wait_for_split

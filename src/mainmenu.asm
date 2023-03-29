@@ -307,6 +307,7 @@ Menu:
   rst MemcpySmall
 
   ;; Setup sprites
+  call clear_oam
   spriteAttr 0, 0
   spriteAttr 1, OAMF_XFLIP
   spriteAttr 2, OAMF_YFLIP
@@ -395,6 +396,14 @@ credits_init:
   ret
 
 credits_ui:
+  call poll_joystick
+
+  ld a, [hPressedKeys]
+  bit PADB_B, a
+  jr z, .wait_for_split
+
+  ld hl, goto_mainmenu
+  call FadeOut
 
 .wait_for_split:
   ld a, [rLY]
@@ -479,10 +488,15 @@ ENDR
   ld [hl-], a
   ld [hl-], a
 
+  ld a, [hHeldKeys]
+  and ~PADF_B
+  jr nz, .held_a
+
   ld a, [menu_frame_counter]
   cp 9
   jr nz, .not_equal
 
+.held_a:
   ld hl, credits_scroll_amount
   dec [hl]
 
@@ -1240,7 +1254,7 @@ main_menu_ui:
   dw goto_gameplay
   dw goto_levelsmenu
   dw goto_musicplayermenu
-  dw goto_levelsmenu
+  dw goto_creditsmenu
 .no_a:
   ld a, [hPressedKeys]
   and PADF_LEFT|PADF_RIGHT|PADF_UP|PADF_DOWN

@@ -32,6 +32,13 @@ goto_levelsmenu::
   pop af
   jp LevelsMenu
 
+goto_creditsmenu::
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  jp CreditsMenu
+
 goto_musicplayermenu::
   xor a
   ld [rLCDC], a

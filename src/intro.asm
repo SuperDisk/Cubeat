@@ -140,7 +140,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-; include "res/music/jazzberr.asm"
+include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
@@ -151,14 +151,14 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ; ld a, BANK(jazzberr0)
-  ; ld [music_bank], a
-  ; ld [rROMB0], a
+  ld a, LOW(BANK(sxtnt0))
+  ld [music_bank], a
+  ld [rROMB0], a
 
-  ; ld a, LOW(jazzberr0)
-  ; ld [decompress_in], a
-  ; ld a, HIGH(jazzberr0)
-  ; ld [decompress_in+1], a
+  ld a, LOW(sxtnt0)
+  ld [decompress_in], a
+  ld a, HIGH(sxtnt0)
+  ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
   ld [decompress_out], a
@@ -727,9 +727,16 @@ transition_stage:
   ret
 
 do_music::
-  ret
+  ; ret
+
+  ld hl, finish_music_frame
+  push hl
+
   ld a, [music_bank]
-  ld [rROMB0], a
+  ld hl, $2FFF
+  ld [hl+], a
+  ld [hl], 1
+  assert $2FFF + 1 == rROMB1
 
   ld a, [decompress_in]
   ld l, a
@@ -814,6 +821,11 @@ do_music::
 
   ;; Jump to the DE we pushed previously
   ld h, 0
+  ret
+
+finish_music_frame:
+  ld hl, rROMB1
+  ld [hl], 0
   ret
 
 SECTION "Uncap Decompressor", ROM0

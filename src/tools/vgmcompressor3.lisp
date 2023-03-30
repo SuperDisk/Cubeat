@@ -169,10 +169,10 @@
             (loop for (bank . banks) on (reverse out-banks)
                   for rbank = (reverse bank)
                   for idx from 0 do
-                    (format out "SECTION \"~a~a\", ROMX[$4000]~%" stem idx)
+                    (format out "SECTION \"music__~a~a\", ROMX[$4000]~%" stem idx)
                     (format out "~a~a::~%" stem idx)
                     (format out "db ~{~a~^,~}~%" (mapcar #'asm rbank))
-                    (format out "db BANK(~a~a)~%" stem (if banks (1+ idx) loopbank))
+                    (format out "db LOW(BANK(~a~a))~%" stem (if banks (1+ idx) loopbank))
                     (format out "dw ~a~%" (if banks #x4000 (+ #x4000 loopbyte)))
 
                     (loop for el in rbank when (listp el) do

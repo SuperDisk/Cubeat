@@ -290,6 +290,7 @@ Menu:
   ld [tweening2], a
   ;; Set up other vars
   ld [level_num], a
+  ld [locked_level], a
 
   ld a, [main_menu_inited]
   or a
@@ -1077,6 +1078,8 @@ levels_ui:
   add a
   add a
   ld [level_num], a
+  inc a ; set a to nonzero (level num is never 255)
+  ld [locked_level], a
   ld hl, goto_gameplay
   call FadeOut
 

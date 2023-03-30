@@ -230,6 +230,7 @@ score_counter: dw
 score_curve: dw ; needed score to advance to the next level (3 digits)
 
 level_num:: db
+locked_level:: db
 
 drop_pos: db
 
@@ -1001,6 +1002,10 @@ ENDC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Advance level if necessary
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ld a, [locked_level]
+  or a
+  jr nz, .curve_not_reached
 
   ld hl, score_curve+1
   ld a, [score+1]

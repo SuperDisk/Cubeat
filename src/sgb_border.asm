@@ -4,6 +4,9 @@ include "defines.asm"
 
 SECTION "SGB setup", ROM0
 
+MosaicPacket::
+    sgb_packet DATA_SND, 1, $06, $21, $00, $01 ;, xxxxx
+
 TwoPlayersPacket:
     sgb_packet MLT_REQ, 1, 1
 OnePlayerPacket:

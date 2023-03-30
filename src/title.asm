@@ -55,7 +55,6 @@ TitleScreen::
   call UnfreezeScreen
 
   call FadeInit
-
   ld hl, KnownRet
   call FadeIn
 

@@ -16,6 +16,12 @@ FadeInit::
   ld [wBGPaletteMask], a
   ld a, %11000000
   ld [wOBJPaletteMask], a
+
+  ld de, MosaicPacket
+  ld hl, mosaic_packet_ram
+  ld c, 6
+  rst MemcpySmall
+
   ret
 
 FadeOut::
@@ -100,6 +106,15 @@ FadeDMGToWhite:
   jr nz, .fadeDMGPalToWhite
   ret
 
+MosaicSGB::
+  ld a, [wFadeAmount]
+  and %01111000
+  add a
+  or $0F
+  ld [mosaic_packet_ram+5], a
+  ld hl, mosaic_packet_ram
+  jp SendPacketNoDelay
+
 FadePaletteBuffers:: ;; --------- ENTRY POINT ------
   ld hl, wFadeSteps
   dec [hl]
@@ -132,6 +147,9 @@ FadePaletteBuffers:: ;; --------- ENTRY POINT ------
   jr nc, .fadeToBlack
 
   ld d, a
+  ; ld a, [hIsSGB]
+  ; or a
+  ; jr nz, MosaicSGB
   ld a, [hConsoleType]
   and a
   jr nz, FadeDMGToWhite
@@ -357,3 +375,5 @@ wOBP1:: db
 
 wFadeCallback:: dw
 wFading: db
+
+mosaic_packet_ram: ds 6

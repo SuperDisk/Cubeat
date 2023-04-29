@@ -147,7 +147,11 @@ $(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
 
 $(RESDIR)/%.menu.asm: $(RESDIR)/%.deop.gif
 	@$(MKDIR_P) $(@D)
-	$(GIF2TILES) $< $@ t
+	$(GIF2TILES) $< $@ --menu
+
+$(RESDIR)/%.nocolon.asm: $(RESDIR)/%.deop.gif
+	@$(MKDIR_P) $(@D)
+	$(GIF2TILES) $< $@ --no-colon
 
 $(RESDIR)/%.2bpp.asm: $(RESDIR)/%.2bpp
 	@$(MKDIR_P) $(@D)

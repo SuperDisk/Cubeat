@@ -5,6 +5,9 @@ include "res/anarkade_logo.nocolon.asm"
 SECTION "Splash Screen", ROM0
 
 SplashScreen::
+  ld a, 1
+  ld [rROMB1], a
+
   ;; Blank the background layer
   ld a, $88
   ld c, 0
@@ -39,7 +42,7 @@ SplashScreen::
   ld [current_bg], a
 
   ;; Copy initial tile data
-  ld a, BANK(anarkade_logo_gfx_init)
+  ld a, LOW(BANK(anarkade_logo_gfx_init))
   ld [rROMB0], a
 
   ld a, LOW(anarkade_logo_gfx_init)
@@ -48,7 +51,7 @@ SplashScreen::
   ld [ptr_next_update_bg+1], a
   call update_bg
 
-  ld a, BANK(anarkade_logo_map0)
+  ld a, LOW(BANK(anarkade_logo_map0))
   ld [next_map_bank], a
   ld a, LOW(anarkade_logo_map0)
   ld [update_playfield_buffer+1], a

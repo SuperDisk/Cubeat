@@ -3,13 +3,13 @@
 
 (opts:define-opts
     (:name :menu-mode
-           :description "Convert the GIF in menu mode"
-           :short #\m
-           :long "menu")
+     :description "Convert the GIF in menu mode"
+     :short #\m
+     :long "menu")
     (:name :no-colon
-           :description "Don't superimpose a colon on the animation"
-           :short #\n
-           :long "no-colon"))
+     :description "Don't superimpose a colon on the animation"
+     :short #\n
+     :long "no-colon"))
 
 (defparameter *menu-mode* nil)
 (defparameter *no-colon* nil)
@@ -31,7 +31,7 @@
 (defun partition (predicate list)
   (loop for x in list
         if (funcall predicate x) collect x into yes
-        else collect x into no
+          else collect x into no
         finally (return (values yes no))))
 
 (defun update-hash (key func default hash)
@@ -51,30 +51,30 @@
         (current-byte2 0)
         (byte-index 7))
     (loop for idx across (skippy:image-data img) do
-          (multiple-value-bind (b1 b2) (int->bits idx)
-            (setf (ldb (byte 1 byte-index) current-byte1) b1)
-            (setf (ldb (byte 1 byte-index) current-byte2) b2)
-            (decf byte-index)
-            (when (< byte-index 0)
-              (push current-byte1 data)
-              (push current-byte2 data)
-              (setf byte-index 7))))
+      (multiple-value-bind (b1 b2) (int->bits idx)
+        (setf (ldb (byte 1 byte-index) current-byte1) b1)
+        (setf (ldb (byte 1 byte-index) current-byte2) b2)
+        (decf byte-index)
+        (when (< byte-index 0)
+          (push current-byte1 data)
+          (push current-byte2 data)
+          (setf byte-index 7))))
     (reverse data)))
 
 (defun image->2bpp (img)
   (loop for y below (skippy:height img) by 8 do
-        (loop for x below (skippy:width img) by 8
-              append (let ((new-tile (skippy:make-image :width 8 :height 8)))
-                       (skippy:composite img new-tile :sx x :sy y :dx 0 :dy 0)
-                       (tile->2bpp new-tile)))))
+    (loop for x below (skippy:width img) by 8
+          append (let ((new-tile (skippy:make-image :width 8 :height 8)))
+                   (skippy:composite img new-tile :sx x :sy y :dx 0 :dy 0)
+                   (tile->2bpp new-tile)))))
 
 (defun splitimg (img)
   (let ((out nil))
     (loop for y below (skippy:height img) by 8 do
-          (loop for x below (skippy:width img) by 8 do
-                (let ((new-tile (skippy:make-image :width 8 :height 8)))
-                  (skippy:composite img new-tile :sx x :sy y :dx 0 :dy 0)
-                  (push new-tile out))))
+      (loop for x below (skippy:width img) by 8 do
+        (let ((new-tile (skippy:make-image :width 8 :height 8)))
+          (skippy:composite img new-tile :sx x :sy y :dx 0 :dy 0)
+          (push new-tile out))))
     (nreverse out)))
 
 (defun generate-playfield-buffer ()
@@ -99,30 +99,30 @@
                       (incf bytes-generated 6)
                       (setf cycle-counter 1))))
              (loop for y from 0 below 18 do
-                   (loop for x from 0 below (1- 20) do
-                         (push (cons (wrap-playfield-location x y) (1+ bytes-generated))
-                               idx->buffer-offset)
-                         (format out "ld a, 0~%")
-                         (inc-cycles 2)
-                         (format out "ld [hl+], a~%")
-                         (inc-cycles 2)
-                         (incf bytes-generated 3))
+               (loop for x from 0 below (1- 20) do
+                 (push (cons (wrap-playfield-location x y) (1+ bytes-generated))
+                       idx->buffer-offset)
+                 (format out "ld a, 0~%")
+                 (inc-cycles 2)
+                 (format out "ld [hl+], a~%")
+                 (inc-cycles 2)
+                 (incf bytes-generated 3))
 
-                   (push (cons (wrap-playfield-location 19 y) (1+ bytes-generated))
-                         idx->buffer-offset)
-                   (format out "ld [hl], 0~%")
-                   (inc-cycles 3)
-                   (incf bytes-generated 2)
+               (push (cons (wrap-playfield-location 19 y) (1+ bytes-generated))
+                     idx->buffer-offset)
+               (format out "ld [hl], 0~%")
+               (inc-cycles 3)
+               (incf bytes-generated 2)
 
-                   (incf current-row-start-pos #x20)
-                   (let ((new-l (ldb (byte 8 0) current-row-start-pos))) ; lowermost 8 bits
-                     (format out "ld l, ~a~%" new-l)
-                     (inc-cycles 2)
-                     (incf bytes-generated 2)
-                     (when (zerop new-l)
-                       (format out "inc h~%")
-                       (inc-cycles 1)
-                       (incf bytes-generated)))))))
+               (incf current-row-start-pos #x20)
+               (let ((new-l (ldb (byte 8 0) current-row-start-pos))) ; lowermost 8 bits
+                 (format out "ld l, ~a~%" new-l)
+                 (inc-cycles 2)
+                 (incf bytes-generated 2)
+                 (when (zerop new-l)
+                   (format out "inc h~%")
+                   (inc-cycles 1)
+                   (incf bytes-generated)))))))
        (reverse idx->buffer-offset)))))
 
 (defparameter *idx->playfield-buffer-offset*
@@ -134,41 +134,46 @@
     (with-output-to-string (out)
       (format out "ld b, %10000011~%")
       (loop for y from 0 below 11 do
-            (loop for x from 0 below 18
-                  for offs = (cdr (assoc (wrap-playfield-location x y) mapping)) do
-                  (format out "ld a, [hl+]~%")
-                  (format out "and a, b~%")
-                  (format out "jr z, @+5~%")
-                  (format out "ld [playfield_buffer+~a], a~%" offs))))))
+        (loop for x from 0 below 18
+              for offs = (cdr (assoc (wrap-playfield-location x y) mapping)) do
+                (format out "ld a, [hl+]~%")
+                (format out "and a, b~%")
+                (format out "jr z, @+5~%")
+                (format out "ld [playfield_buffer+~a], a~%" offs))))))
 
 (defun tmap->source (annotated-tmap next-frame prefix)
   (with-output-to-string (stream)
     (if (not *menu-mode*)
         (let (old-loc)
           (format stream "ld de, 3~%")
+          (format stream "ld bc, 4~%")
           (loop for (location . tile) in annotated-tmap
                 for loc = (cdr (assoc location *idx->playfield-buffer-offset*)) do
-                (if (and old-loc (= (- loc old-loc) 3))
-                    (format stream "add hl, de~%")
-                    (format stream "ld hl, playfield_buffer + $~X~%" loc))
-                (format stream "ld [hl], ~a~%" (logxor #b10000000 tile))
-                (setf old-loc loc)))
+                  (cond
+                    ((and old-loc (= (- loc old-loc) 3)) (format stream "add hl, de~%"))
+                    ((and old-loc (= (- loc old-loc) 4)) (format stream "add hl, bc~%"))
+                    (t (format stream "ld hl, playfield_buffer + $~X~%" loc)))
+                  (format stream "ld [hl], ~a~%" (logxor #b10000000 tile))
+                  (setf old-loc loc)))
         (flet ((wrap-location (loc)
                  (let ((remainder (mod loc 20))
                        (row (floor loc 20)))
                    (+ #x9800 (* row 32) remainder))))
           (let ((unique-tiles (remove-duplicates (mapcar #'cdr annotated-tmap))))
             (loop for tile in unique-tiles do
-                  (format stream "ld a, ~a~%" (logxor #b10000000 tile))
-                  (loop for (location . __tile) in (remove-if-not (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
-                        (format stream "ld [$~X], a~%" (wrap-location location)))))))
+              (format stream "ld a, ~a~%" (logxor #b10000000 tile))
+              (loop for (location . __tile) in (remove-if-not (lambda (x) (eql (cdr x) tile)) annotated-tmap) do
+                (format stream "ld [$~X], a~%" (wrap-location location)))))))
 
     (format stream "ld a, LOW(~a_map~a)~%" prefix next-frame)
     (format stream "ld [update_playfield_buffer+1], a~%")
     (format stream "ld a, HIGH(~a_map~a)~%" prefix next-frame)
     (format stream "ld [update_playfield_buffer+2], a~%")
 
-    (format stream "ld a, BANK(~a_map~a)~%" prefix next-frame)
+    ;; HACK
+    (if *no-colon*
+        (format stream "ld a, LOW(BANK(~a_map~a))~%" prefix next-frame)
+        (format stream "ld a, BANK(~a_map~a)~%" prefix next-frame))
     (format stream "ld [next_map_bank], a~%")
 
     (format stream "ret~%")))
@@ -211,32 +216,32 @@
             ;; top graphics
             (let ((all-writes (make-hash-table)))
               (loop for (idx . name) in top-assignment do
-                    (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
-                      (loop for (b1 b2) on converted-tile by #'cddr
-                            for i from 0 by 2 do
-                            (update-hash (dpb b2 (byte 8 8) b1)
-                                         (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
+                (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+                  (loop for (b1 b2) on converted-tile by #'cddr
+                        for i from 0 by 2 do
+                          (update-hash (dpb b2 (byte 8 8) b1)
+                                       (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
               (loop for data being each hash-key of all-writes do
-                    (format stream "ld sp, $~X~%" data)
-                    (inc-cycles 3)
-                    (loop for address in (gethash data all-writes) do
-                          (format stream "ld [$~X], sp~%" address)
-                          (inc-cycles 5))))
+                (format stream "ld sp, $~X~%" data)
+                (inc-cycles 3)
+                (loop for address in (gethash data all-writes) do
+                  (format stream "ld [$~X], sp~%" address)
+                  (inc-cycles 5))))
 
             ;; bottom graphics
             (let ((all-writes (make-hash-table)))
               (loop for (idx . name) in bottom-assignment do
-                    (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
-                      (loop for (b1 b2) on converted-tile by #'cddr
-                            for i from 0 by 2 do
-                            (update-hash (dpb b2 (byte 8 8) b1)
-                                         (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
+                (let ((converted-tile (tile->2bpp (gethash name indexes->tiles))))
+                  (loop for (b1 b2) on converted-tile by #'cddr
+                        for i from 0 by 2 do
+                          (update-hash (dpb b2 (byte 8 8) b1)
+                                       (lambda (x) (cons (+ #x8800 (* idx 16) i) x)) nil all-writes))))
               (loop for data being each hash-key of all-writes do
-                    (format stream "ld sp, $~X~%" data)
-                    (inc-cycles 3)
-                    (loop for address in (gethash data all-writes) do
-                          (format stream "ld [$~X], sp~%" address)
-                          (inc-cycles 5)))))))
+                (format stream "ld sp, $~X~%" data)
+                (inc-cycles 3)
+                (loop for address in (gethash data all-writes) do
+                  (format stream "ld [$~X], sp~%" address)
+                  (inc-cycles 5)))))))
 
       (when (and include-halts (not done-dma) (not *menu-mode*))
         (format stream ".wait_for_oam_scanline~%")
@@ -261,7 +266,11 @@
         (format stream "ld a, HIGH(~a_gfx~a)~%" prefix next-frame)
         (format stream "ld [ptr_next_update_bg+1], a~%")
 
-        (format stream "ld a, BANK(~a_gfx~a)~%" prefix next-frame)
+        ;; HACK
+        (if *no-colon*
+            (format stream "ld a, LOW(BANK(~a_gfx~a))~%" prefix next-frame)
+            (format stream "ld a, BANK(~a_gfx~a)~%" prefix next-frame))
+
         (format stream "ld [next_gfx_bank], a~%"))
 
       (format stream "jp update_bg_done~%"))))
@@ -297,22 +306,22 @@
     ;; Build tiles and frame-sets
     (let ((tile-name 0))
       (loop for frame in frames do
-            (let ((frame-set (make-hash-table)))
-              (loop for y below (skippy:height frame) by 8 do
-                    (loop for x below (skippy:width frame) by 8 do
-                          (let ((new-tile (skippy:make-image :width 8 :height 8)))
-                            (skippy:composite frame new-tile :sx x :sy y :dx 0 :dy 0)
-                            (when (not (gethash new-tile tiles))
-                              (setf (gethash new-tile tiles) tile-name)
-                              (incf tile-name))
-                            (setf (gethash (gethash new-tile tiles) frame-set) 0))))
-              (push frame-set frame-sets)))
+        (let ((frame-set (make-hash-table)))
+          (loop for y below (skippy:height frame) by 8 do
+            (loop for x below (skippy:width frame) by 8 do
+              (let ((new-tile (skippy:make-image :width 8 :height 8)))
+                (skippy:composite frame new-tile :sx x :sy y :dx 0 :dy 0)
+                (when (not (gethash new-tile tiles))
+                  (setf (gethash new-tile tiles) tile-name)
+                  (incf tile-name))
+                (setf (gethash (gethash new-tile tiles) frame-set) 0))))
+          (push frame-set frame-sets)))
       (setf frame-sets (reverse frame-sets)))
 
     ;; Build indexes->tiles
     (loop for tile being each hash-key of tiles do
-          (let ((name (gethash tile tiles)))
-            (setf (gethash name indexes->tiles) tile)))
+      (let ((name (gethash tile tiles)))
+        (setf (gethash name indexes->tiles) tile)))
 
     ;; An "assignment" is a mapping from tile index -> tile name
     (setf assignments
@@ -336,29 +345,29 @@
                           collect
                           (let ((freed-idxs (loop for (idx . name) in current-assignment
                                                   when (not (frame-set-contains name frame-set))
-                                                  collect idx)))
+                                                    collect idx)))
                             (setf free-idxs (remove-duplicates (append free-idxs freed-idxs)))
                             (let ((needed-names
-                                   (loop for name being each hash-key of frame-set
-                                         for pair = (assignment-contains name current-assignment)
-                                         for pair-is-active = (and pair (is-active (car pair)))
-                                         when (and pair (not pair-is-active)) do
-                                         (setf free-idxs (remove (car pair) free-idxs)) ; activate it
-                                         when (not pair) collect name))
+                                    (loop for name being each hash-key of frame-set
+                                          for pair = (assignment-contains name current-assignment)
+                                          for pair-is-active = (and pair (is-active (car pair)))
+                                          when (and pair (not pair-is-active)) do
+                                            (setf free-idxs (remove (car pair) free-idxs)) ; activate it
+                                          when (not pair) collect name))
                                   (new-assignment (copy-alist current-assignment)))
                               (loop for name in needed-names do
-                                    (rplacd (assoc (pop free-idxs) new-assignment) name))
+                                (rplacd (assoc (pop free-idxs) new-assignment) name))
                               (setf current-assignment new-assignment)
                               new-assignment)))))))
 
     (setf assignment-diffs
           (loop for (before after) on (cons (car (last assignments)) assignments)
                 when (and before after)
-                collect
-                (loop for (i1 . n1) in before
-                      for (i2 . n2) in after
-                      when (not (equalp i1 i2)) do (format t "Critical error~%")
-                      when (not (equalp n1 n2)) collect (cons i2 n2))))
+                  collect
+                  (loop for (i1 . n1) in before
+                        for (i2 . n2) in after
+                        when (not (equalp i1 i2)) do (format t "Critical error~%")
+                          when (not (equalp n1 n2)) collect (cons i2 n2))))
 
     (setf tilemaps
           (loop for split-img in split-frames
@@ -375,11 +384,11 @@
             (setf tilemap-diffs
                   (loop for (before after) on (cons (car (last tilemaps)) tilemaps)
                         when (and before after)
-                        collect
-                        (loop for (l1 . i1) in before
-                              for (l2 . i2) in after
-                              when (not (equalp l1 l2)) do (format t "Critical error~%")
-                              when (not (equalp i1 i2)) collect (cons l2 i2))))))
+                          collect
+                          (loop for (l1 . i1) in before
+                                for (l2 . i2) in after
+                                when (not (equalp l1 l2)) do (format t "Critical error~%")
+                                  when (not (equalp i1 i2)) collect (cons l2 i2))))))
 
     ;; Dump map initialization code
     (with-open-file (out out-filename
@@ -404,25 +413,25 @@
               for assignment-diff in assignment-diffs
               for tmap in (if *menu-mode* tilemap-diffs tilemaps)
               for i from 0 do
-              (let ((next-frame (mod (1+ i) (length frames))))
-                (when (not *menu-mode*)
-                  (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
-                  (format out "~a_gfx~a:~%" prefix i)
-                  (format out (gfx->source tmap indexes->tiles assignment-diff next-frame :prefix prefix))
-                  (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i)))
+                (let ((next-frame (mod (1+ i) (length frames))))
+                  (when (not *menu-mode*)
+                    (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
+                    (format out "~a_gfx~a:~%" prefix i)
+                    (format out (gfx->source tmap indexes->tiles assignment-diff next-frame :prefix prefix))
+                    (format t "~a gfx updates between frames ~a, ~a~%" (length assignment-diff) i (1+ i)))
 
-                (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
-                (format out "~a_map~a:~%" prefix i)
-                (format out (tmap->source tmap next-frame prefix))))))
+                  (format out "SECTION \"~a\", ROMX~%" (gensym prefix))
+                  (format out "~a_map~a:~%" prefix i)
+                  (format out (tmap->source tmap next-frame prefix))))))
 
     (format t "~%")
     (format t "~a unique tiles~%" (hash-table-count tiles))
     (format t "~%")
     (loop for sp-img in split-frames
           for i from 0 do
-          (let ((ut (length (remove-duplicates sp-img :test #'equalp :key #'skippy:image-data))))
-            (when (> ut 256)
-              (format t "Frame ~a has too many (~a) unique tiles!" i ut))))))
+            (let ((ut (length (remove-duplicates sp-img :test #'equalp :key #'skippy:image-data))))
+              (when (> ut 256)
+                (format t "Frame ~a has too many (~a) unique tiles!" i ut))))))
 
 (defun main ()
   (let* ((cmd (opts:get-opts))

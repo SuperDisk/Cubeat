@@ -1,6 +1,6 @@
 include "defines.asm"
 
-DEF NUM_SKINS = 3
+DEF NUM_SKINS = 25
 
 MACRO pal_packet
   .sgb::
@@ -32,15 +32,15 @@ ENDM
 
 SECTION "Title border", ROMX
 frame_title_tiles:
-INCBIN "res/borders/SplashScreen_Clean.borderchr.pb16"
+INCBIN "res/borders/SplashScreen_Clean.borderchr.apu"
 frame_title_attrs:
-INCBIN "res/borders/SplashScreen_Clean.borderattr.pb16"
+INCBIN "res/borders/SplashScreen_Clean.borderattr.apu"
 
 SECTION "Menus border", ROMX
 frame_menus_tiles:
-INCBIN "res/borders/menus_Clean.borderchr.pb16"
+INCBIN "res/borders/menus_Clean.borderchr.apu"
 frame_menus_attrs:
-INCBIN "res/borders/menus_Clean.borderattr.pb16"
+INCBIN "res/borders/menus_Clean.borderattr.apu"
 
 FOR I, 1, NUM_SKINS+1
   include "res/backgrounds/bg{02d:I}.asm"
@@ -49,9 +49,9 @@ ENDR
 FOR I, 1, NUM_SKINS+1
   SECTION "frame_{02d:I}", ROMX
   frame_{02d:I}_tiles:
-  INCBIN "res/borders/SuperGameBoyFrame_{02d:I}_Clean.borderchr.pb16"
+  INCBIN "res/borders/SuperGameBoyFrame_{02d:I}_Clean.borderchr.apu"
   frame_{02d:I}_attrs:
-  INCBIN "res/borders/SuperGameBoyFrame_{02d:I}_Clean.borderattr.pb16"
+  INCBIN "res/borders/SuperGameBoyFrame_{02d:I}_Clean.borderattr.apu"
 ENDR
 
 MACRO defskin ; id, gfx_init, map0, block0, block1
@@ -119,28 +119,28 @@ skins::
 skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
 skin1:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_02_tiles, frame_02_attrs, pal1
 skin2:: defskin 2, bg03_gfx_init, bg03_map0, blockset_2_0, blockset_2_1, frame_03_tiles, frame_03_attrs, pal2
-; skin3:: defskin 3, bg04_gfx_init, bg04_map0, blockset_3_0, blockset_3_1, frame_04_tiles, frame_04_attrs, pal3
-; skin4:: defskin 4, bg05_gfx_init, bg05_map0, blockset_4_0, blockset_4_1, frame_05_tiles, frame_05_attrs, pal4
-; skin5:: defskin 5, bg06_gfx_init, bg06_map0, blockset_5_0, blockset_5_1, frame_06_tiles, frame_06_attrs, pal5
-; skin6:: defskin 6, bg07_gfx_init, bg07_map0, blockset_6_0, blockset_6_1, frame_07_tiles, frame_07_attrs, pal6
-; skin7:: defskin 7, bg08_gfx_init, bg08_map0, blockset_7_0, blockset_7_1, frame_08_tiles, frame_08_attrs, pal7
-; skin8:: defskin 8, bg09_gfx_init, bg09_map0, blockset_8_0, blockset_8_1, frame_09_tiles, frame_09_attrs, pal8
-; skin9:: defskin 9, bg10_gfx_init, bg10_map0, blockset_9_0, blockset_9_1, frame_10_tiles, frame_10_attrs, pal9
-; skin10:: defskin 10, bg11_gfx_init, bg11_map0, blockset_10_0, blockset_10_1, frame_11_tiles, frame_11_attrs, pal10
-; skin11:: defskin 11, bg12_gfx_init, bg12_map0, blockset_11_0, blockset_11_1, frame_12_tiles, frame_12_attrs, pal11
-; skin12:: defskin 12, bg13_gfx_init, bg13_map0, blockset_12_0, blockset_12_1, frame_13_tiles, frame_13_attrs, pal12
-; skin13:: defskin 13, bg14_gfx_init, bg14_map0, blockset_13_0, blockset_13_1, frame_14_tiles, frame_14_attrs, pal13
-; skin14:: defskin 14, bg15_gfx_init, bg15_map0, blockset_14_0, blockset_14_1, frame_15_tiles, frame_15_attrs, pal14
-; skin15:: defskin 15, bg16_gfx_init, bg16_map0, blockset_15_0, blockset_15_1, frame_16_tiles, frame_16_attrs, pal15
-; skin16:: defskin 16, bg17_gfx_init, bg17_map0, blockset_16_0, blockset_16_1, frame_17_tiles, frame_17_attrs, pal16
-; skin17:: defskin 17, bg18_gfx_init, bg18_map0, blockset_17_0, blockset_17_1, frame_18_tiles, frame_18_attrs, pal17
-; skin18:: defskin 18, bg19_gfx_init, bg19_map0, blockset_18_0, blockset_18_1, frame_19_tiles, frame_19_attrs, pal18
-; skin19:: defskin 19, bg20_gfx_init, bg20_map0, blockset_19_0, blockset_19_1, frame_20_tiles, frame_20_attrs, pal19
-; skin20:: defskin 20, bg21_gfx_init, bg21_map0, blockset_20_0, blockset_20_1, frame_21_tiles, frame_21_attrs, pal20
-; skin21:: defskin 21, bg22_gfx_init, bg22_map0, blockset_21_0, blockset_21_1, frame_22_tiles, frame_22_attrs, pal21
-; skin22:: defskin 22, bg23_gfx_init, bg23_map0, blockset_22_0, blockset_22_1, frame_23_tiles, frame_23_attrs, pal22
-; skin23:: defskin 23, bg24_gfx_init, bg24_map0, blockset_23_0, blockset_23_1, frame_24_tiles, frame_24_attrs, pal23
-; skin24:: defskin 24, bg25_gfx_init, bg25_map0, blockset_23_0, blockset_23_1, frame_25_tiles, frame_25_attrs, pal24
+skin3:: defskin 3, bg04_gfx_init, bg04_map0, blockset_3_0, blockset_3_1, frame_04_tiles, frame_04_attrs, pal3
+skin4:: defskin 4, bg05_gfx_init, bg05_map0, blockset_4_0, blockset_4_1, frame_05_tiles, frame_05_attrs, pal4
+skin5:: defskin 5, bg06_gfx_init, bg06_map0, blockset_5_0, blockset_5_1, frame_06_tiles, frame_06_attrs, pal5
+skin6:: defskin 6, bg07_gfx_init, bg07_map0, blockset_6_0, blockset_6_1, frame_07_tiles, frame_07_attrs, pal6
+skin7:: defskin 7, bg08_gfx_init, bg08_map0, blockset_7_0, blockset_7_1, frame_08_tiles, frame_08_attrs, pal7
+skin8:: defskin 8, bg09_gfx_init, bg09_map0, blockset_8_0, blockset_8_1, frame_09_tiles, frame_09_attrs, pal8
+skin9:: defskin 9, bg10_gfx_init, bg10_map0, blockset_9_0, blockset_9_1, frame_10_tiles, frame_10_attrs, pal9
+skin10:: defskin 10, bg11_gfx_init, bg11_map0, blockset_10_0, blockset_10_1, frame_11_tiles, frame_11_attrs, pal10
+skin11:: defskin 11, bg12_gfx_init, bg12_map0, blockset_11_0, blockset_11_1, frame_12_tiles, frame_12_attrs, pal11
+skin12:: defskin 12, bg13_gfx_init, bg13_map0, blockset_12_0, blockset_12_1, frame_13_tiles, frame_13_attrs, pal12
+skin13:: defskin 13, bg14_gfx_init, bg14_map0, blockset_13_0, blockset_13_1, frame_14_tiles, frame_14_attrs, pal13
+skin14:: defskin 14, bg15_gfx_init, bg15_map0, blockset_14_0, blockset_14_1, frame_15_tiles, frame_15_attrs, pal14
+skin15:: defskin 15, bg16_gfx_init, bg16_map0, blockset_15_0, blockset_15_1, frame_16_tiles, frame_16_attrs, pal15
+skin16:: defskin 16, bg17_gfx_init, bg17_map0, blockset_16_0, blockset_16_1, frame_17_tiles, frame_17_attrs, pal16
+skin17:: defskin 17, bg18_gfx_init, bg18_map0, blockset_17_0, blockset_17_1, frame_18_tiles, frame_18_attrs, pal17
+skin18:: defskin 18, bg19_gfx_init, bg19_map0, blockset_18_0, blockset_18_1, frame_19_tiles, frame_19_attrs, pal18
+skin19:: defskin 19, bg20_gfx_init, bg20_map0, blockset_19_0, blockset_19_1, frame_20_tiles, frame_20_attrs, pal19
+skin20:: defskin 20, bg21_gfx_init, bg21_map0, blockset_20_0, blockset_20_1, frame_21_tiles, frame_21_attrs, pal20
+skin21:: defskin 21, bg22_gfx_init, bg22_map0, blockset_21_0, blockset_21_1, frame_22_tiles, frame_22_attrs, pal21
+skin22:: defskin 22, bg23_gfx_init, bg23_map0, blockset_22_0, blockset_22_1, frame_23_tiles, frame_23_attrs, pal22
+skin23:: defskin 23, bg24_gfx_init, bg24_map0, blockset_23_0, blockset_23_1, frame_24_tiles, frame_24_attrs, pal23
+skin24:: defskin 24, bg25_gfx_init, bg25_map0, blockset_23_0, blockset_23_1, frame_25_tiles, frame_25_attrs, pal24
 
 skin_table::
 FOR I, NUM_SKINS

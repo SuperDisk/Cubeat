@@ -47,6 +47,7 @@ TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
 CREDITSMAKER := $(LISP) --load src/tools/creditsmaker.lisp --eval "(main)"
 SUPERFAMICONV := superfamiconv
+APULTRA := apultra
 
 SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
 COLORZERO = "\#00000000"
@@ -187,6 +188,11 @@ $(RESDIR)/%.2bpp $(RESDIR)/%.tilemap: $(RESDIR)/%.png
 $(RESDIR)/%.1bpp: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(RGBGFX) -d 1 -o $@ $<
+
+# Define how to compress files using the APUltra codec
+$(RESDIR)/%.apu: $(RESDIR)/%
+	@$(MKDIR_P) $(@D)
+	$(APULTRA) $< $(RESDIR)/$*.apu
 
 # Define how to compress files using the PackBits16 codec
 # Compressor script requires Python 3

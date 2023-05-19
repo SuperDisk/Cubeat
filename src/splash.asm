@@ -2,11 +2,18 @@ include "defines.asm"
 
 include "res/anarkade_logo.nocolon.asm"
 
+SECTION "Splash screen vars", WRAM0
+splash_frame_counter: db
+
 SECTION "Splash Screen", ROM0
 
 SplashScreen::
+  ;; Splash screen stuff is all in the upper 256 banks
   ld a, 1
   ld [rROMB1], a
+
+  xor a
+  ld [splash_frame_counter], a
 
   ;; Blank the background layer
   ld a, $88
@@ -58,11 +65,18 @@ SplashScreen::
   ld a, HIGH(anarkade_logo_map0)
   ld [update_playfield_buffer+2], a
 
+  call FadeInit
+  ld a, $80
+  ld [wFadeAmount], a
+  xor a
+  ld [wFadeDelta], a
+
+  ld hl, pal_splash
+  call colorize_noborder
+  call FadePaletteBuffers
+
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
-
-  ld a, [wBGP]
-  ld [rBGP], a
 
 splash_loop:
   ld a, [next_map_bank]
@@ -113,4 +127,12 @@ splash_loop:
 
   call update_bg
 
-  jr splash_loop
+  ld a, [splash_frame_counter]
+  inc a
+  ld [splash_frame_counter], a
+  cp 64
+  jp c, splash_loop
+
+  xor a
+  ld [rROMB1], a
+  jp TitleScreen

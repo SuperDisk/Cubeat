@@ -6,7 +6,7 @@ include "defines.asm"
 section "Fading", rom0
 
 FadeInit::
-  ld a, $80
+  ld a, $FF
   ld [wFadeAmount], a
   xor a
   ld [wFading], a
@@ -29,8 +29,6 @@ FadeOut::
   or a
   ret nz
 
-  ld a, $01
-  ld [wFadeAmount], a
   ld a, 8 ;$80
   ld [wFadeSteps], a
   ld a, 16
@@ -42,8 +40,6 @@ FadeIn::
   or a
   ret nz
 
-  ld a, $FF
-  ld [wFadeAmount], a
   ld a, 8 ;$80
   ld [wFadeSteps], a
   ld a, -16

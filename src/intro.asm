@@ -140,7 +140,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/sxtnt.asm"
+; include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
@@ -151,19 +151,19 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ld a, LOW(BANK(sxtnt0))
-  ld [music_bank], a
-  ld [rROMB0], a
+  ; ld a, LOW(BANK(sxtnt0))
+  ; ld [music_bank], a
+  ; ld [rROMB0], a
 
-  ld a, LOW(sxtnt0)
-  ld [decompress_in], a
-  ld a, HIGH(sxtnt0)
-  ld [decompress_in+1], a
+  ; ld a, LOW(sxtnt0)
+  ; ld [decompress_in], a
+  ; ld a, HIGH(sxtnt0)
+  ; ld [decompress_in+1], a
 
-  ld a, LOW(music_buffer)
-  ld [decompress_out], a
-  ld a, HIGH(music_buffer)
-  ld [decompress_out+1], a
+  ; ld a, LOW(music_buffer)
+  ; ld [decompress_out], a
+  ; ld a, HIGH(music_buffer)
+  ; ld [decompress_out+1], a
 
   ld hl, wrap_jump
   ld [hl], $C3

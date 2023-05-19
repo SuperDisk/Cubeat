@@ -50,6 +50,7 @@ colorize::
   ld h, [hl]
   ld l, a
 
+.cgb_atpacket:
   ld de, 9
   add hl, de
 
@@ -76,3 +77,14 @@ colorize::
   jr nz, .loop2
 
   ret
+
+colorize_noborder::
+  ld a, [hConsoleType]
+  or a
+  jr z, colorize.cgb_atpacket
+
+  ld a, [hIsSGB]
+  or a
+  ret z
+
+  jp SendPackets

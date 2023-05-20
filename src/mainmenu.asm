@@ -358,14 +358,14 @@ menu_loop:
   ld [rIF], a
   halt
 
+  call FadeStep
+
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
 
   ld a, [next_map_bank]
   ld [rROMB0], a
   call update_playfield_buffer
-
-  call FadeStep
 
   ld hl, menu_ui_ptr
   ld a, [hl+]

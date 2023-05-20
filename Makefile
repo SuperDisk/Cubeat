@@ -220,6 +220,7 @@ $(RESDIR)/borders/%.borderpal: $(RESDIR)/borders/%.png
 $(RESDIR)/borders/%.borderchr: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borderpal
 	@$(MKDIR_P) $(@D)
 	$(SUPERFAMICONV) tiles -i $< -p $(@:.borderchr=.borderpal) -d $@ $(SUPERFAMICONVFLAGS) -B 4 --max-tiles 256
+	$(PROLOG) $(SRCDIR)/tools/borderfixer.pl --chr_file $@
 $(RESDIR)/borders/%.bordermap: $(RESDIR)/borders/%.png $(RESDIR)/borders/%.borderpal $(RESDIR)/borders/%.borderchr
 	@$(MKDIR_P) $(@D)
 	$(SUPERFAMICONV) map -i $< -p $(@:.bordermap=.borderpal) -t $(@:.bordermap=.borderchr) -d $@ $(SUPERFAMICONVFLAGS) -B 4 --map-width 32 --map-height 28

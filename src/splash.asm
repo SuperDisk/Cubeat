@@ -78,6 +78,12 @@ SplashScreen::
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
   ld [rLCDC], a
 
+  ld c, 60
+.wait_frames:
+  call wait_vblank
+  dec c
+  jr nz, .wait_frames
+
 splash_loop:
   ld a, [next_map_bank]
   ld [rROMB0], a

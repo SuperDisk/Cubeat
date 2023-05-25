@@ -33,7 +33,7 @@ WaitVBlank::
 SECTION "Rst $10", ROM0[$10]
 
 Port1Write::
-  ld l, $03
+  ld l, %10
   ld [hl], e
   inc l
   ld [hl], d
@@ -82,7 +82,7 @@ CallHL::
 SECTION "Rst $30", ROM0[$30]
 
 Port0Write::
-  ld l, $01
+  ld l, %00
   ld [hl], e
   inc l
   ld [hl], d

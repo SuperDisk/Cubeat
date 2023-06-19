@@ -112,9 +112,9 @@ Reset::
   xor a
   ld [main_menu_inited], a
 
-  ; jp Intro
+  jp Intro
   ; jp MainMenu
-  jp TitleScreen
+  ; jp TitleScreen
   ; jp CreditsMenu
   ; jp SplashScreen
 
@@ -161,13 +161,14 @@ SECTION UNION "Shadow OAM", WRAM0,ALIGN[8]
 ;; HUD, preview blocks (top part of screen)
 wShadowOAM::
   ds NB_SPRITES * 4
+.end::
 
 SECTION UNION "Shadow OAM 2", WRAM0,ALIGN[8]
 
 ;; Radar, drop highlights, animations (bottom part of screen)
 wShadowOAM2::
   ds NB_SPRITES * 4
-
+.end::
 ;; this is a dummy "sprite" that is used when we're out
 ;; of real sprites. It doesn't appear.
 ds 4

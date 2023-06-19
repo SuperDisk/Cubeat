@@ -107,7 +107,6 @@ initial_free_sprites:
 FOR SPR, $4C, $9C+4, 4
   db SPR
 ENDR
-.end:
 
 __test_board:
 
@@ -268,22 +267,15 @@ REPT NUM_ANIMS ; number of animation slots
 db ; running
 db ; xoff
 db ; yoff
-dw ; animation
 db ; palette
+dw ; animation
 db ; info
-db ; how many sprites used
-ds 8 ; sprites to use
 ENDR
 anim_end_sentinel: db
 
 anim_x_temp: db
 anim_y_temp: db
 anim_palette_temp: db
-
-anim_sprites_needed: db
-
-free_sprites: ds initial_free_sprites.end - initial_free_sprites
-free_sprites_count: db
 
 bomb_row1: db
 bomb_row2: db
@@ -323,13 +315,6 @@ ENDC
   ld c, board.end - board
   rst MemcpySmall
 
-  ld a, initial_free_sprites.end - initial_free_sprites
-  ld [free_sprites_count], a
-  ld hl, free_sprites
-  ld de, initial_free_sprites
-  ld c, a
-  rst MemcpySmall
-
   ld a, LOW(board.end)-1
   ld [bomb_row1], a
   ld a, LOW(board) + (ROW-1)
@@ -341,10 +326,6 @@ ENDC
   ld a, $FF
   ld [board_start_sentinel], a
   ld [board_end_sentinel], a
-
-  ; Simulate out of sprites condition
-  ; ld a, 6
-  ; ld [free_sprites_count], a
 
   ld a, [level_num]
   ld hl, level_table
@@ -1233,11 +1214,24 @@ ENDR
   jp z, playfield_update
 
 .animation_stuff:
+  ld bc, initial_free_sprites
 
 FOR OFS, 0, NUM_ANIMS*16, 16
   ld hl, animations+OFS
   call .animate
 ENDR
+
+  ld a, [bc]
+  ld h, HIGH(wShadowOAM2)
+  ld l, a
+  ld a, LOW(wShadowOAM2.end)
+  sub l
+  ld c, a
+  xor a
+.zero_oam:
+  ld [hl+], a
+  dec c
+  jr nz, .zero_oam
 
   jr playfield_update
 
@@ -1250,22 +1244,10 @@ ENDR
   ld [anim_x_temp], a
   ld a, [hl+]
   ld [anim_y_temp], a
-
-  push hl
-
-  ld b, h
-  ld c, l
-
-  inc bc
-  inc bc ; get past animation var
-
-  ; now pointing at palette
-  ld a, [bc]
+  ld a, [hl+]
   ld [anim_palette_temp], a
 
-  inc bc ; info
-  inc bc ; num sprites used
-  inc bc ; sprites
+  push hl
 
   ld a, [hl+]
   ld h, [hl]
@@ -1280,22 +1262,21 @@ ENDR
   rst CallHL
 
   ;; animation is done
-  ld hl, -8
-  add hl, bc
-  ld [hl], 3 ; cleanup flag
-  pop af
+  pop hl
+  ld de, -4
+  add hl, de
+  ld [hl], 0 ; disabled
   ret
 
 .anim_continue:
   cp $FE ; Frame End
   jr nz, .anim_continue2
   ;; move to next frame
-  ld b, h
-  ld c, l
+  ld d, h
+  ld a, l
   pop hl
-  ld [hl], c
-  inc hl
-  ld [hl], b
+  ld [hl+], a
+  ld [hl], d
   ret
 
 .anim_continue2:
@@ -1325,11 +1306,10 @@ ENDR
   ld [de], a
   ENDC
   inc e
-  ld a, [hl+] ; flip attrs and palette
-  push hl
-  ld hl, anim_palette_temp
-  or [hl]
-  pop hl
+
+  ld a, [anim_palette_temp]
+  or [hl] ; flip attrs and palette
+  inc hl
   IF !DEF(DBG_DONTANIMATE)
   ld [de], a
   ENDC
@@ -1485,8 +1465,6 @@ game_step2::
   push hl
   push bc
 
-  ld a, 6
-  ld [anim_sprites_needed], a
   ld bc, anim_match_appear
   call create_animation
 
@@ -1552,8 +1530,6 @@ game_step2::
   push hl
   push bc
 
-  ld a, 2
-  ld [anim_sprites_needed], a
   ld bc, anim_explosion
   xor a
   ld [anim_y_temp], a
@@ -1591,78 +1567,19 @@ update_graphics2:
   spriteX 13
   spriteX 14
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Clean up any animations that need it
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-FOR OFS, 0, (NUM_ANIMS)*16, 16
-  ld hl, animations+OFS
-  call .cleanup_anim
-ENDR
-
-  ret
-
-.cleanup_anim:
-  bit 1, [hl]
-  ret z
-
-  ld [hl], 0
-
-  ld de, 7
-  add hl, de
-
-  ld b, HIGH(wShadowOAM2)
-  xor a
-
-  ld d, [hl]
-  ld e, d
-  inc hl
-.hide_spr:
-  ld c, [hl]
-  inc hl
-  ld [bc], a
-
-  dec d
-  jr nz, .hide_spr
-
-  ld c, d ; c = d = 0
-  ld b, e
-
-  ;; Put the claimed sprites back in the free sprites list
-  ld de, free_sprites
-  ld a, [free_sprites_count]
-  add_a_to_de
-
-  dec hl
-.free_sprite_loop:
-  ld a, [hl-]
-  cp $A0
-  jr z, .skipA0 ; don't put dummy sprites back in the pool
-  ld [de], a
-  inc de
-  inc c
-.skipA0:
-  dec b
-  jr nz, .free_sprite_loop
-
-  ld a, [free_sprites_count]
-  add c
-  ld [free_sprites_count], a
-
   ret
 
 ;;; Creates an animation.
 ;;; Param: E = X
 ;;; Param: D = Y
-;;; Param: C = LOW(the anim)
-;;; Param: B = HIGH(the anim)
+;;; Param: BC = the animation
 ;;; Destroy: AF DE BC HL
 create_animation:
   push de
 
   ;; Find an empty animation slot
-  ld hl, animations-16
-  ld de, 16
+  ld hl, animations-7
+  ld de, 7
 .seek_anim_loop:
   add hl, de
 
@@ -1681,58 +1598,24 @@ create_animation:
   inc hl
   ld [hl], d ; y
   inc hl
+  inc hl ; skip palette for now
   ld [hl], c ; LOW(the anim)
   inc hl
   ld [hl], b ; HIGH(the anim)
   inc hl
+
+  ld a, [anim_x_temp]
+  ld [hl-], a ; info
+
+  dec hl
+  dec hl ; back to palette
 
   ld a, [anim_y_temp]
   ld b, a
   swap b
   or b
   ld [hl+], a ; palette
-  ld a, [anim_x_temp]
-  ld [hl+], a ; info
 
-  ;; find free sprites
-  ld a, [anim_sprites_needed]
-  ld d, a
-  ld [hl+], a
-
-  ld a, [free_sprites_count]
-  sub d
-
-  jr nc, .enough_sprites
-
-  cpl
-  inc a
-
-.fetch_zero:
-  ld [hl], $A0
-  inc hl
-  dec d
-  dec a
-  jr nz, .fetch_zero
-  ld [free_sprites_count], a ; a = 0
-
-  ld a, d
-  or d
-  ret z ; no need to even get real sprites
-
-  ld bc, free_sprites
-  jr .fetch_sprites
-
-.enough_sprites:
-  ld [free_sprites_count], a
-  ld bc, free_sprites
-  add_a_to_bc
-
-.fetch_sprites:
-  ld a, [bc]
-  inc bc
-  ld [hl+], a
-  dec d
-  jr nz, .fetch_sprites
   ret
 
 

@@ -727,7 +727,7 @@ transition_stage:
   ret
 
 do_music::
-  ; ret
+  ret
 
   ld hl, finish_music_frame
   push hl

@@ -1,1 +1,1 @@
-xterm -e java -jar ~/Emulicious/Emulicious-old.jar bin/cubeat.gb -set GBVinCartridgeProcess=yeah &
+xterm -e java -jar ~/Emulicious/Emulicious.jar bin/cubeat.gb -set GBVinCartridgeProcess=yeah &

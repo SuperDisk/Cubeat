@@ -112,9 +112,9 @@ Reset::
   xor a
   ld [main_menu_inited], a
 
-  jp Intro
+  ; jp Intro
   ; jp MainMenu
-  ; jp TitleScreen
+  jp TitleScreen
   ; jp CreditsMenu
   ; jp SplashScreen
 
@@ -171,7 +171,7 @@ wShadowOAM2::
 .end::
 ;; this is a dummy "sprite" that is used when we're out
 ;; of real sprites. It doesn't appear.
-ds 4
+dummy_sprite:: ds 4
 
 SECTION "Stack", WRAM0
 

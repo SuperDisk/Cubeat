@@ -108,6 +108,9 @@ FOR SPR, $4C, $9C+4, 4
   db SPR
 ENDR
 
+;; Dummy sprite entries so that we don't read out of bounds
+ds 32, LOW(dummy_sprite)
+
 __test_board:
 
 ; Blank
@@ -276,6 +279,7 @@ anim_end_sentinel: db
 anim_x_temp: db
 anim_y_temp: db
 anim_palette_temp: db
+oam_clear_after: db
 
 bomb_row1: db
 bomb_row2: db
@@ -307,7 +311,7 @@ ENDC
 
   ; A = 0 here
   ld hl, animations
-  ld c, 16*NUM_ANIMS
+  ld c, 7*NUM_ANIMS
   rst MemsetSmall
 
   ld de, __test_board
@@ -1216,22 +1220,13 @@ ENDR
 .animation_stuff:
   ld bc, initial_free_sprites
 
-FOR OFS, 0, NUM_ANIMS*16, 16
+FOR OFS, 0, NUM_ANIMS*7, 7
   ld hl, animations+OFS
   call .animate
 ENDR
 
   ld a, [bc]
-  ld h, HIGH(wShadowOAM2)
-  ld l, a
-  ld a, LOW(wShadowOAM2.end)
-  sub l
-  ld c, a
-  xor a
-.zero_oam:
-  ld [hl+], a
-  dec c
-  jr nz, .zero_oam
+  ld [oam_clear_after], a
 
   jr playfield_update
 
@@ -1259,14 +1254,18 @@ ENDR
   cp $AE ; Animation End
   jr nz, .anim_continue
 
-  rst CallHL
-
   ;; animation is done
-  pop hl
+  pop de
+  push hl
+
+  ld h, d
+  ld l, e
+
   ld de, -4
   add hl, de
   ld [hl], 0 ; disabled
-  ret
+
+  ret ; jp hl
 
 .anim_continue:
   cp $FE ; Frame End
@@ -1566,6 +1565,18 @@ update_graphics2:
   spriteX 12
   spriteX 13
   spriteX 14
+
+  ld h, HIGH(wShadowOAM2)
+  ld a, [oam_clear_after]
+  ld l, a
+  ld a, LOW(wShadowOAM2.end)
+  sub l
+  ld c, a
+  xor a
+.zero_oam:
+  ld [hl+], a
+  dec c
+  jr nz, .zero_oam
 
   ret
 
@@ -1983,16 +1994,10 @@ anim_match_appear:
   anim_frame_end
 
   anim_end
-  push bc
-  push hl
-
-  dec bc
-  dec bc
-
+  ld de, 6
+  add hl, de
+  ld l, [hl]
   ld h, HIGH(board)
-
-  ld a, [bc]
-  ld l, a
 
   ld a, [hl]
   bit 6, a
@@ -2024,6 +2029,4 @@ anim_match_appear:
   ld [hl], a
 
 .fail:
-  pop hl
-  pop bc
   ret

@@ -1571,6 +1571,8 @@ update_graphics2:
   ld l, a
   ld a, LOW(wShadowOAM2.end)
   sub l
+  ret c
+  ret z
   ld c, a
   xor a
 .zero_oam:

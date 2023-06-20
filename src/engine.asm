@@ -414,14 +414,12 @@ game_step::
   bit PADB_START, a
   jp z, .no_shit
 
-  ld hl, goto_titlescreen
-  call FadeOut
+  ; ld hl, goto_titlescreen
+  ; call FadeOut
 
-  ; ld a, 10
-  ; ld [anim_sprites_needed], a
-
-  ; ld e, 7
-  ; ld d, 75
+  ; ld a, [rDIV]
+  ; ld e, 15
+  ; ld d, a
 
   ; xor a
   ; ld [anim_y_temp], a
@@ -1522,8 +1520,7 @@ game_step2::
   add a
   add a
   add a
-  add 47-8-1-8
-  add 11
+  add (47-8-1-8)+11
   ld d, a
 
   push hl
@@ -1552,12 +1549,11 @@ game_step2::
 
 update_graphics2:
   ld a, [drop_pos]
-  add 2
   add a
   add a
   add a
 
-  add 16
+  add 32
 
   spriteX 9
   spriteX 10

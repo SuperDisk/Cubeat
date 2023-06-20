@@ -426,11 +426,11 @@ kernel_loop:
   ;; Anything we couldn't cram into the previous step...
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; ld a, $FF
-  ; ld [rBGP], a
+  ld a, $FF
+  ld [rBGP], a
   call game_step2
-  ; ld a, %00_10_01_11
-  ; ld [rBGP], a
+  ld a, %00_10_01_11
+  ld [rBGP], a
 
   call do_music
 

@@ -38,7 +38,8 @@ MACRO BGColor
 ENDM
 
 SECTION "Buffer wraparound jump", WRAM0[$C000]
-wrap_jump: ds 3
+wrap_jump: ds 3 ; jp $D000
+restore_stack: ds 4 ; ld sp, xxxx; ret
 
 SECTION "Music vars", WRAM0
 music_bank: db
@@ -171,6 +172,12 @@ Intro::
   ld [hl], $00
   inc l
   ld [hl], $D0
+  inc l
+  ld [hl], $31
+  inc l
+  inc l
+  inc l
+  ld [hl], $C9
 
   xor a
   ld [hPressedKeys], a
@@ -328,10 +335,10 @@ kernel_loop:
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; xor a
+  xor a
   ; ld [rBGP], a
   call game_step
-  ; ld a, %00_10_01_11
+  ld a, %00_10_01_11
   ; ld [rBGP], a
 
 .wait_for_below_play_area

@@ -117,10 +117,14 @@ frame_sm83([Cmd|Cmds], DP0, [Code|Codes], DP2) :-
     command_sm83(Cmd, DP0, Code, DP1),
     frame_sm83(Cmds, DP1, Codes, DP2).
 
-megaframe_sm83([], [[0xC9, "mega"]]).
-megaframe_sm83([Cmd|Cmds], [Code|Codes]) :-
-    command_sm83(Cmd, 0, Code, _),
-    megaframe_sm83(Cmds, Codes).
+megaframe_sm83_([], [[0xC3, 0x03, 0xC0, "mega"]]).
+megaframe_sm83_([port0Write(Reg, Val)|Cmds], [[0x31, Reg, Val, 0x08, 0x00, 0xA0]|Codes]) :-
+    megaframe_sm83_(Cmds, Codes).
+megaframe_sm83_([port1Write(Reg, Val)|Cmds], [[0x31, Reg, Val, 0x08, 0x02, 0xA0]|Codes]) :-
+    megaframe_sm83_(Cmds, Codes).
+
+megaframe_sm83(Cmds, [[0x08, 0x04, 0xC0] | Code]) :-
+    megaframe_sm83_(Cmds, Code).
 
 frames_sm83([], DP, [], DP, _).
 frames_sm83([Frame|Frames], DP0, [Code|Codes], DP3, LoopFrame) :-

@@ -140,7 +140,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-; include "res/music/sxtnt.asm"
+include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
@@ -151,14 +151,14 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ; ld a, LOW(BANK(sxtnt0))
-  ; ld [music_bank], a
-  ; ld [rROMB0], a
+  ld a, LOW(BANK(sxtnt0))
+  ld [music_bank], a
+  ld [rROMB0], a
 
-  ; ld a, LOW(sxtnt0)
-  ; ld [decompress_in], a
-  ; ld a, HIGH(sxtnt0)
-  ; ld [decompress_in+1], a
+  ld a, LOW(sxtnt0)
+  ld [decompress_in], a
+  ld a, HIGH(sxtnt0)
+  ld [decompress_in+1], a
 
   ld a, LOW(music_buffer)
   ld [decompress_out], a
@@ -426,13 +426,17 @@ kernel_loop:
   ;; Anything we couldn't cram into the previous step...
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  ; ld a, $FF
+  ; ld [rBGP], a
+  call game_step2
+  ; ld a, %00_10_01_11
+  ; ld [rBGP], a
+
   ld a, $FF
   ld [rBGP], a
-  call game_step2
+  call do_music
   ld a, %00_10_01_11
   ld [rBGP], a
-
-  call do_music
 
 .wait_for_below_play_area0
   ld a, [rLY]
@@ -474,7 +478,13 @@ kernel_loop:
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   call update_bg
+
+
+  ; ld a, $FF
+  ; ld [rBGP], a
   call do_music
+  ; ld a, %00_10_01_11
+  ; ld [rBGP], a
 
   jp kernel_loop
 
@@ -727,7 +737,7 @@ transition_stage:
   ret
 
 do_music::
-  ret
+  ; ret
 
   ld hl, finish_music_frame
   push hl

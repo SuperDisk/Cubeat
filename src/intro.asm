@@ -335,11 +335,17 @@ kernel_loop:
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  xor a
+  ; xor a
   ; ld [rBGP], a
   call game_step
-  ld a, %00_10_01_11
+  ; ld a, %00_10_01_11
   ; ld [rBGP], a
+
+  xor a
+  ld [rBGP], a
+  call do_music
+  ld a, %00_10_01_11
+  ld [rBGP], a
 
 .wait_for_below_play_area
   ld a, [rLY]
@@ -485,13 +491,6 @@ kernel_loop:
   ldh [rSTAT], a ; Careful, this may make the STAT int pending
 
   call update_bg
-
-
-  ; ld a, $FF
-  ; ld [rBGP], a
-  call do_music
-  ; ld a, %00_10_01_11
-  ; ld [rBGP], a
 
   jp kernel_loop
 

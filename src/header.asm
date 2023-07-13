@@ -45,6 +45,37 @@ Reset::
   ld a, $FF
   ld [rAUDVOL], a
 
+  ; Configure channel 1.  See below
+  ld a, $1e
+  ldh [rAUD1SWEEP], a
+  ld a, $10
+  ldh [rAUD1LEN], a
+  ld a, $f3
+  ldh [rAUD1ENV], a
+  ld a, $00
+  ldh [rAUD1LOW], a
+  ld a, $85
+  ldh [rAUD1HIGH], a
+
+  ld a, $10
+  ldh [rAUD2LEN], a
+  ld a, $f3
+  ldh [rAUD2ENV], a
+  ld a, $00
+  ldh [rAUD2LOW], a
+  ld a, $85
+  ldh [rAUD2HIGH], a
+
+  ld a, $10
+  ldh [rAUD4LEN], a
+  ld a, $f3
+  ldh [rAUD4ENV], a
+  ld a, $85
+  ldh [rAUD4POLY], a
+  ld a, $FF
+  ldh [rAUD4GO], a
+
+
   ; Wait for VBlank and turn LCD off
 .waitVBlank
   ldh a, [rLY]

@@ -137,11 +137,11 @@ frames_sm83([Frame|Frames], DP0, [Code|Codes], DP3, LoopFrame) :-
     ),
     length(Frame, FrameLen),
     (
-        FrameLen #> 0,
+        FrameLen #> 75,
         megaframe_sm83(Frame, Code0),
         DP1 #= DP2
     ;
-        FrameLen #=< 0,
+        FrameLen #=< 75,
         frame_sm83(Frame, DP1, Code0, DP2)
     ),
     append(Code0, Code),

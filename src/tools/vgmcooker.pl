@@ -221,7 +221,7 @@ four_op_mode(_, _, 15, twoop).
 four_op_mode(_, _, 16, twoop).
 four_op_mode(_, _, 17, twoop).
 
-decreased_volume(A,B,[],[]).
+decreased_volume(_,_,[],[]).
 decreased_volume(A, B, [wait735 | T1], [wait735 | T2]) :-
     decreased_volume(A, B, T1, T2).
 decreased_volume(A, B, [wait(Samples) | T1], [wait(Samples) | T2]) :-
@@ -264,14 +264,22 @@ decreased_volume(FourOpFlags, SynthTypes, [port0Write(Reg, Val) | T1], [port0Wri
     four_op_mode(FourOpFlags, SynthTypes, Chan, Mode),
     (
         Mode = twoop,
-        NewVal = Val
+        nth0(Chan, SynthTypes, SynthType),
+        DoDecrease #= (SynthType + Which), % if in AM mode, or we're the second operator, DoDecrease != 0
+        if_(DoDecrease = 0, NewVal = Val,
+           (
+               KSL #= (Val /\ 0b11000000),
+               OutputLevel #= (Val /\ 0b00111111),
+               ReducedOutputLevel #= min(OutputLevel + 16, 63),
+               NewVal #= (KSL \/ ReducedOutputLevel)
+           ))
     ;
         level_update(Mode, Table), % ensures that mode is 4op
         (
             nth0(Which, Table, '+'),
             KSL #= (Val /\ 0b11000000),
             OutputLevel #= (Val /\ 0b00111111),
-            ReducedOutputLevel #= min(OutputLevel + 8, 63),
+            ReducedOutputLevel #= min(OutputLevel + 16, 63),
             NewVal #= (KSL \/ ReducedOutputLevel)
         ;
             nth0(Which, Table, '-'),
@@ -288,14 +296,22 @@ decreased_volume(FourOpFlags, SynthTypes, [port1Write(Reg, Val) | T1], [port1Wri
     four_op_mode(FourOpFlags, SynthTypes, Chan, Mode),
     (
         Mode = twoop,
-        NewVal = Val
+        nth0(Chan, SynthTypes, SynthType),
+        DoDecrease #= (SynthType + Which), % if in AM mode, or we're the second operator, DoDecrease != 0
+        if_(DoDecrease = 0, NewVal = Val,
+            (
+                KSL #= (Val /\ 0b11000000),
+                OutputLevel #= (Val /\ 0b00111111),
+                ReducedOutputLevel #= min(OutputLevel + 16, 63),
+                NewVal #= (KSL \/ ReducedOutputLevel)
+            ))
     ;
         level_update(Mode, Table), % ensures that mode is 4op
         (
             nth0(Which, Table, '+'),
             KSL #= (Val /\ 0b11000000),
             OutputLevel #= (Val /\ 0b00111111),
-            ReducedOutputLevel #= min(OutputLevel + 8, 63),
+            ReducedOutputLevel #= min(OutputLevel + 16, 63),
             NewVal #= (KSL \/ ReducedOutputLevel)
         ;
             nth0(Which, Table, '-'),

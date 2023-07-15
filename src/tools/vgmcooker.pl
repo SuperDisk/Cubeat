@@ -18,6 +18,10 @@ replace(I, L, E, K) :-
 
 in(X, Y, Cond) :-
     X in Y #<==> B, bool_rep(Cond, B).
+#=(X, Y, Cond) :-
+    X #= Y #<==> B, bool_rep(Cond, B).
+#\=(X, Y, Cond) :-
+    X #\= Y #<==> B, bool_rep(Cond, B).
 
 skipB(N) --> {length(Ls, N)}, Ls.
 u16(N) --> [B1, B2],
@@ -150,15 +154,6 @@ fourop_operator_channel(5, 2, 1).
 fourop_operator_channel(8, 2, 2).
 fourop_operator_channel(11, 2, 3).
 
-fourop_operator_channel(12, 6, 0).
-fourop_operator_channel(15, 6, 1).
-
-fourop_operator_channel(13, 7, 0).
-fourop_operator_channel(16, 7, 1).
-
-fourop_operator_channel(14, 8, 0).
-fourop_operator_channel(17, 8, 1).
-
 fourop_operator_channel(18, 9, 0).
 fourop_operator_channel(21, 9, 1).
 fourop_operator_channel(24, 9, 2).
@@ -174,14 +169,43 @@ fourop_operator_channel(23, 11, 1).
 fourop_operator_channel(26, 11, 2).
 fourop_operator_channel(29, 11, 3).
 
-fourop_operator_channel(30, 15, 0).
-fourop_operator_channel(33, 15, 1).
+twoop_operator_channel(0, 0, 0).
+twoop_operator_channel(1, 1, 0).
+twoop_operator_channel(2, 2, 0).
+twoop_operator_channel(6, 3, 0).
+twoop_operator_channel(7, 4, 0).
+twoop_operator_channel(8, 5, 0).
+twoop_operator_channel(12, 6, 0).
+twoop_operator_channel(13, 7, 0).
+twoop_operator_channel(14, 8, 0).
+twoop_operator_channel(18, 9, 0).
+twoop_operator_channel(19, 10, 0).
+twoop_operator_channel(20, 11, 0).
+twoop_operator_channel(24, 12, 0).
+twoop_operator_channel(25, 13, 0).
+twoop_operator_channel(26, 14, 0).
+twoop_operator_channel(30, 15, 0).
+twoop_operator_channel(31, 16, 0).
+twoop_operator_channel(32, 17, 0).
 
-fourop_operator_channel(31, 16, 0).
-fourop_operator_channel(34, 16, 1).
-
-fourop_operator_channel(32, 17, 0).
-fourop_operator_channel(35, 17, 1).
+twoop_operator_channel(3, 0, 1).
+twoop_operator_channel(4, 1, 1).
+twoop_operator_channel(5, 2, 1).
+twoop_operator_channel(9, 3, 1).
+twoop_operator_channel(10, 4, 1).
+twoop_operator_channel(11, 5, 1).
+twoop_operator_channel(15, 6, 1).
+twoop_operator_channel(16, 7, 1).
+twoop_operator_channel(17, 8, 1).
+twoop_operator_channel(21, 9, 1).
+twoop_operator_channel(22, 10, 1).
+twoop_operator_channel(23, 11, 1).
+twoop_operator_channel(27, 12, 1).
+twoop_operator_channel(28, 13, 1).
+twoop_operator_channel(29, 14, 1).
+twoop_operator_channel(33, 15, 1).
+twoop_operator_channel(34, 16, 1).
+twoop_operator_channel(35, 17, 1).
 
 % bit, ch1, ch2
 fourop_channel_pair(0, 0, 3).
@@ -190,6 +214,13 @@ fourop_channel_pair(2, 2, 5).
 fourop_channel_pair(3, 9, 12).
 fourop_channel_pair(4, 10, 13).
 fourop_channel_pair(5, 11, 14).
+
+always_twoop_channel(6).
+always_twoop_channel(7).
+always_twoop_channel(8).
+always_twoop_channel(15).
+always_twoop_channel(16).
+always_twoop_channel(17).
 
 synth_type(0, 0, fmfm).
 synth_type(1, 0, amfm).
@@ -201,25 +232,34 @@ level_update(amfm, ['+', '-', '-', '+']).
 level_update(fmam, ['-', '+', '-', '+']).
 level_update(amam, ['+', '-', '+', '+']).
 
-four_op_mode(FourOpFlags, SynthTypes, Chan, Mode) :-
+four_op_algo(FourOpFlags, SynthTypes, Chan, Algo) :-
     (fourop_channel_pair(Bit, Chan, C2), C1 = Chan;
      fourop_channel_pair(Bit, C1, Chan), C2 = Chan),
     FourOpFlags /\ (1 << Bit) #\= 0,
     nth0(C1, SynthTypes, ST1),
     nth0(C2, SynthTypes, ST2),
-    synth_type(ST1, ST2, Mode).
+    synth_type(ST1, ST2, Algo).
 
-four_op_mode(FourOpFlags, _SynthTypes, Chan, twoop) :-
-    (fourop_channel_pair(Bit, Chan, _);
-     fourop_channel_pair(Bit, _, Chan)),
-    FourOpFlags /\ (1 << Bit) #= 0.
+parent_channel(FourOpFlags, Op, Channel, Which, fourop) :-
+    fourop_operator_channel(Op, Channel, Which),
+    (fourop_channel_pair(Bit, Channel, _);
+     fourop_channel_pair(Bit, _, Channel)),
+    FourOpFlags /\ (1 << Bit) #\= 0.
 
-four_op_mode(_, _, 6, twoop).
-four_op_mode(_, _, 7, twoop).
-four_op_mode(_, _, 8, twoop).
-four_op_mode(_, _, 15, twoop).
-four_op_mode(_, _, 16, twoop).
-four_op_mode(_, _, 17, twoop).
+parent_channel(FourOpFlags, Op, Channel, Which, twoop) :-
+    twoop_operator_channel(Op, Channel, Which),
+    (
+        always_twoop_channel(Channel)
+    ;
+        (
+            (
+                fourop_channel_pair(Bit, Channel, _)
+            ;
+                fourop_channel_pair(Bit, _, Channel)
+            ),
+            FourOpFlags /\ (1 << Bit) #= 0
+        )
+    ).
 
 decreased_volume(_,_,[],[]).
 decreased_volume(A, B, [wait735 | T1], [wait735 | T2]) :-
@@ -260,69 +300,55 @@ decreased_volume(FourOpFlags, SynthTypes, [port0Write(Reg, Val) | T1], [port0Wri
     Reg in 0x40..0x55, % key scale / output level command
     Offset #= Reg - 0x40,
     op_offset0(Op, Offset),
-    fourop_operator_channel(Op, Chan, Which),
-    four_op_mode(FourOpFlags, SynthTypes, Chan, Mode),
-    (
-        Mode = twoop,
-        nth0(Chan, SynthTypes, SynthType),
-        DoDecrease #= (SynthType + Which), % if in AM mode, or we're the second operator, DoDecrease != 0
-        if_(DoDecrease = 0, NewVal = Val,
-           (
-               KSL #= (Val /\ 0b11000000),
-               OutputLevel #= (Val /\ 0b00111111),
-               ReducedOutputLevel #= min(OutputLevel + 16, 63),
-               NewVal #= (KSL \/ ReducedOutputLevel)
-           ))
-    ;
-        level_update(Mode, Table), % ensures that mode is 4op
-        (
-            nth0(Which, Table, '+'),
-            KSL #= (Val /\ 0b11000000),
-            OutputLevel #= (Val /\ 0b00111111),
-            ReducedOutputLevel #= min(OutputLevel + 16, 63),
-            NewVal #= (KSL \/ ReducedOutputLevel)
-        ;
-            nth0(Which, Table, '-'),
-            NewVal = Val
-        )
-    ),
+    oldvol_newvol(FourOpFlags, SynthTypes, Op, Val, NewVal),
     decreased_volume(FourOpFlags, SynthTypes, T1, T2).
 
 decreased_volume(FourOpFlags, SynthTypes, [port1Write(Reg, Val) | T1], [port1Write(Reg, NewVal) | T2]) :-
     Reg in 0x40..0x55, % key scale / output level command
     Offset #= Reg - 0x40,
     op_offset1(Op, Offset),
-    fourop_operator_channel(Op, Chan, Which),
-    four_op_mode(FourOpFlags, SynthTypes, Chan, Mode),
-    (
-        Mode = twoop,
-        nth0(Chan, SynthTypes, SynthType),
-        DoDecrease #= (SynthType + Which), % if in AM mode, or we're the second operator, DoDecrease != 0
-        if_(DoDecrease = 0, NewVal = Val,
-            (
-                KSL #= (Val /\ 0b11000000),
-                OutputLevel #= (Val /\ 0b00111111),
-                ReducedOutputLevel #= min(OutputLevel + 16, 63),
-                NewVal #= (KSL \/ ReducedOutputLevel)
-            ))
-    ;
-        level_update(Mode, Table), % ensures that mode is 4op
-        (
-            nth0(Which, Table, '+'),
-            KSL #= (Val /\ 0b11000000),
-            OutputLevel #= (Val /\ 0b00111111),
-            ReducedOutputLevel #= min(OutputLevel + 16, 63),
-            NewVal #= (KSL \/ ReducedOutputLevel)
-        ;
-            nth0(Which, Table, '-'),
-            NewVal = Val
-        )
-    ),
+    oldvol_newvol(FourOpFlags, SynthTypes, Op, Val, NewVal),
     decreased_volume(FourOpFlags, SynthTypes, T1, T2).
 
+oldvol_newvol(FourOpFlags, SynthTypes, Op, Val, NewVal) :-
+    %% determine what channel+mode we're in, from operator+fouropflags
+    %% if twoop, set volume conditionally on synthtype+which operator we are
+    %% if fourop, get the algo based on synthtypes
+    %%   - get the table based on algo, set volume conditionally on algo+which operator we are
+
+    parent_channel(FourOpFlags, Op, Channel, Which, Mode),
+    if_(Mode = twoop,
+       (
+           nth0(Channel, SynthTypes, SynthType),
+           if_(SynthType + Which #\= 0, % if in AM mode, or we're the second operator
+              (
+                  KSL #= (Val /\ 0b11000000),
+                  OutputLevel #= (Val /\ 0b00111111),
+                  ReducedOutputLevel #= min(OutputLevel + 16, 63),
+                  NewVal #= (KSL \/ ReducedOutputLevel)
+              ),
+              (
+                  NewVal = Val
+              ))
+       ),
+       (
+           four_op_algo(FourOpFlags, SynthTypes, Channel, Algo),
+           level_update(Algo, Table),
+           nth0(Which, Table, ShouldSet),
+           if_(ShouldSet = '+',
+              (
+                  KSL #= (Val /\ 0b11000000),
+                  OutputLevel #= (Val /\ 0b00111111),
+                  ReducedOutputLevel #= min(OutputLevel + 16, 63),
+                  NewVal #= (KSL \/ ReducedOutputLevel)
+              ),
+              (
+                  NewVal = Val
+              ))
+       )).
 
 dbg_load(LO, X) :-
-    phrase_from_file((vgm(LO, X), ...), "../res/music/asof.vgm", [type(binary)]).
+    phrase_from_file((vgm(LO, X), ...), "../res/music/nerve.vgm", [type(binary)]).
 
 command_sm83(Command, DecompPointer, Code, NewDecompPointer) :-
     (Command = port0Write(Reg, Val), Opcode = 0xF7;

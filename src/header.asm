@@ -111,10 +111,12 @@ Reset::
   ;; Mark main menu as not initialized
   xor a
   ld [main_menu_inited], a
+  ld [level_num], a
+  ld [locked_level], a
 
-  ; jp Intro
+  jp Intro
   ; jp MainMenu
-  jp TitleScreen
+  ; jp TitleScreen
   ; jp CreditsMenu
   ; jp SplashScreen
 

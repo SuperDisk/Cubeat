@@ -304,6 +304,7 @@ Intro::
 
   call UnfreezeScreen
 
+  call FadeInit
   ld hl, KnownRet
   call FadeIn
 
@@ -432,7 +433,7 @@ kernel_loop:
   ; ld a, %00_10_01_11
   ; ld [rBGP], a
 
-  ld a, $FF
+  ld a, $00
   ld [rBGP], a
   call do_music
   ld a, %00_10_01_11
@@ -479,12 +480,11 @@ kernel_loop:
 
   call update_bg
 
-
-  ; ld a, $FF
-  ; ld [rBGP], a
+  ld a, $FF
+  ld [rBGP], a
   call do_music
-  ; ld a, %00_10_01_11
-  ; ld [rBGP], a
+  ld a, %00_10_01_11
+  ld [rBGP], a
 
   jp kernel_loop
 

@@ -387,10 +387,12 @@ frames_sm83([Frame|Frames], DP0, [Code|Codes], DP3, LoopFrame) :-
     ),
     length(Frame, FrameLen),
     (
-        FrameLen #> 75,
+        %% FrameLen #> 75,
+        true,
         megaframe_sm83(Frame, Code0),
         DP1 #= DP2
     ;
+    false,
     FrameLen #=< 75,
     frame_sm83(Frame, DP1, Code0, DP2)
     ),
@@ -411,6 +413,11 @@ loop_frame(Bytes, LoopOffset, LoopFrame) :-
     length(OnlyWaits, LoopFrame0),
     LoopFrame #= LoopFrame0 - 1.
 
+is_port0_write(port0Write(_,_)).
+partitioned_frame(Frame, Partitioned) :-
+    partition(is_port0_write, Frame, PortZero, PortOne),
+    append(PortOne, PortZero, Partitioned).
+
 opt_type(in_file, in_file, file).
 main([]) :-
     argv_usage(debug).
@@ -422,8 +429,9 @@ main(Argv) :-
     phrase(vgm(LoopOffset, Commands0), Bytes, _),
     writeln(user_error, "Done parsing"),!,
 
-    decreased_volume(0, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], Commands0, Commands),
-    writeln(user_error, "Done decreasing volume"),!,
+    %% decreased_volume(0, [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], Commands0, Commands),
+    %% writeln(user_error, "Done decreasing volume"),!,
+    Commands0=Commands,
 
     loop_frame(Bytes, LoopOffset, LoopFrame),
     format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
@@ -434,6 +442,9 @@ main(Argv) :-
     sound_frames(CookedCommands, Frames),
     writeln(user_error, "Done framing"),!,
 
-    frames_sm83(Frames, 0, SM83Frames, _, LoopFrame),
+    maplist(partitioned_frame, Frames, SortedFrames),
+    writeln(user_error, "Done sorting"),!,
+
+    frames_sm83(SortedFrames, 0, SM83Frames, _, LoopFrame),
     print(LoopFrame), nl, print(SM83Frames),
     writeln(user_error, "Done!"),!.

@@ -1,5 +1,10 @@
 include "defines.asm"
 
+;; %0000000x = normal block
+;; %0000001x = bomb
+;; %0000010x = marked for destruction
+;; %0000011x = getting swept by radar
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug toggles to make development easier
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -109,7 +114,7 @@ FOR SPR, $4C, $9C+4, 4
 ENDR
 
 ;; Dummy sprite entries so that we don't read out of bounds
-ds 32, LOW(dummy_sprite)
+ds 64, LOW(dummy_sprite)
 
 __test_board:
 
@@ -219,9 +224,9 @@ db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 ; ENDR
 
 ;; All black
-; REPT 11
-; db $81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81
-; ENDR
+REPT 11
+db $81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81
+ENDR
 
 SECTION "Board edge array", ROM0, ALIGN[8]
 
@@ -1362,6 +1367,8 @@ game_step2::
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Make blocks fall and try to find matches
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ; jp .perform_destroy
 
   ld bc, board.end-1 - ROW
   ld hl, board.end-1

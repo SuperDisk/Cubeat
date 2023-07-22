@@ -350,56 +350,6 @@ oldvol_newvol(FourOpFlags, SynthTypes, Op, Val, NewVal) :-
 dbg_load(LO, X) :-
     phrase_from_file((vgm(LO, X), ...), "../res/music/nerve.vgm", [type(binary)]).
 
-command_sm83(Command, DecompPointer, Code, NewDecompPointer) :-
-    (Command = port0Write(Reg, Val), Opcode = 0xF7;
-     Command = port1Write(Reg, Val), Opcode = 0xD7),
-    BaseCode = [0x11, Reg, Val, Opcode],
-    Distance #= 0x1000 - (DecompPointer mod 0x1000),
-    if_(Distance in 0..3,
-        (length(Nops, Distance),
-         maplist(=(0x00), Nops)),
-        Nops = []),
-    append(Nops, BaseCode, Code),
-    length(Code, L),
-    NewDecompPointer #= (DecompPointer + L) mod 0x1000.
-command_sm83(wait735, []).
-command_sm83(end, []).
-
-frame_sm83([], DP0, [[0xC9, "regular"]], DP1) :-
-    DP1 #= DP0 + 1.
-frame_sm83([Cmd|Cmds], DP0, [Code|Codes], DP2) :-
-    command_sm83(Cmd, DP0, Code, DP1),
-    frame_sm83(Cmds, DP1, Codes, DP2).
-
-megaframe_sm83([], [[0xC9, "mega"]]).
-megaframe_sm83([Cmd|Cmds], [Code|Codes]) :-
-    command_sm83(Cmd, 0, Code, _),
-    megaframe_sm83(Cmds, Codes).
-
-frames_sm83([], DP, [], DP, _).
-frames_sm83([Frame|Frames], DP0, [Code|Codes], DP3, LoopFrame) :-
-    (
-        LoopFrame #= 0,
-        DP1 #= 0
-    ;
-    LoopFrame #\= 0,
-    DP1 #= DP0
-    ),
-    length(Frame, FrameLen),
-    (
-        %% FrameLen #> 75,
-        true,
-        megaframe_sm83(Frame, Code0),
-        DP1 #= DP2
-    ;
-    false,
-    FrameLen #=< 75,
-    frame_sm83(Frame, DP1, Code0, DP2)
-    ),
-    append(Code0, Code),
-    LoopFrameMinus1 #= LoopFrame - 1,
-    frames_sm83(Frames, DP2, Codes, DP3, LoopFrameMinus1).
-
 loop_frame(Bytes, LoopOffset, LoopFrame) :-
     length(HeaderBytes, 0x100),
     append(HeaderBytes, DataBytes, Bytes),
@@ -414,9 +364,18 @@ loop_frame(Bytes, LoopOffset, LoopFrame) :-
     LoopFrame #= LoopFrame0 - 1.
 
 is_port0_write(port0Write(_,_)).
-partitioned_frame(Frame, Partitioned) :-
-    partition(is_port0_write, Frame, PortZero, PortOne),
-    append(PortOne, PortZero, Partitioned).
+partitioned_frame(Frame, [PortOne, PortZero]) :-
+    partition(is_port0_write, Frame, PortZero, PortOne).
+
+command_bytes(port0Write(A,B), [A,B]).
+command_bytes(port1Write(A,B), [A,B]).
+
+byteified_frame([P1,P0], Byteified) :-
+    maplist(command_bytes, P1, P1Bytes),
+    maplist(command_bytes, P0, P0Bytes),
+    append(P1Bytes, P1Bytes1),
+    append(P0Bytes, P0Bytes1),
+    append(P1Bytes1, P0Bytes1, Byteified).
 
 opt_type(in_file, in_file, file).
 main([]) :-
@@ -433,8 +392,9 @@ main(Argv) :-
     %% writeln(user_error, "Done decreasing volume"),!,
     Commands0=Commands,
 
-    loop_frame(Bytes, LoopOffset, LoopFrame),
-    format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+    %% loop_frame(Bytes, LoopOffset, LoopFrame),
+    %% format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+    LoopFrame=0,
 
     cook(Commands, CookedCommands),
     writeln(user_error, "Done cooking"),!,
@@ -445,6 +405,6 @@ main(Argv) :-
     maplist(partitioned_frame, Frames, SortedFrames),
     writeln(user_error, "Done sorting"),!,
 
-    frames_sm83(SortedFrames, 0, SM83Frames, _, LoopFrame),
-    print(LoopFrame), nl, print(SM83Frames),
+    maplist(byteified_frame, SortedFrames, ByteifiedFrames),
+    print(LoopFrame), nl, print(ByteifiedFrames),
     writeln(user_error, "Done!"),!.

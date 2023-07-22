@@ -370,12 +370,11 @@ partitioned_frame(Frame, [PortOne, PortZero]) :-
 command_bytes(port0Write(A,B), [A,B]).
 command_bytes(port1Write(A,B), [A,B]).
 
-byteified_frame([P1,P0], Byteified) :-
+byteified_frame([P1,P0], [P1Bytes1, P0Bytes1]) :-
     maplist(command_bytes, P1, P1Bytes),
     maplist(command_bytes, P0, P0Bytes),
     append(P1Bytes, P1Bytes1),
-    append(P0Bytes, P0Bytes1),
-    append(P1Bytes1, P0Bytes1, Byteified).
+    append(P0Bytes, P0Bytes1).
 
 opt_type(in_file, in_file, file).
 main([]) :-
@@ -392,9 +391,8 @@ main(Argv) :-
     %% writeln(user_error, "Done decreasing volume"),!,
     Commands0=Commands,
 
-    %% loop_frame(Bytes, LoopOffset, LoopFrame),
-    %% format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
-    LoopFrame=0,
+    loop_frame(Bytes, LoopOffset, LoopFrame),
+    format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
 
     cook(Commands, CookedCommands),
     writeln(user_error, "Done cooking"),!,

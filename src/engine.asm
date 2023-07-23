@@ -1380,6 +1380,7 @@ game_step2::
 
   ld bc, board.end-1 - ROW
   ld hl, board.end-1
+  ld e, %10000001
   xor a
   jr .fall_loop
 
@@ -1387,11 +1388,9 @@ game_step2::
   ld a, c
   or a
   jp z, .perform_destroy ; TODO: make JR
-  ; xor a
+  xor a
 .fall_loop:
-  ld a, [hl]
-  or a
-  ; or [hl]
+  or [hl]
   jr nz, .try_find_match
 
   ld a, [bc]
@@ -1420,98 +1419,43 @@ game_step2::
 
   ;; Check if it's a new match.
 
-  ;; In order to be a match, each block must have the same color,
-  ;; and the top left and bottom right blocks must not be
-  ;; both marked.
+  ;; In order to be a match, each block must have the same color, and the top
+  ;; left and bottom right blocks must not be both marked.
 
-  ;; a `xor` operation is used to check that blocks are not air
-  ;; (i.e. the 7th bit is set) and whether they have the same color.
-  ;; (i.e. their 0th bit xor'ed should be zero).
+  ;; a `xor` operation is used to check that blocks are not air (i.e. the 7th
+  ;; bit is set) and whether they have the same color. (i.e. their 0th bit
+  ;; xor'ed should be zero).
 
-  ;; an `add` operation is actually similar to `xor` in that
-  ;; it checks the 0th bit for color and 7th bit for
-  ;; solidity, but it also has the property of ensuring that
-  ;; both blocks' 6th bit isn't 1.
+  ;; an `add` operation is actually similar to `xor` in that it checks the 0th
+  ;; bit for color and 7th bit for solidity, but it also has the property of
+  ;; ensuring that both blocks' 6th bit isn't 1. (which would mean this match is
+  ;; already marked)
 
   ld d, a
+
+  ld a, [bc]
+  xor d
+  and e
+  jr nz, .no_take2
+
   dec c
   dec l
 
   ld a, [bc]
   add d
-  bit 7, a
-  jr nz, .failed_match
-  bit 0, a
+  and e
   jr nz, .failed_match
 
   ld a, [bc]
   xor [hl]
-  bit 7, a
+  and e
   jr nz, .failed_match
-  bit 0, a
-  jr nz, .failed_match
-
-  inc c
-  inc l
-
-  ld a, [bc]
-  xor d
-  bit 7, a
-  jr nz, .no_take2
-  bit 0, a
-  jr nz, .no_take2
-
-  dec c
-  dec l
 
   ld a, d
   and 1
   ld e, a
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;   ld d, 0
-
-;   and 1
-;   ld e, a
-
-;   ld a, [bc]
-;   ; bit 7, a
-;   or a
-;   jr z, .no_take
-;   bit 6, a
-;   jr z, .top_right_not_marked
-;   set 6, d
-; .top_right_not_marked:
-;   and 1
-;   cp e
-;   jr nz, .no_take
-
-;   ;; First column matches
-;   dec c
-;   dec l
-
-;   ld a, [bc]
-;   ; bit 7, a
-;   or a
-;   jr z, .failed_match
-;   bit 6, a
-;   jr z, .top_left_not_marked
-;   bit 6, d
-;   jr nz, .failed_match
-; .top_left_not_marked:
-;   and 1
-;   cp e
-;   jr nz, .failed_match
-
-;   ld a, [hl]
-;   or a
-;   ; bit 7, a
-;   jr z, .failed_match
-;   and 1
-;   cp e
-;   jr nz, .failed_match
-
-  ;; Second column matches
+  ;;;;;;;
 
   or $80 | (1 << 6) ; TODO: Make this use the actual block, not replace it with the standard
   ld [hl+], a
@@ -1560,7 +1504,8 @@ game_step2::
   pop bc
   pop hl
 
-  jp .no_take
+  ld e, %10000001
+  jp .no_take2
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Perform a destroy if necessary

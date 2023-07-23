@@ -1,5 +1,8 @@
 include "defines.asm"
 
+; DEF DBG_SCANLINES1 = 1
+DEF DBG_SCANLINES2 = 1
+
 MACRO update_sprite  ; which sprite, x, y, tile
   ld a, \3+16
   ld [wShadowOAM+(4*\1)], a
@@ -42,6 +45,7 @@ wrap_jump: ds 3
 
 SECTION "Music vars", WRAM0
 music_bank: db
+music_pointer: dw
 decompress_in: dw
 decompress_out: dw
 
@@ -140,7 +144,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/zen.asm"
+; include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
@@ -151,19 +155,12 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ld a, LOW(BANK(zen0))
-  ld [music_bank], a
-  ld [rROMB0], a
-
-  ld a, LOW(zen0)
-  ld [decompress_in], a
-  ld a, HIGH(zen0)
-  ld [decompress_in+1], a
-
-  ld a, LOW(music_buffer)
-  ld [decompress_out], a
-  ld a, HIGH(music_buffer)
-  ld [decompress_out+1], a
+  ; ld a, LOW(BANK(music0))
+  ; ld [music_bank], a
+  ; ld a, LOW(music0)
+  ; ld [music_pointer], a
+  ; ld a, HIGH(music0)
+  ; ld [music_pointer+1], a
 
   ld hl, wrap_jump
   ld [hl], $C3
@@ -329,16 +326,20 @@ kernel_loop:
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; xor a
-  ; ld [rBGP], a
+IF DEF(DBG_SCANLINES1)
+  ld a, $00
+  ld [rBGP], a
+ENDC
   call game_step
-  ; ld a, %00_10_01_11
-  ; ld [rBGP], a
+IF DEF(DBG_SCANLINES1)
+  ld a, %00_10_01_11
+  ld [rBGP], a
+ENDC
 
 .wait_for_below_play_area
   ld a, [rLY]
   cp 135 ; free to do OAM DMA here (past the play area)
-  jr nz, .wait_for_below_play_area
+  jr c, .wait_for_below_play_area
 .wait_for_below_play_area_hblank
   ld a, [rSTAT]
   and %0000011
@@ -427,22 +428,26 @@ kernel_loop:
   ;; Anything we couldn't cram into the previous step...
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ; ld a, $FF
-  ; ld [rBGP], a
+IF DEF(DBG_SCANLINES2)
+  ld a, $FF
+  ld [rBGP], a
+ENDC
   call game_step2
   ; ld a, %00_10_01_11
   ; ld [rBGP], a
 
-  ld a, $00
-  ld [rBGP], a
+  ; ld a, $00
+  ; ld [rBGP], a
   call do_music
+IF DEF(DBG_SCANLINES2)
   ld a, %00_10_01_11
   ld [rBGP], a
+ENDC
 
 .wait_for_below_play_area0
   ld a, [rLY]
   cp 135 ; free to do OAM DMA here (past the play area)
-  jr nz, .wait_for_below_play_area0
+  jr c, .wait_for_below_play_area0
 .wait_for_below_play_area_hblank0
   ld a, [rSTAT]
   and %0000011
@@ -480,11 +485,15 @@ kernel_loop:
 
   call update_bg
 
-  ld a, $FF
+IF DEF(DBG_SCANLINES1)
+  ld a, $00
   ld [rBGP], a
+ENDC
   call do_music
+IF DEF(DBG_SCANLINES1)
   ld a, %00_10_01_11
   ld [rBGP], a
+ENDC
 
   jp kernel_loop
 
@@ -736,172 +745,48 @@ transition_stage:
 
   ret
 
+mus_loop:
+  ld a, [hl+]
+  or a
+  ret z
+
+  ld [bc], a
+  inc c
+
+  ld a, [hl+]
+
+  ld [bc], a
+  dec c
+  jr mus_loop
+
 do_music::
-  ; ret
-
-  ld hl, finish_music_frame
-  push hl
-
+  ret
   ld a, [music_bank]
   ld hl, $2FFF
   ld [hl+], a
   ld [hl], 1
   assert $2FFF + 1 == rROMB1
 
-  ld a, [decompress_in]
-  ld l, a
-  ld a, [decompress_in+1]
-  ld h, a
-
-  ld a, [hl]
-  cp $81
-  jr nz, .no_reset_decompressor
-
-  ld a, LOW(music_buffer)
-  ld [decompress_out], a
-  ld a, HIGH(music_buffer)
-  ld [decompress_out+1], a
-
-  inc hl
-  ld a, [hl]
-
-.no_reset_decompressor:
-  cp $80
-  jr nz, .regular_frame
-
-  inc hl
-  ld e, [hl]
-  inc hl
-  ld d, [hl]
-  inc hl
-
-  ld a, [hl]
-  or a
-  jr nz, .no_new_bank0
-  inc hl
-  ld a, [hl+]
-  ld [music_bank], a
+  ld hl, music_pointer
   ld a, [hl+]
   ld h, [hl]
   ld l, a
-.no_new_bank0:
-  ld a, l
-  ld [decompress_in], a
-  ld a, h
-  ld [decompress_in+1], a
 
-  ;; Jump to DE
-  push de
-  ld h, $A0
-  ret
+  ld bc, $A002
+  call mus_loop
 
-.regular_frame:
-  ld a, [decompress_out]
-  ld e, a
-  ld a, [decompress_out+1]
-  ld d, a
+  ld bc, $A000
+  call mus_loop
 
-  push de
-
-  ; xor a
-  ; ld [rBGP], a
-  call uncap
-  ; ld a, %00_10_01_11
-  ; ld [rBGP], a
-
-  ld a, [hl]
-  or a
-  jr nz, .no_new_bank
-  inc hl
   ld a, [hl+]
   ld [music_bank], a
+
   ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-.no_new_bank:
-  ld a, l
-  ld [decompress_in], a
-  ld a, h
-  ld [decompress_in+1], a
+  ld [music_pointer], a
+  ld a, [hl]
+  ld [music_pointer+1], a
 
-  ld a, e
-  ld [decompress_out], a
-  ld a, d
-  ld [decompress_out+1], a
-
-  ;; Jump to the DE we pushed previously
-  ld h, $A0
-  ret
-
-finish_music_frame:
   ld hl, rROMB1
   ld [hl], 0
+
   ret
-
-SECTION "Uncap Decompressor", ROM0
-
-uncap::
-  ld	a,[hl+]			; start with token
-  and	a			; 0 marks the end of packed data
-  ret	z
-  bit	7,a			; next byte is offset if 7th bit is set
-  jr	z,_literals             ; literals come next otherwise
-  and	$7F			; bits 0 - 6 define reference length
-  ld	c,a			; move length to c(ounter)
-  ld	a,[hl+]			; load offset
-  ld b, a
-  ld a, [hl+]
-  push	hl			; store packed data address
-  ld	l,b			; offset is negative because game boy cpu lacks
-  ld	h,a			; sub hl,de :)
-  add	hl,de			; locate reference
-
-  ; rectify HL
-  set 4, h
-  res 5, h
-
-_1:
-  ld	a,[hl+]			; and copy it
-  ld	[de],a
-
-  ; inc/rectify DE
-  inc e
-  jr z, rectify1
-.end_rectify:
-
-  ; rectify HL
-  set 4, h
-  res 5, h
-
-  dec	c
-  jr	nz,_1
-  pop	hl			; restore packed data address
-  jr	uncap			; continue
-_literals:
-  ld	c,a			; move length to c(ounter)
-_2:
-  ld	a,[hl+]			; and copy c literals
-  ld	[de],a
-
-  ; inc/rectify DE
-  inc e
-  jr z, rectify2
-.end_rectify:
-
-  dec	c
-  jr	nz,_2
-  jr	uncap			; continue
-
-rectify1:
-  inc d
-  bit 5, d
-  jr z, _1.end_rectify
-  ld d, $D0
-  jr _1.end_rectify
-
-rectify2:
-  inc d
-  bit 5, d
-  jr z, _2.end_rectify
-  ld d, $D0
-  jr _2.end_rectify

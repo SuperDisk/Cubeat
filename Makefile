@@ -133,7 +133,8 @@ $(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
 
 $(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
 	@$(MKDIR_P) $(@D)
-	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(VGMCOMPRESSOR3) $(RESDIR)/$*.asm
+	# $(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(VGMCOMPRESSOR3) $(RESDIR)/$*.asm
+	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(PY) src/tools/vgmdonothinger.py > $(RESDIR)/$*.asm
 
 # Background conversion
 

@@ -4,11 +4,13 @@ from pprint import pprint
 from copy import deepcopy
 
 def flatten(lst):
-    if not isinstance(lst, list):
-        return [lst]
-    if lst == []:
-        return lst
-    return flatten(lst[0]) + flatten(lst[1:])
+    def wack(ls):
+        for el in ls:
+            if isinstance(el, list):
+                yield from wack(el)
+            else:
+                yield el
+    return list(wack(lst))
 
 def loaddata(fname):
     with open(fname, 'rb') as f:
@@ -24,7 +26,7 @@ def count_substrings3(s, n):
         substr = tuple(s[i:i+n])
         count_dict[substr] += 1
         i += n  # move to the end of the current substring
-    return dict(sorted(count_dict.items(), key=lambda item: item[1], reverse=True)[:1350])
+    return dict(sorted(count_dict.items(), key=lambda item: item[1], reverse=True)[:300])
 
 def comp(data, table):
     data=deepcopy(data)
@@ -54,12 +56,15 @@ def decomp(data, table):
             out.append(el)
     return out
 
+def sizeof(q):
+    return sum(2 if isinstance(el,tuple) else 1 for el in q)
+
 def go():
-    frames, flattened = loaddata('../res/music/sxtnt.cooked2')
+    frames, flat = loaddata('../res/music/zen.cooked2')
 
     big = {}
     for n in [4,6,8]:
-        big |= count_substrings3(zendata, n)
+        big |= count_substrings3(flat, n)
 
     for k in list(big):
         if big[k] < 2:
@@ -71,17 +76,26 @@ def go():
         table[k] = ctr
         ctr += 1
 
-    compd, diduse = comp(zendata, table)
+    compd, diduse = comp(flat, table)
     for k in list(big):
         if k not in diduse:
             del big[k]
     bytz=sum(len(x) for x in big)
 
-    csize = sum(2 if isinstance(el,tuple) else 1 for el in compd)
-    print(csize, bytz)
-    print(csize+bytz, len(zendata), ((csize+bytz)/len(zendata)) * 100)
-    print(compd[:1000])
+    crunched = 0
+    smallframes = []
+    for p1,p0 in frames:
+        cframe1,_ = comp(p1, table)
+        cframe0,_ = comp(p0, table)
+        crunched += sizeof(cframe1)+sizeof(cframe0)
+        smallframes.append((cframe1, cframe0))
 
-    assert decomp(compd, table) == zendata
+    csize = sizeof(compd)
+    print(csize, bytz, len(table))
+    print(csize+bytz, len(flat), ((csize+bytz)/len(flat)) * 100)
+    print(crunched+bytz, len(flat), ((crunched+bytz)/len(flat)) * 100)
+    print(crunched+bytz+len(frames), len(flat), ((crunched+bytz+len(frames))/len(flat)) * 100)
+
+    # assert decomp(compd, table) == flat
 
 go()

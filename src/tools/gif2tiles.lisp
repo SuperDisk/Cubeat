@@ -188,7 +188,7 @@
                (when include-halts
                  (incf total-cycles amount)
                  (when (> total-cycles 1075) (incf cycle-counter amount))
-                 (when (> cycle-counter 42)
+                 (when (> cycle-counter 44)
                    (format stream "xor a~%")
                    (format stream "ldh [rIF], a~%")
                    (format stream "halt~%")

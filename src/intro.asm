@@ -1,6 +1,6 @@
 include "defines.asm"
 
-; DEF DBG_SCANLINES1 = 1
+DEF DBG_SCANLINES1 = 1
 DEF DBG_SCANLINES2 = 1
 
 MACRO update_sprite  ; which sprite, x, y, tile
@@ -144,7 +144,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-; include "res/music/sxtnt.asm"
+include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
@@ -155,12 +155,12 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ; ld a, LOW(BANK(music0))
-  ; ld [music_bank], a
-  ; ld a, LOW(music0)
-  ; ld [music_pointer], a
-  ; ld a, HIGH(music0)
-  ; ld [music_pointer+1], a
+  ld a, LOW(BANK(music0))
+  ld [music_bank], a
+  ld a, LOW(music0)
+  ld [music_pointer], a
+  ld a, HIGH(music0)
+  ld [music_pointer+1], a
 
   ld hl, wrap_jump
   ld [hl], $C3
@@ -760,7 +760,7 @@ mus_loop:
   jr mus_loop
 
 do_music::
-  ret
+  ; ret
   ld a, [music_bank]
   ld hl, $2FFF
   ld [hl+], a

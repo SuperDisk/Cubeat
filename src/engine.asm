@@ -128,12 +128,12 @@ __test_board:
 ; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 ; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 ; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-; db $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$81,$81,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$80,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$00,$81,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+; db $00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 
 ; Alternating
 ; db $81,$81,$80,$80,$81,$81,$80,$80,$81,$81,$80,$80,$81,$81,$80,$80,$81,$81
@@ -237,7 +237,7 @@ SECTION "Board edge array", ROM0, ALIGN[8]
 edge_array:
 db 0
 REPT 11
-db 1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+db $00,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 ENDR
 
 SECTION "Board edge array 2", ROM0, ALIGN[8]
@@ -468,8 +468,8 @@ IF DEF(SELECT_PAUSES_RADAR)
 
   ld a, [radar_paused]
   or a
-  ; jr nz, .check_rotate_piece
-  jr .check_rotate_piece
+  jr nz, .check_rotate_piece
+  ; jr .check_rotate_piece
 ENDC
 
   assert radar_speed == radar_pos+2
@@ -1238,6 +1238,12 @@ ENDR
   and 1
   jp z, playfield_update
 
+  ;; Clear animation OAM
+  xor a
+FOR SPR, $4C, $9C+4, 4
+  ld [wShadowOAM2+SPR], a
+ENDR
+
 .animation_stuff:
   ld bc, initial_free_sprites
 
@@ -1245,9 +1251,6 @@ FOR OFS, 0, NUM_ANIMS*7, 7
   ld hl, animations+OFS
   call .animate
 ENDR
-
-  ld a, [bc]
-  ld [oam_clear_after], a
 
   jr playfield_update
 
@@ -1377,15 +1380,18 @@ game_step2::
 
   ld bc, board.end-1 - ROW
   ld hl, board.end-1
+  xor a
   jr .fall_loop
 
 .failed_match:
   ld a, c
   or a
   jp z, .perform_destroy ; TODO: make JR
+  ; xor a
 .fall_loop:
   ld a, [hl]
   or a
+  ; or [hl]
   jr nz, .try_find_match
 
   ld a, [bc]
@@ -1399,55 +1405,92 @@ game_step2::
   jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
   jp .perform_destroy
 
+.no_take2:
+  xor a
+  dec l
+  dec c
+  jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
+  jp .perform_destroy
+
 .try_find_match:
   ld h, HIGH(edge_array)
-  bit 0, [hl]
+  and [hl]
   ld h, HIGH(board)
-  jr nz, .no_take
-
-  ; jr .no_take
-
-  ld d, 0
-
-  and 1
-  ld e, a
-
-  ld a, [bc]
-  ; bit 7, a
-  or a
   jr z, .no_take
-  bit 6, a
-  jr z, .top_right_not_marked
-  set 6, d
-.top_right_not_marked:
-  and 1
-  cp e
-  jr nz, .no_take
 
-  ;; First column matches
+  ;; check if it's a new match
+
+  ld d, a
+  ld a, [bc]
+  xor d
+  bit 7, a
+  jr nz, .no_take2 ;; maybe replace with jr nc...
+  bit 0, a
+  jr nz, .no_take2
+
   dec c
   dec l
 
   ld a, [bc]
-  ; bit 7, a
-  or a
-  jr z, .failed_match
-  bit 6, a
-  jr z, .top_left_not_marked
-  bit 6, d
+  xor [hl]
+  bit 7, a
   jr nz, .failed_match
-.top_left_not_marked:
-  and 1
-  cp e
+  bit 0, a
   jr nz, .failed_match
 
-  ld a, [hl]
-  or a
-  ; bit 7, a
-  jr z, .failed_match
-  and 1
-  cp e
+  ld a, [bc]
+  add d
+  bit 7, a
   jr nz, .failed_match
+  bit 0, a
+  jr nz, .failed_match
+
+  ld a, d
+  and 1
+  ld e, a
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;   ld d, 0
+
+;   and 1
+;   ld e, a
+
+;   ld a, [bc]
+;   ; bit 7, a
+;   or a
+;   jr z, .no_take
+;   bit 6, a
+;   jr z, .top_right_not_marked
+;   set 6, d
+; .top_right_not_marked:
+;   and 1
+;   cp e
+;   jr nz, .no_take
+
+;   ;; First column matches
+;   dec c
+;   dec l
+
+;   ld a, [bc]
+;   ; bit 7, a
+;   or a
+;   jr z, .failed_match
+;   bit 6, a
+;   jr z, .top_left_not_marked
+;   bit 6, d
+;   jr nz, .failed_match
+; .top_left_not_marked:
+;   and 1
+;   cp e
+;   jr nz, .failed_match
+
+;   ld a, [hl]
+;   or a
+;   ; bit 7, a
+;   jr z, .failed_match
+;   and 1
+;   cp e
+;   jr nz, .failed_match
 
   ;; Second column matches
 
@@ -1591,20 +1634,6 @@ update_graphics2:
   spriteX 12
   spriteX 13
   spriteX 14
-
-;   ld h, HIGH(wShadowOAM2)
-;   ld a, [oam_clear_after]
-;   ld l, a
-;   ld a, LOW(wShadowOAM2.end)
-;   sub l
-;   ret c
-;   ret z
-;   ld c, a
-;   xor a
-; .zero_oam:
-;   ld [hl+], a
-;   dec c
-;   jr nz, .zero_oam
 
   ret
 

@@ -1418,18 +1418,31 @@ game_step2::
   ld h, HIGH(board)
   jr z, .no_take
 
-  ;; check if it's a new match
+  ;; Check if it's a new match.
+
+  ;; In order to be a match, each block must have the same color,
+  ;; and the top left and bottom right blocks must not be
+  ;; both marked.
+
+  ;; a `xor` operation is used to check that blocks are not air
+  ;; (i.e. the 7th bit is set) and whether they have the same color.
+  ;; (i.e. their 0th bit xor'ed should be zero).
+
+  ;; an `add` operation is actually similar to `xor` in that
+  ;; it checks the 0th bit for color and 7th bit for
+  ;; solidity, but it also has the property of ensuring that
+  ;; both blocks' 6th bit isn't 1.
 
   ld d, a
-  ld a, [bc]
-  xor d
-  bit 7, a
-  jr nz, .no_take2 ;; maybe replace with jr nc...
-  bit 0, a
-  jr nz, .no_take2
-
   dec c
   dec l
+
+  ld a, [bc]
+  add d
+  bit 7, a
+  jr nz, .failed_match
+  bit 0, a
+  jr nz, .failed_match
 
   ld a, [bc]
   xor [hl]
@@ -1438,12 +1451,18 @@ game_step2::
   bit 0, a
   jr nz, .failed_match
 
+  inc c
+  inc l
+
   ld a, [bc]
-  add d
+  xor d
   bit 7, a
-  jr nz, .failed_match
+  jr nz, .no_take2
   bit 0, a
-  jr nz, .failed_match
+  jr nz, .no_take2
+
+  dec c
+  dec l
 
   ld a, d
   and 1

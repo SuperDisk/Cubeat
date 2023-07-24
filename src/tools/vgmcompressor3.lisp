@@ -65,6 +65,7 @@
          (buffer '())
          (data framedata)
          (size (length data))
+         (orig-size size)
          (frame-need 0)
          (this-bank 0)
          (out-banks '())
@@ -119,7 +120,7 @@
             (cond
               ((string= (car (last (elt frames fprocessed))) "mega")
 
-               (format t "Making megaframe ~a~%" frame-need)
+               #+nil (format t "Making megaframe ~a~%" frame-need)
                (writebytes (list +flag-megaframe+))
                (push (subseq data d (+ d frame-need)) megaframes)
                (setf data (concatenate '(vector (unsigned-byte 8))
@@ -183,7 +184,7 @@
                       (format out "megaframe~a:~%" (car el))
                       (format out "db ~{~a~^,~}~%"
                               (coerce (elt megaframes (car el)) 'list)))))))
-      (format t "Compressed to ~a bytes~%"
-              (+ (apply #'+ (mapcar #'length megaframes))
-                 (apply #'+ (mapcar #'length out-banks))))
+      (let ((compressed-size (+ (apply #'+ (mapcar #'length megaframes))
+                                (apply #'+ (mapcar #'length out-banks)))))
+        (format t "Compressed to ~a bytes (~a%)~%" compressed-size (* 100.0 (/ compressed-size orig-size))))
       (exit))))

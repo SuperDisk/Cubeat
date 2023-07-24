@@ -117,8 +117,8 @@ dw pal_title
 
 skins::
 
-skin1:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
-skin0:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_02_tiles, frame_02_attrs, pal1
+skin0:: defskin 0, bg01_gfx_init, bg01_map0, blockset_0_0, blockset_0_1, frame_01_tiles, frame_01_attrs, pal0
+skin1:: defskin 1, bg02_gfx_init, bg02_map0, blockset_1_0, blockset_1_1, frame_02_tiles, frame_02_attrs, pal1
 ; skin2:: defskin 2, bg03_gfx_init, bg03_map0, blockset_2_0, blockset_2_1, frame_03_tiles, frame_03_attrs, pal2
 ; skin3:: defskin 3, bg04_gfx_init, bg04_map0, blockset_3_0, blockset_3_1, frame_04_tiles, frame_04_attrs, pal3
 ; skin4:: defskin 4, bg05_gfx_init, bg05_map0, blockset_4_0, blockset_4_1, frame_05_tiles, frame_05_attrs, pal4

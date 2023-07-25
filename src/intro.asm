@@ -747,17 +747,28 @@ transition_stage:
 
 mus_loop:
   ld a, [hl+]
-  or a
-  ret z
+  cp 2
+  jr c, .done
 
   ld [bc], a
   inc c
 
   ld a, [hl+]
-
   ld [bc], a
   dec c
+
   jr mus_loop
+
+.done:
+  or a
+  ret z
+
+  inc hl
+  ld a, [hl]
+  ld [music_bank], a
+  ld hl, 0
+
+  ret
 
 do_music::
   ; ret
@@ -778,12 +789,9 @@ do_music::
   ld bc, $A000
   call mus_loop
 
-  ld a, [hl+]
-  ld [music_bank], a
-
-  ld a, [hl+]
+  ld a, l
   ld [music_pointer], a
-  ld a, [hl]
+  ld a, h
   ld [music_pointer+1], a
 
   ld hl, rROMB1

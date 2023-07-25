@@ -34,7 +34,7 @@ def count_substrings3(s, n):
         substr = tuple(s[i:i+n])
         count_dict[substr] += 1
         i += n  # move to the end of the current substring
-    return dict(sorted(count_dict.items(), key=lambda item: item[1], reverse=True)[:300])
+    return dict(sorted(count_dict.items(), key=lambda item: item[1], reverse=True)[:2000])
 
 def comp(data, table):
     data=deepcopy(data)
@@ -72,9 +72,6 @@ def decomp(data, table):
             out.append(el)
     return out
 
-def sizeof(q):
-    return sum(2 if isinstance(el,tuple) else 1 for el in q)
-
 def go():
     # frames, flat = loaddata('../res/music/zen.cooked2')
     frames, flat = loaddata2()
@@ -97,22 +94,11 @@ def go():
     for k in list(big):
         if k not in diduse:
             del big[k]
-    bytz=sum(len(x) for x in big)
 
-    crunched = 0
     smallframes = []
     for p1,p0 in frames:
-        cframe1,_ = comp(p1, table)
-        cframe0,_ = comp(p0, table)
-        crunched += sizeof(cframe1)+sizeof(cframe0)
-        smallframes.append((cframe1, cframe0))
-
-    t_inv = {v:k for k,v in table.items()}
-    print('SECTION "music__dictionary", ROMX')
-    print("music_dictionary::")
-    for k in sorted(t_inv.keys()):
-        v = t_inv[k]
-        print('db', ','.join(str(x) for x in v))
+        cf,_ = comp(p1+p0, table)
+        smallframes.append(cf)
 
     def divvy(ls):
         out = []
@@ -121,45 +107,72 @@ def go():
                 out.append(ls.pop(0))
             else:
                 nums = list(takewhile(lambda x:isinstance(x,int), ls))
+                if not nums:print(ls)
                 ls=ls[len(nums):]
                 out.append(nums)
         return out
 
+    total = 0
+    usedshit = set()
+    for el in divvy(compd):
+        if isinstance(el,list):
+            total += len(el)
+        else:
+            usedshit.add(el)
+            # total += 2
+        total+=2
+
+    t_inv = {v:k for k,v in table.items()}
+    justdict=0
+    for (key,) in usedshit:
+        v = t_inv[key]
+        # total += (len(v)/2) * 6
+        total += len(v)+6
+        justdict += len(v)+6
+
+
     emitted = 0
-    bankno = 0
+    this_bank = 0
     frameno = 0
-    while True:
-        print(f'SECTION "music__music{bankno}", ROMX')
-        literals = []
-        while emitted < 0xFFFF:
-            frame = smallframes.pop(0)
-            p1, p0 = frame
 
-            p1 = divvy(p1)
-            p2 = divvy(p2)
+    strbuf = []
+    usedper = []
+    used = set()
+    while smallframes:
+        print(f'SECTION "music__music{emitted}", ROMX[$4000]')
 
-            def process(ls):
-                for chunk in ls:
-                    if instanceof(chunk,tuple):
+        while smallframes and (this_bank+200 < 0x3FFF):
+            frame = divvy(smallframes.pop(0))
+            strbuf.append("BEGIN FRAME")
+            for el in frame:
+                if isinstance(el, tuple):
+                    strbuf.append(f"dw {el} {t_inv[el[0]]}")
+                    this_bank += 2
 
+                    if el not in used:
+                        used.add(el)
+                        emitted += len(t_inv[el[0]])
 
-            print(f"music{idx}::")
-            if p1: print("db "+','.join(str(x) for x in p1))
-            print("db 0")
-            if p0: print("db "+','.join(str(x) for x in p0))
-            print("db 0")
-            print(f"db LOW(BANK(music{(idx+1) % len(frames)}))")
-            print(f"dw music{(idx+1) % len(frames)}")
+                else:
+                    strbuf.append("dw vgm_literals")
+                    for a,b in zip(el[::2], el[1::2]):
+                        strbuf.append(f"db {a},{b}")
+                    this_bank += 2+len(el)
 
-    # csize = sizeof(compd)
-    # print(csize, bytz, len(table))
-    # print(csize+bytz, len(flat), ((csize+bytz)/len(flat)) * 100)
-    # print(crunched+bytz, len(flat), ((crunched+bytz)/len(flat)) * 100)
-    # print(crunched+bytz+len(frames), len(flat), ((crunched+bytz+len(frames))/len(flat)) * 100)
+        usedper.append(used)
+        used = set()
+        print("Bankswitch")
+        for s in reversed(strbuf):
+            print(s)
 
-    # pprint(smallframes[100:120])
-    # pprint(table)
+        emitted += this_bank
+        this_bank = 0
 
-    # assert decomp(compd, table) == flat
+    print("total:",total)
+    print("emitted:",emitted)
+    print("dict:",justdict,"bytes",len(usedshit),"entries")
+    print([len(x) for x in usedper])
+    for used in usedper:
+        print(sum(len(t_inv[key[0]]) for key in used))
 
 go()

@@ -1,0 +1,15 @@
+Literals can be
+
+vgm_literals (normal)
+vgm_literals2 (switch to next port, or quit if on port 0)
+
+Phrase references can be
+
+<..some dict phrase address..>
+  - normal, just references a dict entry
+
+<.. some dict phrase address..> BUT it's a giant jump table in ROM0
+  - all just jumps to the same code
+  - grabs the actual phrase from the stack
+  - changes port if port is 1 and continues OR
+  - restores stack to normal, `call HL`.

@@ -18,6 +18,6 @@ for idx, frame in enumerate(frames):
     print(f"db LOW(BANK(music{(idx+1) % len(frames)}))")
     print(f"dw music{(idx+1) % len(frames)}")
 
-    total += 2 + len(p0)+len(p1)+1+2
+    total += len(p0)+len(p1)
 
 print("total bytes:",total,file=sys.stderr)

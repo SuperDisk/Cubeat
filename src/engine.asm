@@ -228,9 +228,9 @@ db $83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83,$83
 ; ENDR
 
 ;; All black
-REPT 11
-db $81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81
-ENDR
+; REPT 11
+; db $81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81
+; ENDR
 
 SECTION "Board edge array", ROM0, ALIGN[8]
 
@@ -241,11 +241,11 @@ db $00,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 ENDR
 
 SECTION "Board edge array 2", ROM0, ALIGN[8]
-edge_array2:
-db 0
-REPT 11
-db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
-ENDR
+; edge_array2:
+; db 0
+; REPT 11
+; db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
+; ENDR
 
 
 SECTION "Game vars", WRAM0

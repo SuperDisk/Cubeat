@@ -114,11 +114,11 @@ Reset::
   ld [level_num], a
   ld [locked_level], a
 
-  jp Intro
+  ; jp Intro
   ; jp MainMenu
   ; jp TitleScreen
   ; jp CreditsMenu
-  ; jp SplashScreen
+  jp SplashScreen
 
 SECTION "OAM DMA routine", ROMX
 

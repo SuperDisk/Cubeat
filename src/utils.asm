@@ -25,3 +25,12 @@ clear_oam::
   ld c, NB_SPRITES * 4
   xor a
   jp MemsetSmall
+
+init_playfield_buffer::
+  ld a, BANK(playfield_buffer_rom)
+  ld [rROMB0], a
+
+  ld de, playfield_buffer_rom
+  ld hl, playfield_buffer
+  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
+  jp Memcpy

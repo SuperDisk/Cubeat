@@ -87,7 +87,7 @@ MACRO deflevel
   db \6-1
 ENDM
 
-SECTION "Levels", ROM0
+SECTION "Levels", ROMX
 
 levels::
 include "levels.inc"
@@ -241,7 +241,7 @@ db $00,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 ENDR
 
 SECTION "Board edge array 2", ROM0, ALIGN[8]
-; edge_array2:
+edge_array2:
 ; db 0
 ; REPT 11
 ; db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1

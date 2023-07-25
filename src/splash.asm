@@ -8,6 +8,8 @@ splash_frame_counter: db
 SECTION "Splash Screen", ROM0
 
 SplashScreen::
+  call init_playfield_buffer
+
   ;; Splash screen stuff is all in the upper 256 banks
   ld a, 1
   ld [rROMB1], a
@@ -28,11 +30,6 @@ SplashScreen::
   ld c, $9F
   xor a
   rst MemsetSmall
-
-  ld de, playfield_buffer_rom
-  ld hl, playfield_buffer
-  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
-  call Memcpy
 
   ld de, static_ram_code
   ld hl, ram_code

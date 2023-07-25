@@ -134,7 +134,7 @@ bonus_anim:
 incbin "res/anim_bonus.2bpp"
 .end:
 
-SECTION "Playfield Buffer ROM", ROM0
+SECTION "Playfield Buffer ROM", ROMX
 
 playfield_buffer_rom::
 include "playfield_buffer.inc"
@@ -195,10 +195,7 @@ Intro::
   ld hl, skin0
   call load_skin
 
-  ld de, playfield_buffer_rom
-  ld hl, playfield_buffer
-  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
-  call Memcpy
+  call init_playfield_buffer
 
   ; lvl
   update_sprite 0, 2+(8*0), 2, 0

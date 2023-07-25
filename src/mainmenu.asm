@@ -247,10 +247,7 @@ Menu:
 
 .no_sgb:
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ld de, playfield_buffer_rom
-  ld hl, playfield_buffer
-  ld bc, playfield_buffer_rom.end - playfield_buffer_rom
-  call Memcpy
+  call init_playfield_buffer
 
   ld de, static_ram_code
   ld hl, ram_code

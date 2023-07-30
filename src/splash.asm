@@ -10,6 +10,9 @@ SECTION "Splash Screen", ROM0
 SplashScreen::
   call init_playfield_buffer
 
+  ld hl, pal_splash
+  call colorize_noborder
+
   ;; Splash screen stuff is all in the upper 256 banks
   ld a, 1
   ld [rROMB1], a
@@ -68,8 +71,6 @@ SplashScreen::
   xor a
   ld [wFadeDelta], a
 
-  ld hl, pal_splash
-  call colorize_noborder
   call FadePaletteBuffers
 
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON

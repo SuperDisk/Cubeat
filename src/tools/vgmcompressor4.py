@@ -97,8 +97,9 @@ def go():
 
     smallframes = []
     for p1,p0 in frames:
-        cf,_ = comp(p1+p0, table)
-        smallframes.append(cf)
+        cf1,_ = comp(p1, table)
+        cf2,_ = comp(p0, table)
+        smallframes.append((cf1,cf2))
 
     def divvy(ls):
         out = []
@@ -116,7 +117,7 @@ def go():
     usedshit = set()
     for el in divvy(compd):
         if isinstance(el,list):
-            total += len(el)
+            total += len(el)+1
         else:
             usedshit.add(el)
             # total += 2
@@ -138,41 +139,81 @@ def go():
     strbuf = []
     usedper = []
     used = set()
+    bankno = 0
+
+    print('include "music_macros.inc"')
     while smallframes:
-        print(f'SECTION "music__music{emitted}", ROMX[$4000]')
+        print(f'SECTION "music__music{bankno}", ROMX[$4000]')
 
-        while smallframes and (this_bank+200 < 0x3FFF):
-            frame = divvy(smallframes.pop(0))
-            strbuf.append("BEGIN FRAME")
-            for el in frame:
-                if isinstance(el, tuple):
-                    strbuf.append(f"dw {el} {t_inv[el[0]]}")
-                    this_bank += 2
+        while smallframes and (this_bank+2000 < 0x3FFF):
+            f1,f2 = smallframes.pop(0)
+            p1 = divvy(f1)
+            p0 = divvy(f2)
 
-                    if el not in used:
-                        used.add(el)
-                        emitted += len(t_inv[el[0]])
+            strbuf.append("; BEGIN FRAME")
 
+            def writeframe(frame, only_part):
+                nonlocal this_bank, emitted
+                for idx, el in enumerate(frame):
+                    if isinstance(el, tuple):
+                        (phraseno,) = el
+                        if idx==len(frame)-1:
+                            strbuf.append(f" dwbe phrase_{bankno}_{phraseno} | (1<<15)")
+                        else:
+                            strbuf.append(f" dwbe phrase_{bankno}_{phraseno}")
+                        this_bank += 2
+
+                        if el not in used:
+                            used.add(el)
+                            this_bank += len(t_inv[el[0]])+1
+
+                    else:
+                        if idx==len(frame)-1:
+                            strbuf.append(f"db f_vgm_literals_end, {len(el)//2}")
+                        else:
+                            strbuf.append(f"db f_vgm_literals, {len(el)//2}")
+                        for a,b in zip(el[::2], el[1::2]):
+                            strbuf.append(f"db ${format(a,'x')},${format(b,'x')}")
+                        this_bank += 1+len(el)
+
+            if (not p1) and (not p0):
+                strbuf.append("db f_empty_frame")
+                this_bank += 1
+            else:
+                if not p1:
+                    strbuf.append("db f_switch_port")
+                    this_bank += 1
                 else:
-                    strbuf.append("dw vgm_literals")
-                    for a,b in zip(el[::2], el[1::2]):
-                        strbuf.append(f"db {a},{b}")
-                    this_bank += 2+len(el)
+                    writeframe(p1, not p0)
+
+                if not p0:
+                    strbuf.append("db f_switch_port")
+                    this_bank += 1
+                else:
+                    writeframe(p0, not p1)
+
+        # print("Bankswitch")
+        print(f"music{bankno}::")
+        for s in (strbuf):
+            print(s)
+
+        for phrase in used:
+            (phraseno,) = phrase
+            print(f"phrase_{bankno}_{phraseno}: db ", ','.join(str(x) for x in t_inv[phraseno]), ",0", sep='')
 
         usedper.append(used)
         used = set()
-        print("Bankswitch")
-        for s in reversed(strbuf):
-            print(s)
 
+        strbuf = []
         emitted += this_bank
         this_bank = 0
+        bankno += 1
 
-    print("total:",total)
-    print("emitted:",emitted)
-    print("dict:",justdict,"bytes",len(usedshit),"entries")
-    print([len(x) for x in usedper])
-    for used in usedper:
-        print(sum(len(t_inv[key[0]]) for key in used))
+    # print("total:",total)
+    print("emitted:",emitted,file=sys.stderr)
+    # print("dict:",justdict,"bytes",len(usedshit),"entries")
+    # print([len(x) for x in usedper])
+    # for used in usedper:
+        # print(sum(len(t_inv[key[0]]) for key in used))
 
 go()

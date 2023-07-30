@@ -11,6 +11,9 @@ SECTION "Colorization functions", ROM0
 ;;;  5-6: SGB palette packet
 ;;;  7-8: CGB palette
 colorize::
+  ld a, BANK(skins)
+  ld [rROMB0], a
+
   ld a, [hConsoleType]
   or a
   jr z, .cgb
@@ -79,6 +82,9 @@ colorize::
   ret
 
 colorize_noborder::
+  ld a, BANK(skins)
+  ld [rROMB0], a
+
   ld a, [hConsoleType]
   or a
   jr z, colorize.cgb_atpacket

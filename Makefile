@@ -45,6 +45,7 @@ VGMCMP := vgm_cmp
 GIF2TILES := $(LISP) --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
+VGMCOMPRESSOR4 := $(PY) src/tools/vgmcompressor4.py
 CREDITSMAKER := $(LISP) --load src/tools/creditsmaker.lisp --eval "(main)"
 SUPERFAMICONV := superfamiconv
 
@@ -134,7 +135,8 @@ $(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
 $(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
 	@$(MKDIR_P) $(@D)
 	# $(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(VGMCOMPRESSOR3) $(RESDIR)/$*.asm
-	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(PY) src/tools/vgmdonothinger.py > $(RESDIR)/$*.asm
+	# $(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(PY) src/tools/vgmdonothinger.py > $(RESDIR)/$*.asm
+	$(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(VGMCOMPRESSOR4) $* > $(RESDIR)/$*.asm
 
 # Background conversion
 

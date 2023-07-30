@@ -40,9 +40,6 @@ MACRO BGColor
   ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
 ENDM
 
-SECTION "Buffer wraparound jump", WRAM0[$C000]
-wrap_jump: ds 3
-
 SECTION "Music vars", WRAM0
 music_bank: db
 music_pointer: dw
@@ -161,13 +158,6 @@ Intro::
   ld [music_pointer], a
   ld a, HIGH(music0)
   ld [music_pointer+1], a
-
-  ld hl, wrap_jump
-  ld [hl], $C3
-  inc l
-  ld [hl], $00
-  inc l
-  ld [hl], $D0
 
   xor a
   ld [hPressedKeys], a
@@ -495,6 +485,9 @@ ENDC
   jp kernel_loop
 
 load_skin:
+  ld a, BANK(skins)
+  ld [rROMB0], a
+
   ;; Set up initial block set
   ld a, [hl+]
   ld [current_blockset_bank], a
@@ -593,18 +586,28 @@ load_skin:
   pop hl
   inc hl
 
+  ld a, BANK(skins)
+  ld [rROMB0], a
+
   ld a, $98
   ld [current_bg], a
 
   ;; Copy initial tile data
   ld a, [hl+]
-  ld [rROMB0], a
+  ld e, a
+  ; ld [rROMB0], a
 
   ld a, [hl+]
   ld [ptr_next_update_bg], a
   ld a, [hl+]
   ld [ptr_next_update_bg+1], a
+
+  ld a, e
+  ld [rROMB0], a
   call update_bg
+
+  ld a, BANK(skins)
+  ld [rROMB0], a
 
   ld a, [hl+]
   ld [next_map_bank], a
@@ -743,49 +746,129 @@ transition_stage:
   ret
 
 mus_loop:
-  ld a, [hl+]
-  cp 2
-  jr c, .done
+  pop hl
+  ld a, l
+  cp 4
+  jr nc, .phrase
+  add a
+  add LOW(jumptable)
+  ld l, a
+  ld a, h
+  ld h, HIGH(jumptable)
+  jp hl
 
+.phrase:
+  ld e, 0
+  bit 7, l
+  jr z, .do_phrase
+
+.end_phrase:
+  res 7, l
+  ;; logic to do end stuf
+  ld e, 1
+
+.do_phrase:
+  ld a, h
+  ld h, l
+  ld l, a
+REPT 2
+  ld a, [hl+]
   ld [bc], a
   inc c
-
   ld a, [hl+]
   ld [bc], a
   dec c
+ENDR
 
+REPT 2
+  ld a, [hl+]
+  or a
+  jr z, .phrase_done
+
+  ld [bc], a
+  inc c
+  ld a, [hl+]
+  ld [bc], a
+  dec c
+ENDR
+
+.phrase_done:
+  ld a, e
+  or a
+
+  jr nz, switch_port
   jr mus_loop
 
-.done:
-  or a
-  ret z
+jumptable:
+  jr vgm_literals_end
+  jr vgm_literals
+  jr empty_frame
+  jr switch_port0
 
-  inc hl
-  ld a, [hl]
-  ld [music_bank], a
-  ld hl, 0
+vgm_literals_end:
+  ld h, b
+  ld l, c
 
-  ret
+.lit_loop:
+  pop de
+  ld [hl], e
+  inc l
+  ld [hl], d
+  dec l
+
+  dec a
+  jr nz, .lit_loop
+
+  jr switch_port
+
+vgm_literals:
+  ld h, b
+  ld l, c
+
+.lit_loop:
+  pop de
+  ld [hl], e
+  inc l
+  ld [hl], d
+  dec l
+
+  dec a
+  jr nz, .lit_loop
+  jr mus_loop
+
+switch_port0:
+  dec sp
+switch_port:
+  ld a, c
+  sub 2
+  jr c, decode_done
+  ld c, a
+  jr mus_loop
+
+empty_frame:
+  dec sp
+  jr decode_done
 
 do_music::
   ; ret
+
   ld a, [music_bank]
   ld hl, $2FFF
   ld [hl+], a
   ld [hl], 1
   assert $2FFF + 1 == rROMB1
 
-  ld hl, music_pointer
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
+  ld sp, music_pointer
+  pop hl
+  ld sp, hl
 
   ld bc, $A002
-  call mus_loop
+  jp mus_loop
 
-  ld bc, $A000
-  call mus_loop
+decode_done:
 
+
+  ld hl, sp+0
   ld a, l
   ld [music_pointer], a
   ld a, h
@@ -794,4 +877,5 @@ do_music::
   ld hl, rROMB1
   ld [hl], 0
 
+  ld sp, wStackBottom-2
   ret

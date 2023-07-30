@@ -145,7 +145,7 @@ def go():
     while smallframes:
         print(f'SECTION "music__music{bankno}", ROMX[$4000]')
 
-        while smallframes and (this_bank+100 < 0x3FFF):
+        while smallframes and (this_bank+120 < 0x3FFF):
             f1,f2 = smallframes.pop(0)
             p1 = divvy(f1)
             p0 = divvy(f2)

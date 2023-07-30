@@ -141,7 +141,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/hydroplane.asm"
+include "res/music/sxtnt.asm"
 
 SECTION "Intro", ROM0
 
@@ -745,29 +745,28 @@ transition_stage:
 
   ret
 
+SECTION "Music Jumptable actions", ROM0, ALIGN[8]
+jumptable:
+  jr vgm_literals_end
+  jr vgm_literals
+  jr switch_bank
+  jr switch_port0
+
 mus_loop:
   pop hl
   ld a, l
   cp 4
   jr nc, .phrase
   add a
-  add LOW(jumptable)
   ld l, a
   ld a, h
   ld h, HIGH(jumptable)
   jp hl
 
 .phrase:
-  ld e, 0
-  bit 7, l
-  jr z, .do_phrase
-
-.end_phrase:
+  ld e, l
   res 7, l
-  ;; logic to do end stuf
-  ld e, 1
 
-.do_phrase:
   ld a, h
   ld h, l
   ld l, a
@@ -793,17 +792,10 @@ REPT 2
 ENDR
 
 .phrase_done:
-  ld a, e
-  or a
-
+  bit 7, e
   jr nz, switch_port
   jr mus_loop
 
-jumptable:
-  jr vgm_literals_end
-  jr vgm_literals
-  jr switch_bank
-  jr switch_port0
 
 vgm_literals_end:
   ld h, b
@@ -818,7 +810,6 @@ vgm_literals_end:
 
   dec a
   jr nz, .lit_loop
-
   jr switch_port
 
 vgm_literals:
@@ -868,13 +859,7 @@ do_music::
   jp mus_loop
 
 decode_done:
-
-
-  ld hl, sp+0
-  ld a, l
-  ld [music_pointer], a
-  ld a, h
-  ld [music_pointer+1], a
+  ld [music_pointer], sp
 
   ld hl, rROMB1
   ld [hl], 0

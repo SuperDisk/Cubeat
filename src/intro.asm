@@ -141,7 +141,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/sxtnt.asm"
+include "res/music/hydroplane.asm"
 
 SECTION "Intro", ROM0
 
@@ -802,7 +802,7 @@ ENDR
 jumptable:
   jr vgm_literals_end
   jr vgm_literals
-  jr empty_frame
+  jr switch_bank
   jr switch_port0
 
 vgm_literals_end:
@@ -845,9 +845,11 @@ switch_port:
   ld c, a
   jr mus_loop
 
-empty_frame:
-  dec sp
-  jr decode_done
+switch_bank:
+  ld [rROMB0], a
+  ld [music_bank], a
+  ld sp, $4000
+  jr mus_loop
 
 do_music::
   ; ret

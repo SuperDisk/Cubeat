@@ -145,7 +145,7 @@ def go():
     while smallframes:
         print(f'SECTION "music__music{bankno}", ROMX[$4000]')
 
-        while smallframes and (this_bank+2000 < 0x3FFF):
+        while smallframes and (this_bank+100 < 0x3FFF):
             f1,f2 = smallframes.pop(0)
             p1 = divvy(f1)
             p0 = divvy(f2)
@@ -174,25 +174,23 @@ def go():
                             strbuf.append(f"db f_vgm_literals, {len(el)//2}")
                         for a,b in zip(el[::2], el[1::2]):
                             strbuf.append(f"db ${format(a,'x')},${format(b,'x')}")
-                        this_bank += 1+len(el)
+                        this_bank += 2+len(el)
 
-            if (not p1) and (not p0):
-                strbuf.append("db f_empty_frame")
+            if not p1:
+                strbuf.append("db f_switch_port")
                 this_bank += 1
             else:
-                if not p1:
-                    strbuf.append("db f_switch_port")
-                    this_bank += 1
-                else:
-                    writeframe(p1, not p0)
+                writeframe(p1, not p0)
 
-                if not p0:
-                    strbuf.append("db f_switch_port")
-                    this_bank += 1
-                else:
-                    writeframe(p0, not p1)
+            if not p0:
+                strbuf.append("db f_switch_port")
+                this_bank += 1
+            else:
+                writeframe(p0, not p1)
 
+        # print(this_bank,file=sys.stderr)
         # print("Bankswitch")
+        strbuf.append(f"db f_switch_bank, LOW(BANK(music{bankno+1 if smallframes else 0}))")
         print(f"music{bankno}::")
         for s in (strbuf):
             print(s)

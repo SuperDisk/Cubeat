@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 from collections import Counter, defaultdict, OrderedDict
@@ -25,7 +26,7 @@ def loaddata2():
     lines = sys.stdin.readlines()
     loopframe = json.loads(lines[0])
     data = json.loads(lines[1])
-    return data, flatten(data)
+    return data, flatten(data), loopframe
 
 def count_substrings3(s, n):
     count_dict = defaultdict(int)
@@ -74,7 +75,7 @@ def decomp(data, table):
 
 def go():
     # frames, flat = loaddata('../res/music/zen.cooked2')
-    frames, flat = loaddata2()
+    frames, flat, loopframe = loaddata2()
 
     big = {}
     for n in [4,6,8]:
@@ -141,11 +142,15 @@ def go():
     used = set()
     bankno = 0
 
+    songname = os.path.basename(sys.argv[1])
+
     print('include "music_macros.inc"')
     while smallframes:
-        print(f'SECTION "music__music{bankno}", ROMX[$4000]')
+        print(f'SECTION "music__{songname}{bankno}", ROMX[$4000]')
 
         while smallframes and (this_bank+120 < 0x3FFF):
+            if frameno == loopframe:
+                strbuf.append(f"{songname}_loop:")
             f1,f2 = smallframes.pop(0)
             p1 = divvy(f1)
             p0 = divvy(f2)
@@ -158,9 +163,9 @@ def go():
                     if isinstance(el, tuple):
                         (phraseno,) = el
                         if idx==len(frame)-1:
-                            strbuf.append(f" dwbe phrase_{bankno}_{phraseno} | (1<<15)")
+                            strbuf.append(f" dwbe {songname}_phrase_{bankno}_{phraseno} | (1<<15)")
                         else:
-                            strbuf.append(f" dwbe phrase_{bankno}_{phraseno}")
+                            strbuf.append(f" dwbe {songname}_phrase_{bankno}_{phraseno}")
                         this_bank += 2
 
                         if el not in used:
@@ -188,16 +193,24 @@ def go():
             else:
                 writeframe(p0, not p1)
 
+            frameno += 1
+
         # print(this_bank,file=sys.stderr)
         # print("Bankswitch")
-        strbuf.append(f"db f_switch_bank, LOW(BANK(music{bankno+1 if smallframes else 0}))")
-        print(f"music{bankno}::")
+        if not smallframes:
+            strbuf.append(f"db f_switch_bank, LOW(BANK({songname}_loop))")
+            strbuf.append(f"dw {songname}_loop")
+        else:
+            strbuf.append(f"db f_switch_bank, LOW(BANK({songname}{bankno+1}))")
+            strbuf.append("dw $4000")
+
+        print(f"{songname}{bankno}::")
         for s in (strbuf):
             print(s)
 
         for phrase in used:
             (phraseno,) = phrase
-            print(f"phrase_{bankno}_{phraseno}: db ", ','.join(str(x) for x in t_inv[phraseno]), ",0", sep='')
+            print(f"{songname}_phrase_{bankno}_{phraseno}: db ", ','.join(f'${x:x}' for x in t_inv[phraseno]), ",0", sep='')
 
         usedper.append(used)
         used = set()

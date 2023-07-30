@@ -152,11 +152,11 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ld a, LOW(BANK(music0))
+  ld a, LOW(BANK(sxtnt0))
   ld [music_bank], a
-  ld a, LOW(music0)
+  ld a, LOW(sxtnt0)
   ld [music_pointer], a
-  ld a, HIGH(music0)
+  ld a, HIGH(sxtnt0)
   ld [music_pointer+1], a
 
   xor a
@@ -818,6 +818,7 @@ vgm_literals:
 
 .lit_loop:
   pop de
+
   ld [hl], e
   inc l
   ld [hl], d
@@ -837,9 +838,10 @@ switch_port:
   jr mus_loop
 
 switch_bank:
+  pop hl
+  ld sp, hl
   ld [rROMB0], a
   ld [music_bank], a
-  ld sp, $4000
   jr mus_loop
 
 do_music::

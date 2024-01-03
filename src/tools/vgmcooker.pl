@@ -391,8 +391,9 @@ main(Argv) :-
     %% writeln(user_error, "Done decreasing volume"),!,
     Commands0=Commands,
 
-    loop_frame(Bytes, LoopOffset, LoopFrame),
-    format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+    %% loop_frame(Bytes, LoopOffset, LoopFrame),
+    %% format(user_error, "Found loop frame: ~d~n", [LoopFrame]),!,
+    LoopFrame=0,
 
     cook(Commands, CookedCommands),
     writeln(user_error, "Done cooking"),!,

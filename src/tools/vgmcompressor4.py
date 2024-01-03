@@ -148,7 +148,7 @@ def go():
     while smallframes:
         print(f'SECTION "music__{songname}{bankno}", ROMX[$4000]')
 
-        while smallframes and (this_bank+120 < 0x3FFF):
+        while smallframes and (this_bank+250 < 0x3FFF):
             if frameno == loopframe:
                 strbuf.append(f"{songname}_loop:")
             f1,f2 = smallframes.pop(0)

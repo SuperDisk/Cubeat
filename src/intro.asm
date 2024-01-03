@@ -141,7 +141,7 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-include "res/music/sxtnt.asm"
+include "res/music/zen.asm"
 
 SECTION "Intro", ROM0
 
@@ -152,11 +152,11 @@ Intro::
   call colorize
   call safe_turn_off_lcd
 
-  ld a, LOW(BANK(sxtnt0))
+  ld a, LOW(BANK(zen0))
   ld [music_bank], a
-  ld a, LOW(sxtnt0)
+  ld a, LOW(zen0)
   ld [music_pointer], a
-  ld a, HIGH(sxtnt0)
+  ld a, HIGH(zen0)
   ld [music_pointer+1], a
 
   xor a

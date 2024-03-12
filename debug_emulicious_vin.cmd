@@ -1,1 +1,1 @@
-xterm -e java -jar ~/Emulicious/Emulicious.jar bin/cubeat.gb -set GBVinCartridgeProcess=/home/npfaro/projects/gb-stuff/Cubeat/vin-plugin/OPL3Vin.sh &
+xterm -e java -jar ~/Emulicious/Emulicious.jar bin/cubeat.gb -set GBVinCartridgeProcess=`realpath ./vin-plugin/OPL3Vin.sh` &

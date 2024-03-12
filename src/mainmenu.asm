@@ -461,7 +461,6 @@ credits_ui:
   ld hl, wShadowOAM
 
   ld a, [credits_scroll_amount]
-  add c
   ld c, a
   ld b, 116-92+8
 

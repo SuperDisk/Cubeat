@@ -115,10 +115,11 @@ Reset::
   ld [locked_level], a
 
   ;; jp Intro
-  ;; jp MainMenu
-  ;; jp TitleScreen
+  ; jp MainMenu
+  ; jp TitleScreen
   ; jp CreditsMenu
-  jp MusicPlayerMenu
+  ; jp MusicPlayerMenu
+  jp PauseMenu
   ;; jp SplashScreen
 
 SECTION "OAM DMA routine", ROMX

@@ -78,6 +78,14 @@ text_credits_map:
 incbin "res/menu/text_credits.tilemapu"
 .end:
 
+text_pause_gfx:
+incbin "res/menu/text_pause.2bppu"
+.end:
+
+text_pause_map:
+incbin "res/menu/text_pause.tilemapu"
+.end:
+
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
@@ -108,6 +116,14 @@ incbin "res/menu/credits_scroll.credits.2bpp"
 
 credits_scroll_data:
 include "res/menu/credits_scroll.credits.asm"
+.end:
+
+pause_buttons_gfx:
+incbin "res/menu/pause_buttons.2bppu"
+.end:
+
+pause_buttons_map:
+incbin "res/menu/pause_buttons.tilemapu"
 .end:
 
 SECTION "Menu vars", WRAM0
@@ -205,6 +221,18 @@ CreditsMenu::
   ld [hl], LOW(credits_init)
   inc hl
   ld [hl], HIGH(credits_init)
+  jr Menu.no_sgb
+
+
+PauseMenu::
+  ld hl, menu_ui_ptr
+  ld [hl], LOW(pause_ui)
+  inc hl
+  ld [hl], HIGH(pause_ui)
+  inc hl
+  ld [hl], LOW(pause_init)
+  inc hl
+  ld [hl], HIGH(pause_init)
   jr Menu.no_sgb
 
 LevelsMenu::
@@ -566,6 +594,207 @@ main_menu_init:
   ld bc, (main_menu_buttons_gfx.end - main_menu_buttons_gfx)
   call Memcpy
   jp main_menu_ui
+
+pause_init:
+  ld de, text_pause_gfx
+  ld hl, $9000
+  ld bc, (text_pause_gfx.end - text_pause_gfx)
+  call Memcpy
+
+  ld de, pause_buttons_gfx
+  ld bc, (pause_buttons_gfx.end - pause_buttons_gfx)
+  call Memcpy
+
+  xor a
+  ld [selected_level], a
+
+  ld a, 29
+  ld [true_x], a
+  ld [x1], a
+  ld [x3], a
+
+  ld a, 123
+  ld [x2], a
+  ld [x4], a
+
+  ld a, 45
+  ld [true_y], a
+  ld [y1], a
+  ld [y2], a
+
+  ld a, 60
+  ld [y3], a
+  ld [y4], a
+  call update_cursor_pos
+
+  jp pause_ui
+
+pause_ui:
+  ld hl, menu_frame_counter
+  inc [hl]
+
+  ld a, [tweening]
+  or a
+  jp z, .no_tween
+
+  ld a, [tween_step]
+  cp 40
+  jr c, .continue
+  xor a
+  ld [tweening], a
+
+  ld a, [true_x]
+  ld [x1], a
+  ld a, [true_y]
+  ld [y1], a
+
+  jp .no_tween
+.continue:
+  inc a
+  inc a
+  ld [tween_step], a
+  dec a
+  dec a
+  add a
+
+  ld hl, tweening_table
+  add_a_to_hl
+
+  ld c, [hl]
+  inc hl
+  ld b, [hl]
+
+  ld a, [tween_endx1]
+  ld hl, tween_startx1
+  call tween
+  ld [x1], a
+
+  ld a, [tween_endy1]
+  ld hl, tween_starty1
+  call tween
+  ld [y1], a
+
+.no_tween:
+  ld a, [x1]
+  ld [x3], a
+  add 94
+  ld [x2], a
+  ld [x4], a
+
+  ld a, [y1]
+  ld [y2], a
+  add 15
+  ld [y3], a
+  ld [y4], a
+
+  call poll_joystick
+  call update_cursor_pos
+
+  ld a, [hPressedKeys]
+  bit PADB_A, a
+  jr z, .no_a
+
+  ld hl, goto_mainmenu
+  ld a, [selected_level]
+  dec a
+  call z, FadeOut
+
+  ld hl, goto_gameplay
+  call FadeOut
+
+.no_a:
+  and PADF_UP|PADF_DOWN
+  jr z, .no_begin_tween
+
+  ld d, a
+  bit PADB_DOWN, d
+  jr z, .no_down
+
+  ;; pressed down
+
+  ld a, [selected_level]
+  or a
+  jr nz, .no_begin_tween
+  inc a
+  ld [selected_level], a
+
+  ld a, [x1]
+  ld [tween_startx1], a
+  ld [true_x], a
+  xor a
+  ld [tween_endx1], a
+
+  ld a, [y1]
+  ld [tween_starty1], a
+  ld b, a
+
+  ld a, [true_y]
+  add 15
+  ld [true_y], a
+
+  sub b
+  ld [tween_endy1], a
+
+  jr .did_tween
+
+.no_down:
+  bit PADB_UP, d
+  jr z, .no_up
+
+  ;; pressed up
+
+  ld a, [selected_level]
+  or a
+  jr z, .no_begin_tween
+  dec a
+  ld [selected_level], a
+
+  ld a, [x1]
+  ld [tween_startx1], a
+  ld [true_x], a
+  xor a
+  ld [tween_endx1], a
+
+  ld a, [y1]
+  ld [tween_starty1], a
+  ld b, a
+
+  ld a, [true_y]
+  sub 15
+  ld [true_y], a
+
+  sub b
+  ld [tween_endy1], a
+
+.no_up:
+
+.did_tween:
+  xor a
+  ld [tween_step], a
+  inc a
+  ld [tweening], a
+
+.no_begin_tween:
+  ld a, BANK(text_pause_gfx)
+  ld [rROMB0], a
+
+  lb bc, 4, 1
+  ld de, $9864
+  ld hl, text_pause_map
+  call MapRegion
+
+  lb bc, 13, 3
+  ld de, $99E1
+  ld hl, move_select_map
+  call MapRegion
+
+
+  lb bc, 12, 4
+  ld de, $98C4
+  ld hl, pause_buttons_map
+  call MapRegion
+
+  ret
 
 levels_init:
   xor a

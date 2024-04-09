@@ -16,17 +16,16 @@ play_sfx::
   ld [sfx_pointer], a
   ld a, h
   ld [sfx_pointer+1], a
-  inc a ; high address byte will never be FF
-  ld [playing_sfx], a
+  ld [playing_sfx], a ; High address byte will never be 00
   ret
 
 tick_sfx::
-  ld a, BANK(test_explode)
-  ld [rROMB0], a
-
   ld a, [playing_sfx]
   or a
   ret z
+
+  ld a, BANK(test_explode)
+  ld [rROMB0], a
 
   ld hl, sfx_pointer
   ld a, [hl+]

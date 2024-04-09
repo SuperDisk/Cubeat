@@ -108,11 +108,16 @@ Reset::
   xor a
   rst MemsetSmall
 
-  ;; Mark main menu as not initialized
+  ;; Initialize some variables
   xor a
+
+  ;; Mark main menu as not initialized
   ld [main_menu_inited], a
   ld [level_num], a
   ld [locked_level], a
+
+  ;; Initialize sound effects
+  ld [playing_sfx], a
 
   ;; jp Intro
   ; jp MainMenu

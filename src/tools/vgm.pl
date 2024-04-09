@@ -365,12 +365,6 @@ partitioned_frame(Frame, [PortOne, PortZero]) :-
 command_bytes(port0Write(A,B), [A,B]).
 command_bytes(port1Write(A,B), [A,B]).
 
-gb_command_bytes(gbWrite(A,B), [A,B]).
-gb_command_bytes(wait735, [0]).
-byteified_gb(GB, GBBytes) :-
-    maplist(gb_command_bytes, GB, GBBytes0),
-    append(GBBytes0, GBBytes).
-
 byteified_frame([P1,P0], [P1Bytes1, P0Bytes1]) :-
     maplist(command_bytes, P1, P1Bytes),
     maplist(command_bytes, P0, P0Bytes),

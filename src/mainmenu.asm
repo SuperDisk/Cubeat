@@ -392,6 +392,7 @@ menu_loop:
   halt
 
   call FadeStep
+  call tick_sfx
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
@@ -724,6 +725,9 @@ pause_ui:
 
   ;; pressed down
 
+  ld hl, test_explode
+  call play_sfx
+
   ld a, [selected_level]
   or a
   jr nz, .no_begin_tween
@@ -754,6 +758,9 @@ pause_ui:
   jr z, .no_up
 
   ;; pressed up
+
+  ld hl, test_stereo
+  call play_sfx
 
   ld a, [selected_level]
   or a

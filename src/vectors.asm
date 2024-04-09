@@ -32,7 +32,8 @@ WaitVBlank::
 
 SECTION "Rst $10", ROM0[$10]
 
-  ;; free
+FinishSFXStep::
+  jp done_tick_sfx
 
 SECTION "Rst $18", ROM0[$18]
 

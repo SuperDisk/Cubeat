@@ -122,6 +122,12 @@ hardware.inc/hardware.inc rgbds-structs/structs.asm:
 # "Source" assets can thus be safely stored there without `make clean` removing them
 VPATH := $(SRCDIR)
 
+# SFX
+
+$(RESDIR)/%.sfx: $(RESDIR)/%.vgm
+	@$(MKDIR_P) $(@D)
+	$(PROLOG) $(SRCDIR)/tools/sfxcooker.pl --in_file $< > $@
+
 # VGM conversion
 
 # $(RESDIR)/%.vgm: $(RESDIR)/%.fur

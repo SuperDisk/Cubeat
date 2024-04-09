@@ -86,6 +86,14 @@ text_pause_map:
 incbin "res/menu/text_pause.tilemapu"
 .end:
 
+text_lost_progress_gfx:
+incbin "res/menu/text_lost_progress.2bppu"
+.end:
+
+text_lost_progress_map:
+incbin "res/menu/text_lost_progress.tilemapu"
+.end:
+
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
@@ -605,6 +613,10 @@ pause_init:
   ld bc, (pause_buttons_gfx.end - pause_buttons_gfx)
   call Memcpy
 
+  ld de, text_lost_progress_gfx
+  ld bc, (text_lost_progress_gfx.end - text_lost_progress_gfx)
+  call Memcpy
+
   xor a
   ld [selected_level], a
 
@@ -699,7 +711,7 @@ pause_ui:
   dec a
   call z, FadeOut
 
-  ld hl, goto_gameplay
+  ld hl, goto_gameplay_restore
   call FadeOut
 
 .no_a:
@@ -788,13 +800,27 @@ pause_ui:
   ld hl, move_select_map
   call MapRegion
 
-
   lb bc, 12, 4
   ld de, $98C4
   ld hl, pause_buttons_map
   call MapRegion
 
-  ret
+  ld a, [selected_level]
+  or a
+  jr nz, .draw_warning
+
+  lb bc, 8, 2
+  ld de, $9965
+  ld hl, text_lost_progress_map + (8*2)
+  ;; tail call
+  jp MapRegion
+
+.draw_warning:
+  lb bc, 8, 2
+  ld de, $9965
+  ld hl, text_lost_progress_map
+  ;; tail call
+  jp MapRegion
 
 levels_init:
   xor a

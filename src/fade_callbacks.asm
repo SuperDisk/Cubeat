@@ -52,3 +52,10 @@ goto_gameplay::
 
   pop af
   jp Intro
+
+goto_gameplay_restore::
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  jp Intro

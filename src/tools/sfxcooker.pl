@@ -22,5 +22,5 @@ main(Argv) :-
 
     byteified_gb(CookedCommands, ByteifiedCommands),
     maplist(put_byte, ByteifiedCommands),
-    print(user_error, ByteifiedCommands),
+    put_byte(0xFF),
     writeln(user_error, "Done!"),!.

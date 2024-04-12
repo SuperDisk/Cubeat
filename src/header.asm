@@ -123,8 +123,8 @@ Reset::
   ; jp MainMenu
   ; jp TitleScreen
   ; jp CreditsMenu
-  ; jp MusicPlayerMenu
-  jp PauseMenu
+  jp MusicPlayerMenu
+  ; jp PauseMenu
   ;; jp SplashScreen
 
 SECTION "OAM DMA routine", ROMX

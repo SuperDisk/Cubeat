@@ -1137,14 +1137,23 @@ music_player_ui:
 
   ld hl, scroll_amount
   ld a, [hl+]
+  ld b, a
   cp $60
   jr z, .no_right
 
+  ld a, [scroll_x1]
   ld [tween_startx1], a
-  ld [scroll_x1], a
+
+  sub b
+  cpl
+  ld c, a
+  inc c
+
+  ; ld [tween_startx1], a
+  ; ld [scroll_x1], a
 
   ld h, [hl]
-  ld l, a
+  ld l, b
 
   ld a, h
   ld [x1highbit], a
@@ -1158,6 +1167,7 @@ music_player_ui:
   ld [scroll_amount+1], a
 
   ld a, 88
+  add c
   ld [tween_endx1], a
 
   xor a

@@ -1255,11 +1255,11 @@ music_player_ui:
   bit PADB_B, a
   ret z
 
-  ld hl, goto_mainmenu
-  call FadeOut
-
   ld hl, sfx_ui_back
   call play_sfx
+
+  ld hl, goto_mainmenu
+  call FadeOut
 
   ret
 
@@ -1551,15 +1551,18 @@ main_menu_ui:
   bit PADB_B, d
   jr z, .no_b
 
-  ld hl, goto_titlescreen
-  call FadeOut
-
   ld hl, sfx_ui_back
   call play_sfx
+
+  ld hl, goto_titlescreen
+  call FadeOut
 
 .no_b:
   bit PADB_A, d
   jr z, .no_a
+
+  ld hl, sfx_alt_radar_destroy_echo
+  call play_sfx
 
   ld a, [selected_button]
   add a
@@ -1569,9 +1572,6 @@ main_menu_ui:
   ld h, [hl]
   ld l, a
   call FadeOut
-
-  ld hl, sfx_alt_radar_destroy_echo
-  call play_sfx
 
   jr .no_a
 .jump:

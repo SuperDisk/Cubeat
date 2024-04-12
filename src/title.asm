@@ -86,10 +86,10 @@ title_loop:
   bit PADB_START, a
   jr z, title_loop
 
-  ld hl, goto_mainmenu_with_sgb
-  call FadeOut
-
   ld hl, sfx_alt_radar_destroy_echo
   call play_sfx
+
+  ld hl, goto_mainmenu_with_sgb
+  call FadeOut
 
   jr title_loop

@@ -30,6 +30,10 @@ sfx_ui_move::                 INCBIN "res/sfx/ui_move.sfx"
 SECTION "SFX Playback", ROM0
 
 play_sfx::
+  ld a, [wFading]
+  or a
+  ret nz
+
   ld a, l
   ld [sfx_pointer], a
   ld a, h

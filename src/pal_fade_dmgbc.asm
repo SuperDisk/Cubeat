@@ -374,6 +374,6 @@ wOBP0:: db
 wOBP1:: db
 
 wFadeCallback:: dw
-wFading: db
+wFading:: db
 
 mosaic_packet_ram: ds 6

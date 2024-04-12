@@ -118,6 +118,7 @@ Reset::
 
   ;; Initialize sound effects
   ld [playing_sfx], a
+  ld [sfx_priority], a
 
   ;; jp Intro
   ; jp MainMenu

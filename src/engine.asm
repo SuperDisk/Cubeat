@@ -22,11 +22,11 @@ DEF SELECT_PAUSES_RADAR = 1
 ;; Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEF DPAD_HOLD_FRAMES EQU 7
+DEF DPAD_HOLD_FRAMES = 7
 
-DEF BOARD_W EQU 18
-DEF BOARD_H EQU 11
-DEF ROW EQU 18
+DEF BOARD_W = 18
+DEF BOARD_H = 11
+DEF ROW = 18
 
 DEF NUM_ANIMS = 11
 
@@ -610,8 +610,6 @@ ENDC
   ld a, [dpad_frames]
   dec a
   jr nz, .no_slide
-  inc a
-  ld [dpad_frames], a
   ld a, [hHeldKeys]
   jr .do_slide
 
@@ -683,8 +681,20 @@ ENDC
   inc b
 
 .save:
-  ld a, b
-  ld [drop_pos], a
+  ld hl, drop_pos
+  ld a, [hl]
+  cp b
+  ld [hl], b
+
+  jr z, .done
+  jr nc, .moved_left
+  ld hl, sfx_move_right
+  jr .now_play
+.moved_left:
+  ld hl, sfx_move_left
+.now_play:
+  call play_sfx
+
 .done:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

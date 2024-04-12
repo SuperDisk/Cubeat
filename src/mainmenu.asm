@@ -449,6 +449,9 @@ credits_ui:
   bit PADB_B, a
   jr z, .wait_for_split
 
+  ld hl, sfx_ui_back
+  call play_sfx
+
   ld hl, goto_mainmenu
   call FadeOut
 
@@ -707,6 +710,9 @@ pause_ui:
   bit PADB_A, a
   jr z, .no_a
 
+  ld hl, sfx_alt_radar_destroy_echo
+  call play_sfx
+
   ld hl, goto_mainmenu
   ld a, [selected_level]
   dec a
@@ -724,9 +730,6 @@ pause_ui:
   jr z, .no_down
 
   ;; pressed down
-
-  ld hl, test_radar
-  call play_sfx
 
   ld a, [selected_level]
   or a
@@ -759,9 +762,6 @@ pause_ui:
 
   ;; pressed up
 
-  ld hl, test_radar
-  call play_sfx
-
   ld a, [selected_level]
   or a
   jr z, .no_begin_tween
@@ -788,6 +788,9 @@ pause_ui:
 .no_up:
 
 .did_tween:
+  ld hl, sfx_ui_move
+  call play_sfx
+
   xor a
   ld [tween_step], a
   inc a
@@ -1162,6 +1165,9 @@ music_player_ui:
   inc a
   ld [tweening], a
 
+  ld hl, sfx_ui_move
+  call play_sfx
+
 .no_right:
   ld a, [hPressedKeys]
   bit PADB_LEFT, a
@@ -1197,6 +1203,9 @@ music_player_ui:
   inc a
   ld [tweening], a
 
+  ld hl, sfx_ui_move
+  call play_sfx
+
 .no_left:
   ld a, [hPressedKeys]
   bit PADB_DOWN, a
@@ -1215,6 +1224,9 @@ music_player_ui:
   ld [tween_step2], a
   inc a
   ld [tweening2], a
+
+  ld hl, sfx_ui_move
+  call play_sfx
 
 .no_down:
   ld a, [hPressedKeys]
@@ -1235,6 +1247,9 @@ music_player_ui:
   inc a
   ld [tweening2], a
 
+  ld hl, sfx_ui_move
+  call play_sfx
+
 .no_up:
   ld a, [hPressedKeys]
   bit PADB_B, a
@@ -1242,6 +1257,9 @@ music_player_ui:
 
   ld hl, goto_mainmenu
   call FadeOut
+
+  ld hl, sfx_ui_back
+  call play_sfx
 
   ret
 
@@ -1345,6 +1363,9 @@ levels_ui:
   bit PADB_B, a
   jr z, .no_b
 
+  ld hl, sfx_ui_back
+  call play_sfx
+
   ld hl, goto_mainmenu
   call FadeOut
 
@@ -1382,7 +1403,10 @@ levels_ui:
   jr c, .no_down
   sub 7
 .no_down:
-  ld [selected_level], a
+  ld hl, selected_level
+  cp [hl]
+  ld [hl], a
+  push af
 
   ld b, 0
 .div_loop:
@@ -1421,6 +1445,10 @@ levels_ui:
   ld [tween_step], a
   inc a
   ld [tweening], a
+
+  pop af
+  ld hl, sfx_ui_move
+  call nz, play_sfx
 
   ret
 
@@ -1526,6 +1554,9 @@ main_menu_ui:
   ld hl, goto_titlescreen
   call FadeOut
 
+  ld hl, sfx_ui_back
+  call play_sfx
+
 .no_b:
   bit PADB_A, d
   jr z, .no_a
@@ -1538,6 +1569,10 @@ main_menu_ui:
   ld h, [hl]
   ld l, a
   call FadeOut
+
+  ld hl, sfx_alt_radar_destroy_echo
+  call play_sfx
+
   jr .no_a
 .jump:
   dw goto_gameplay
@@ -1568,13 +1603,20 @@ main_menu_ui:
   jp z, .no_down
   set 1, a
 .no_down:
-  ld [selected_button], a
+  ld hl, selected_button
+  cp [hl]
+  ld [hl], a
+  push af
 
   ld de, button_coords
   add a
   add a
   add a
   add_a_to_de
+
+  pop af
+  ld hl, sfx_ui_move
+  call nz, play_sfx
 
   ;; fallthrough
 

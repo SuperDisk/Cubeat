@@ -6,9 +6,26 @@ sfx_pointer: dw
 playing_sfx:: db
 
 SECTION "Sound effects", ROMX
-test_explode:: INCBIN "res/sfx/test_explode.sfx"
-test_stereo:: INCBIN "res/sfx/test_stereo.sfx"
-test_radar:: INCBIN "res/sfx/radar.sfx"
+
+sfx_test_explode::            INCBIN "res/sfx/test_explode.sfx"
+sfx_test_stereo::             INCBIN "res/sfx/test_stereo.sfx"
+sfx_alt_block_land_smooth::   INCBIN "res/sfx/alt_block_land_smooth.sfx"
+sfx_alt_combo_swirly::        INCBIN "res/sfx/alt_combo_swirly.sfx"
+sfx_alt_game_starts_punch::   INCBIN "res/sfx/alt_game_starts_punch.sfx"
+sfx_alt_radar_destroy_clean:: INCBIN "res/sfx/alt_radar_destroy_clean.sfx"
+sfx_alt_radar_destroy_echo::  INCBIN "res/sfx/alt_radar_destroy_echo.sfx"
+sfx_block_land_crunchy::      INCBIN "res/sfx/block_land_crunchy.sfx"
+sfx_combo_clean::             INCBIN "res/sfx/combo_clean.sfx"
+; game_over_alt::           INCBIN "res/sfx/game_over_alt.sfx"
+; game_starts::             INCBIN "res/sfx/game_starts.sfx"
+; move_left::               INCBIN "res/sfx/move_left.sfx"
+; move_right::              INCBIN "res/sfx/move_right.sfx"
+; radar_destroy_crunch::    INCBIN "res/sfx/radar_destroy_crunch.sfx"
+; test_explode::            INCBIN "res/sfx/test_explode.sfx"
+; test_stereo::             INCBIN "res/sfx/test_stereo.sfx"
+sfx_ui_back::                 INCBIN "res/sfx/ui_back.sfx"
+sfx_ui_move::                 INCBIN "res/sfx/ui_move.sfx"
+
 
 SECTION "SFX Playback", ROM0
 
@@ -43,6 +60,10 @@ done_tick_sfx::
   jr nz, .continue
 
   ld [playing_sfx], a ; A = 0
+  ld [rNR12], a
+  ld [rNR22], a
+  ld [rNR30], a
+  ld [rNR42], a
   ret
 
 .continue:

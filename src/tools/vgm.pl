@@ -81,9 +81,9 @@ commands_code([Cmd | Cmds], [Code | RestCode]) :-
 cook_(port0Write(Reg, Val), [port0Write(Reg, Val)]).
 cook_(port1Write(Reg, Val), [port1Write(Reg, Val)]).
 cook_(gbWrite(Reg, _), []) :-
-    member(Reg, [0x16, 0x15, 0x14]).
+    member(Reg, [0x16, 0x14]).
 cook_(gbWrite(Reg, Val), [gbWrite(Reg, Val)]) :-
-    maplist(dif(Reg), [0x16, 0x15, 0x14]).
+    maplist(dif(Reg), [0x16, 0x14]).
 cook_(wait735, [wait735]).
 cook_(wait(Samples), []) :-
     Samples #=< 0.

@@ -64,6 +64,7 @@ title_loop:
   halt
 
   call FadeStep
+  call tick_sfx
 
   ;; Second frame
   xor a
@@ -78,6 +79,7 @@ title_loop:
   call update_playfield_buffer
 
   call FadeStep
+  call tick_sfx
 
   call poll_joystick
   ld a, [hPressedKeys]
@@ -86,4 +88,8 @@ title_loop:
 
   ld hl, goto_mainmenu_with_sgb
   call FadeOut
+
+  ld hl, sfx_alt_radar_destroy_echo
+  call play_sfx
+
   jr title_loop

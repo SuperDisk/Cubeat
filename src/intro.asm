@@ -431,6 +431,8 @@ IF DEF(DBG_SCANLINES2)
   ld [rBGP], a
 ENDC
 
+  call tick_sfx
+
 .wait_for_below_play_area0
   ld a, [rLY]
   cp 135 ; free to do OAM DMA here (past the play area)
@@ -481,6 +483,8 @@ IF DEF(DBG_SCANLINES1)
   ld a, %00_10_01_11
   ld [rBGP], a
 ENDC
+
+  call tick_sfx
 
   jp kernel_loop
 

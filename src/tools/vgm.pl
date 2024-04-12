@@ -47,6 +47,7 @@ command(port0Write(Reg, Val)) --> [0x5E, Reg, Val].
 command(port1Write(Reg, Val)) --> [0x5F, Reg, Val].
 command(gbWrite(Reg, Val)) --> [0xB3, Reg, Val].
 command(wait(Samples)) --> [0x61], u16(Samples).
+command(wait(882)) --> [0x63].
 command(wait735) --> [0x62].
 command(end) --> [0x66].
 

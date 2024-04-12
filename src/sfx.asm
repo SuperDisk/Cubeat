@@ -8,6 +8,7 @@ playing_sfx:: db
 SECTION "Sound effects", ROMX
 test_explode:: INCBIN "res/sfx/test_explode.sfx"
 test_stereo:: INCBIN "res/sfx/test_stereo.sfx"
+test_radar:: INCBIN "res/sfx/radar.sfx"
 
 SECTION "SFX Playback", ROM0
 
@@ -24,7 +25,7 @@ tick_sfx::
   or a
   ret z
 
-  ld a, BANK(test_explode)
+  ld a, BANK("Sound effects")
   ld [rROMB0], a
 
   ld hl, sfx_pointer

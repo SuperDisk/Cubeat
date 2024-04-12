@@ -725,7 +725,7 @@ pause_ui:
 
   ;; pressed down
 
-  ld hl, test_explode
+  ld hl, test_radar
   call play_sfx
 
   ld a, [selected_level]
@@ -759,7 +759,7 @@ pause_ui:
 
   ;; pressed up
 
-  ld hl, test_stereo
+  ld hl, test_radar
   call play_sfx
 
   ld a, [selected_level]

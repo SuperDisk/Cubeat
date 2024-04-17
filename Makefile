@@ -41,7 +41,7 @@ PROLOG := swipl
 LISP := sbcl --noinform --disable-debugger
 
 FURNACE := furnace
-VGMCMP := vgm_cmp
+VGMCMP := src/tools/ensure_vgm_cmp.sh
 GIF2TILES := $(LISP) --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
@@ -124,7 +124,7 @@ VPATH := $(SRCDIR)
 
 # SFX
 
-$(RESDIR)/%.sfx: $(RESDIR)/%.vgm
+$(RESDIR)/%.sfx: $(RESDIR)/%.opt.vgm
 	@$(MKDIR_P) $(@D)
 	$(PROLOG) $(SRCDIR)/tools/sfxcooker.pl --in_file $< > $@
 

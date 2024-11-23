@@ -4,47 +4,40 @@
 
 :- initialization(main, main).
 
-grabs([], Free, Free).
-grabs([_Name-Index | NamesRest], Free0, Free2) :-
-    select(Index, Free0, Free1),
-    grabs(NamesRest, Free1, Free2).
+print_lisp(_-V) :- var(V), !.
+print_lisp(K-V) :- format("(~a . ~a)", [K, V]).
 
-union_free(Names, Free, Free1) :-
-    maplist([_-Idx, Idx]>>true, Names, Indexes),
-    union(Free, Indexes, Free1).
+slices_distinct(Slices) :-
+    append(Slices, Pairs),
+    sort(Pairs, DistinctPairs),
+    maplist([_-Idx, Idx]>>true, DistinctPairs, Indexes),
+    all_different(Indexes).
 
-names_indexes([], _Free).
-names_indexes([diff(Incoming, Evicted) | DiffRest], Free) :-
-    union_free(Evicted, Free, Free1),
-    grabs(Incoming, Free1, Free2),
-    names_indexes(DiffRest, Free2).
+distinct_in_window(Window, []) :-
+    slices_distinct(Window).
+distinct_in_window(Window, [Slice | RemainingSlices]) :-
+    slices_distinct(Window),
+    Window = [_ | Window1],
+    append(Window1, [Slice], Window2),
+    distinct_in_window(Window2, RemainingSlices).
 
-print_lisp(K-V) :- var(V), !.
-print_lisp(K-V) :- format("(~a . ~a)", [K, V]), !.
+slices_indices([], []).
+slices_indices([Slice | Rest], Indices) :-
+    maplist([_-Idx, Idx]>>true, Slice, Indices1),
+    slices_indices(Rest, Indices2),
+    append(Indices1, Indices2, Indices).
+
+go(Slices, Indices) :-
+    slices_indices(Slices, Indices0),
+    sort(Indices0, Indices),
+    Indices ins 0..211,
+
+    length(Window, 20),
+    append(Window, RemainingSlices, Slices),
+    distinct_in_window(Window, RemainingSlices).
 
 main(_Argv) :-
-    read([Names, Diffs, Free]),
-    names_indexes(Diffs, Free),
-    %% print(Names).
-    maplist(print_lisp, Names).
-
-%% main(A,B,C,D,E,F) :-
-%%     names_indexes(
-%%         [
-%%             diff([a-A], []),
-%%             diff([b-B], []),
-%%             diff([], [b-B]),
-%%             diff([c-C], []),
-%%             diff([d-D, e-E], [c-C]),
-%%             diff([f-F], [d-D])
-%%         ],
-%%         [0,1,2]
-%%     ).
-
-
-%% A A A A A A
-%%   B
-%%       C
-%%         D
-%%         E E
-%%           F
+    read([Slices, Pairs]),
+    go(Slices, Indices),
+    labeling([ff], Indices),
+    maplist(print_lisp, Pairs).

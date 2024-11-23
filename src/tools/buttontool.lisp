@@ -1,15 +1,5 @@
 (ql:quickload 'skippy)
 
-(defun dbg (&rest args)
-  (format t "~{~a ~}~%" args)
-  (car args))
-
-(defmacro dbg-forms (&rest vars)
-  `(prog1
-       ,@(loop for var in vars collect
-               `(prog1 ,var (dbg ,(write-to-string var) "=" ,var)))
-     (terpri)))
-
 (defun gif-data= (i1 i2)
   (equalp (skippy:image-data i1) (skippy:image-data i2)))
 
@@ -39,13 +29,6 @@
             (incf tile-idx)))))
     table))
 
-(defun dump (img)
-  (let ((dstream (skippy:make-data-stream :height (skippy:height img)
-                                          :width (skippy:width img)
-                                          :color-table *color-table*
-                                          :initial-images (list img))))
-    (skippy:output-data-stream dstream "/tmp/yeah.gif")))
-
 (defparameter *slices*
   (loop for x below (skippy:width *img*) by 8
         collect
@@ -57,77 +40,32 @@
                                  :sx x :sy y :dx 0 :dy 0)
                *all-tiles*))))
 
-(defun used (window)
-  (remove-duplicates (apply #'append window) :test #'=))
+(defun format-slice (slice)
+  (format nil "[~{~a~:*-_~a~^, ~}]" slice))
 
-(defstruct slice-diff
-  incoming
-  evicted)
+(defun format-slices (slices)
+  (format nil "[~{~a~^, ~}]" slices))
 
-(defun calculate-diffs (slices)
-  (let ((slice-window (subseq slices 0 20))
-        out)
-    (loop for i from 21 below (length slices)
-          for oldset = (used slice-window) do
-            (pop slice-window)
-            (setf slice-window (append slice-window (list (nth i slices))))
-            (let ((newset (used slice-window)))
-              (push (make-slice-diff
-                     :incoming (set-difference newset oldset)
-                     :evicted (set-difference oldset newset))
-                    out)))
+(defun format-input (tiles slices)
+  (format nil "[~a, ~a].~%"
+          (format-slices (mapcar #'format-slice slices))
+          (format-slice tiles)))
 
-    (cons (make-slice-diff
-           :incoming (used (subseq slices 0 20))
-           :evicted nil)
-          (reverse out))))
+(defun solve ()
+  (let ((data (format-input (loop for k being each hash-key of *all-tiles*
+                                  collect (gethash k *all-tiles*))
+                            *slices*))
+        (process (uiop:launch-program
+                  (list "swipl" "./buttontool.pl")
+                  :input :stream
+                  :output :stream)))
+    (unwind-protect
+         (let ((input-stream (uiop:process-info-input process))
+               (output-stream (uiop:process-info-output process)))
 
-(defparameter *slice-diffs-right*
-  (calculate-diffs *slices*))
+           (write-string data input-stream)
+           (finish-output input-stream)
 
-(defparameter *slice-diffs-left*
-  (calculate-diffs (reverse *slices*)))
-
-(defstruct interval
-  tile
-  start
-  end)
-
-(defun intervals (diffs)
-  (let (out-intervals active-intervals)
-    (loop for diff in diffs
-          for i from 0 do
-            (loop for interval in active-intervals do
-              (incf (interval-end interval)))
-            (loop for tile in (slice-diff-evicted diff) do
-              (let ((interval (find tile active-intervals :key #'interval-tile)))
-                (push interval out-intervals)
-                (setf active-intervals (delete tile active-intervals :key #'interval-tile))))
-            (loop for tile in (slice-diff-incoming diff) do
-              (push (make-interval :tile tile :start i :end i) active-intervals))
-          finally
-             (setf out-intervals (append active-intervals out-intervals)))
-    (sort out-intervals #'< :key #'interval-start)))
-
-(defun graph-color (intervals)
-  (loop with active-intervals
-        with permanent-index-assignment
-        with result
-        for interval in intervals do
-          (setf active-intervals
-                (remove-if-not (lambda (active)
-                             (>= (interval-end active) (interval-start interval)))
-                           active-intervals))
-          (if (member (interval-tile) permanent-index-assignment)
-              (let )
-              (let ((used-colors
-                      (loop for active in active-intervals
-                            collect (cdr (assoc (interval-tile active) result))))
-                    (color 0))
-
-                (loop while (member color used-colors :test #'=) do
-                  (incf color))
-
-                (push (cons (interval-tile interval) color) result)))
-          (push interval active-intervals)
-        finally (return result)))
+           (loop for form = (ignore-errors (read output-stream nil))
+                 while form collect form))
+      (uiop:close-streams process))))

@@ -337,7 +337,7 @@ Menu:
   ;; Load BG area
   ld a, BANK(move_select_gfx)
   ld [rROMB0], a
-  ld hl, $95B0
+  ld hl, $9640
   ld de, move_select_gfx
   ld bc, (move_select_gfx.end - move_select_gfx)
   call Memcpy
@@ -846,7 +846,7 @@ levels_init:
   ld bc, (levels_gfx.end - levels_gfx)
   call Memcpy
 
-  ld hl, $9700
+  ld hl, $9790
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   call Memcpy
@@ -935,7 +935,7 @@ music_player_init:
   ld bc, (song_buttons_gfx.end - song_buttons_gfx)
   call Memcpy
 
-  ld hl, $9700
+  ld hl, $9790
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   call Memcpy

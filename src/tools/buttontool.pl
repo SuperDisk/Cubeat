@@ -4,12 +4,9 @@
 
 :- initialization(main, main).
 
-grab(_Name-Index, Free0, Free1) :-
-    select(Index, Free0, Free1).
-
 grabs([], Free, Free).
-grabs([Name-Index | NamesRest], Free0, Free2) :-
-    grab(Name-Index, Free0, Free1),
+grabs([_Name-Index | NamesRest], Free0, Free2) :-
+    select(Index, Free0, Free1),
     grabs(NamesRest, Free1, Free2).
 
 union_free(Names, Free, Free1) :-
@@ -22,13 +19,13 @@ names_indexes([diff(Incoming, Evicted) | DiffRest], Free) :-
     grabs(Incoming, Free1, Free2),
     names_indexes(DiffRest, Free2).
 
-print_lisp([]).
-print_lisp(K-V) :-
-    format("(~a . ~a)", [K, V]).
+print_lisp(K-V) :- var(V), !.
+print_lisp(K-V) :- format("(~a . ~a)", [K, V]), !.
 
 main(_Argv) :-
     read([Names, Diffs, Free]),
     names_indexes(Diffs, Free),
+    %% print(Names).
     maplist(print_lisp, Names).
 
 %% main(A,B,C,D,E,F) :-

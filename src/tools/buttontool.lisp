@@ -75,8 +75,33 @@
   (calculate-diffs (reverse *slices*)))
 
 (defun format-slice-diff (slice-diffs)
-  (format nil "[~{diff(~{[~{~A~:*-_~A~^, ~}], [~{~A~:*-_~A~^, ~}]~})~^, ~}]"
-          (loop for diff in slice-diffs
-                collect
-                (list (slice-diff-incoming diff)
-                      (slice-diff-evicted diff)))))
+  (let ((names (format nil "[~{~a~:*-_~a~^, ~}]" (loop for x being each hash-key of *all-tiles* collect (gethash x *all-tiles*))))
+        (free (format nil "[~{~a~^, ~}]" (loop for i below 211 collect i) #+nil(loop for i from #x90 to #x163 collect i)))
+        (diffs (format nil "[~{diff(~{[~{~A~:*-_~A~^, ~}], [~{~A~:*-_~A~^, ~}]~})~^, ~}]"
+                       (cons
+                        (list (used (subseq *slices* 0 20))
+                              nil)
+                        (loop for diff in slice-diffs
+                              collect
+                              (list (slice-diff-incoming diff)
+                                    (slice-diff-evicted diff)))))))
+    (format nil "[~a, ~a, ~a].~%" names diffs free)))
+
+(defun solve (slice-diffs)
+  (let ((data (format-slice-diff slice-diffs))
+        (process (uiop:launch-program
+                  (list "swipl" "./buttontool.pl")
+                  :input :stream
+                  :output :stream)))
+    (unwind-protect
+         (let ((input-stream (uiop:process-info-input process))
+               (output-stream (uiop:process-info-output process)))
+
+           (write-string data input-stream)
+           (finish-output input-stream)
+
+           ;; Read and process forms from subprocess stdout
+           (loop for form = (ignore-errors (read output-stream nil))
+                 while form do (format t "~a~%" form)))
+      ;; Ensure process streams are closed
+      (uiop:close-streams process))))

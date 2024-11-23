@@ -1,5 +1,15 @@
 (ql:quickload 'skippy)
 
+(defun dbg (&rest args)
+  (format t "~{~a ~}~%" args)
+  (car args))
+
+(defmacro dbg-forms (&rest vars)
+  `(prog1
+       ,@(loop for var in vars collect
+               `(prog1 ,var (dbg ,(write-to-string var) "=" ,var)))
+     (terpri)))
+
 (defun gif-data= (i1 i2)
   (equalp (skippy:image-data i1) (skippy:image-data i2)))
 
@@ -66,7 +76,11 @@
                      :incoming (set-difference newset oldset)
                      :evicted (set-difference oldset newset))
                     out)))
-    (reverse out)))
+
+    (cons (make-slice-diff
+           :incoming (used (subseq slices 0 20))
+           :evicted nil)
+          (reverse out))))
 
 (defparameter *slice-diffs-right*
   (calculate-diffs *slices*))
@@ -74,34 +88,46 @@
 (defparameter *slice-diffs-left*
   (calculate-diffs (reverse *slices*)))
 
-(defun format-slice-diff (slice-diffs)
-  (let ((names (format nil "[~{~a~:*-_~a~^, ~}]" (loop for x being each hash-key of *all-tiles* collect (gethash x *all-tiles*))))
-        (free (format nil "[~{~a~^, ~}]" (loop for i below 211 collect i) #+nil(loop for i from #x90 to #x163 collect i)))
-        (diffs (format nil "[~{diff(~{[~{~A~:*-_~A~^, ~}], [~{~A~:*-_~A~^, ~}]~})~^, ~}]"
-                       (cons
-                        (list (used (subseq *slices* 0 20))
-                              nil)
-                        (loop for diff in slice-diffs
-                              collect
-                              (list (slice-diff-incoming diff)
-                                    (slice-diff-evicted diff)))))))
-    (format nil "[~a, ~a, ~a].~%" names diffs free)))
+(defstruct interval
+  tile
+  start
+  end)
 
-(defun solve (slice-diffs)
-  (let ((data (format-slice-diff slice-diffs))
-        (process (uiop:launch-program
-                  (list "swipl" "./buttontool.pl")
-                  :input :stream
-                  :output :stream)))
-    (unwind-protect
-         (let ((input-stream (uiop:process-info-input process))
-               (output-stream (uiop:process-info-output process)))
+(defun intervals (diffs)
+  (let (out-intervals active-intervals)
+    (loop for diff in diffs
+          for i from 0 do
+            (loop for interval in active-intervals do
+              (incf (interval-end interval)))
+            (loop for tile in (slice-diff-evicted diff) do
+              (let ((interval (find tile active-intervals :key #'interval-tile)))
+                (push interval out-intervals)
+                (setf active-intervals (delete tile active-intervals :key #'interval-tile))))
+            (loop for tile in (slice-diff-incoming diff) do
+              (push (make-interval :tile tile :start i :end i) active-intervals))
+          finally
+             (setf out-intervals (append active-intervals out-intervals)))
+    (sort out-intervals #'< :key #'interval-start)))
 
-           (write-string data input-stream)
-           (finish-output input-stream)
+(defun graph-color (intervals)
+  (loop with active-intervals
+        with permanent-index-assignment
+        with result
+        for interval in intervals do
+          (setf active-intervals
+                (remove-if-not (lambda (active)
+                             (>= (interval-end active) (interval-start interval)))
+                           active-intervals))
+          (if (member (interval-tile) permanent-index-assignment)
+              (let )
+              (let ((used-colors
+                      (loop for active in active-intervals
+                            collect (cdr (assoc (interval-tile active) result))))
+                    (color 0))
 
-           ;; Read and process forms from subprocess stdout
-           (loop for form = (ignore-errors (read output-stream nil))
-                 while form do (format t "~a~%" form)))
-      ;; Ensure process streams are closed
-      (uiop:close-streams process))))
+                (loop while (member color used-colors :test #'=) do
+                  (incf color))
+
+                (push (cons (interval-tile interval) color) result)))
+          (push interval active-intervals)
+        finally (return result)))

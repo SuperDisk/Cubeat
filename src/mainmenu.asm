@@ -846,6 +846,7 @@ levels_init:
   ld bc, (levels_gfx.end - levels_gfx)
   call Memcpy
 
+  ld hl, $9700
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   call Memcpy
@@ -930,11 +931,11 @@ music_player_init:
   call update_cursor_pos
 
   ld de, song_buttons_gfx
-  ld hl, $9000
+  ld hl, $8900
   ld bc, (song_buttons_gfx.end - song_buttons_gfx)
   call Memcpy
 
-  ld hl, $93C0
+  ld hl, $9700
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
   call Memcpy

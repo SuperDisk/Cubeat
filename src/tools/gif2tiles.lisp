@@ -436,6 +436,7 @@
 (defun main ()
   (let* ((cmd (opts:get-opts))
          (*menu-mode* (getf cmd :menu-mode))
+         (*reserved-tiles-count* (if *menu-mode* 0 *reserved-tiles-count*))
          (*no-colon* (getf cmd :no-colon)))
     (apply #'gif->tiles (subseq sb-ext:*posix-argv* 1 3))
     (exit)))

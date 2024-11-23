@@ -122,9 +122,9 @@ Reset::
 
   ;; jp Intro
   ; jp MainMenu
-  jp TitleScreen
+  ; jp TitleScreen
   ; jp CreditsMenu
-  ; jp MusicPlayerMenu
+  jp MusicPlayerMenu
   ; jp PauseMenu
   ; jp SplashScreen
 

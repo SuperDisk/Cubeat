@@ -17,17 +17,20 @@
 (defparameter *color-table*
   (skippy:color-table *data-stream*))
 
-(defparameter *all-tiles*
-  (let ((tile-idx 0)
-        (table (make-hash-table :test #'gif-data=)))
+(defparameter *all-tiles* (make-hash-table :test #'gif-data=))
+(defparameter *segmented-image* nil)
+
+(clrhash *all-tiles*)
+(let ((tile-idx 0))
+  (loop for y below (skippy:height *img*) by 8 do
     (loop for x below (skippy:width *img*) by 8 do
-      (loop for y below (skippy:height *img*) by 8 do
-        (let ((new-tile (skippy:make-image :width 8 :height 8)))
-          (skippy:composite *img* new-tile :sx x :sy y :dx 0 :dy 0)
-          (when (not (gethash new-tile table))
-            (setf (gethash new-tile table) tile-idx)
-            (incf tile-idx)))))
-    table))
+      (let ((new-tile (skippy:make-image :width 8 :height 8)))
+        (skippy:composite *img* new-tile :sx x :sy y :dx 0 :dy 0)
+        (push new-tile *segmented-image*)
+        (when (not (gethash new-tile *all-tiles*))
+          (setf (gethash new-tile *all-tiles*) tile-idx)
+          (incf tile-idx)))))
+  *all-tiles*)
 
 (defparameter *slices*
   (loop for x below (skippy:width *img*) by 8
@@ -69,3 +72,8 @@
            (loop for form = (ignore-errors (read output-stream nil))
                  while form collect form))
       (uiop:close-streams process))))
+
+(defparameter *gb-map*
+  (let ((assignments (solve)))
+    (loop for tile in *segmented-image*
+          collect (cdr (assoc (gethash tile *all-tiles*) assignments)))))

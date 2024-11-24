@@ -17,6 +17,14 @@
 (defparameter *color-table*
   (skippy:color-table *data-stream*))
 
+(defun dump (img name)
+  (let ((dstream (skippy:make-data-stream :height (skippy:height img)
+                                          :width (skippy:width img)
+                                          :color-table *color-table*
+                                          :initial-images (list img))))
+       (skippy:output-data-stream dstream (format nil "/tmp/~a.gif" name))))
+
+
 (defparameter *all-tiles* (make-hash-table :test #'gif-data=))
 (defparameter *segmented-image* nil)
 
@@ -29,8 +37,8 @@
         (push new-tile *segmented-image*)
         (when (not (gethash new-tile *all-tiles*))
           (setf (gethash new-tile *all-tiles*) tile-idx)
-          (incf tile-idx)))))
-  *all-tiles*)
+          (incf tile-idx))))))
+(setf *segmented-image* (reverse *segmented-image*))
 
 (defparameter *slices*
   (loop for x below (skippy:width *img*) by 8
@@ -77,3 +85,11 @@
   (let ((assignments (solve)))
     (loop for tile in *segmented-image*
           collect (cdr (assoc (gethash tile *all-tiles*) assignments)))))
+
+(defparameter *gb-map-idxs*
+  (loop for tile in *segmented-image*
+        collect (gethash tile *all-tiles*)))
+
+(defun chunk (list n)
+  (loop for i below (length list) by n
+        collect (subseq list i (+ i n))))

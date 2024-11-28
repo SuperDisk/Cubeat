@@ -13,6 +13,10 @@
   (:name :code
    :short #\c
    :long "code"
+   :arg-parser #'identity)
+  (:name :graphics
+   :short #\g
+   :long "graphics"
    :arg-parser #'identity))
 
 (defun dbg (&rest args)
@@ -88,7 +92,7 @@
            (sort pairs #'< :key #'cdr))
          (sorted-tiles (mapcar #'car sorted-pairs)))
     (loop for tile in sorted-tiles do
-      (write-sequence (skippy:image-data tile) stream))))
+      (write-sequence (tile->2bpp tile) stream))))
 
 (defun write-slice-code (slice name assignments stream)
   (format stream "slice~a:~%" name)
@@ -96,7 +100,7 @@
         (bytes 1))
     (loop for tile in slice
           for index = (cdr (assoc tile assignments)) do
-            (format stream "ld de, tiles+(~a*16)~%" tile)
+            (format stream "ld de, song_buttons_gfx+(~a*16)~%" tile)
             (format stream "ld hl, $8900+(~a*16)~%" index)
             (format stream "rst MemcpyTile~%")
             (incf bytes 5))
@@ -108,6 +112,7 @@
          (input-file (getf cmd :input))
          (map-file (getf cmd :map))
          (code-file (getf cmd :code))
+         (graphics-file (getf cmd :graphics))
          (data-stream (skippy:load-data-stream input-file))
          (img (aref (skippy:images data-stream) 0))
          (all-tiles (make-hash-table :test #'gif-data=))
@@ -137,6 +142,11 @@
            (gb-map
              (loop for tile in segmented-image
                    collect (cdr (assoc (gethash tile all-tiles) assignments)))))
+      (with-open-file (stream graphics-file
+                              :direction :output
+                              :element-type '(unsigned-byte 8)
+                              :if-exists :supersede)
+        (write-tiles-2bpp all-tiles stream))
       (with-open-file (stream map-file
                               :direction :output
                               :element-type '(unsigned-byte 8)
@@ -145,14 +155,14 @@
       (with-open-file (stream code-file
                               :direction :output
                               :if-exists :supersede)
-        (format stream "SECTION \"Slice code\", ROMX~%")
         (loop for slice in slices
               for i from 0 do
                 (write-slice-code slice i assignments stream))
 
         (format stream "slice_table::~%")
         (loop for i from 0 below (length slices) do
-          (format stream "dw slice~a~%" i))))))
+          (format stream "dw slice~a~%" i)))))
+  (exit))
 
 #+nil
 (defun write-tile-code (tile name stream)

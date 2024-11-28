@@ -28,6 +28,15 @@ ENDM
 
 include "res/menu/bgmenu.menu.asm"
 
+SECTION "Music player buttons", ROMX
+song_buttons_map:
+incbin "res/menu/song_buttons.button.tilemap"
+song_buttons_gfx:
+incbin "res/menu/song_buttons.button.2bpp"
+.end:
+
+include "res/menu/song_buttons.button.asm"
+
 SECTION "Main Menu Graphics", ROMX
 
 main_menu_buttons_gfx:
@@ -98,13 +107,13 @@ cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
 
-song_buttons_gfx:
-incbin "res/menu/song_buttons.2bppu"
-.end:
+; song_buttons_gfx:
+; incbin "res/menu/song_buttons.2bppu"
+; .end:
 
-song_buttons_map:
-incbin "res/menu/song_buttons.tilemapu"
-.end:
+; song_buttons_map:
+; incbin "res/menu/song_buttons.tilemapu"
+; .end:
 
 bg_scrolled_gfx:
 incbin "res/menu/bg_scrolled.2bpp"
@@ -930,10 +939,16 @@ music_player_init:
 
   call update_cursor_pos
 
-  ld de, song_buttons_gfx
-  ld hl, $8900
-  ld bc, (song_buttons_gfx.end - song_buttons_gfx)
-  call Memcpy
+  ; ld a, BANK(song_buttons_gfx)
+  ; ld [rROMB0], a
+
+  ; ld de, song_buttons_gfx
+  ; ld hl, $8900
+  ; ld bc, (song_buttons_gfx.end - song_buttons_gfx)
+  ; call Memcpy
+
+  ; ld a, BANK("Main Menu Graphics")
+  ; ld [rROMB0], a
 
   ld hl, $9790
   ld de, text_select_level_gfx

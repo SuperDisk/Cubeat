@@ -179,9 +179,9 @@ $(RESDIR)/%.sep1.png $(RESDIR)/%.sep2.png: $(RESDIR)/%.png
 
 # The music player menu special processing
 
-$(RESDIR)/%.button.tilemap $(RESDIR)/%.button.asm: $(RESDIR)/%.gif
+$(RESDIR)/%.button.2bpp $(RESDIR)/%.button.tilemap $(RESDIR)/%.button.asm: $(RESDIR)/%.gif
 	@$(MKDIR_P) $(@D)
-	$(BUTTONTOOL) --input $< --map $(RESDIR)/$*.tilemap --code $(RESDIR)/$*.buttoncode.asm
+	$(BUTTONTOOL) --input $< --graphics $(RESDIR)/$*.button.2bpp --map $(RESDIR)/$*.button.tilemap --code $(RESDIR)/$*.button.asm
 
 # Convert .png files using custom atfile arguments
 $(RESDIR)/%.2bpp: $(RESDIR)/%.arg $(RESDIR)/%.png

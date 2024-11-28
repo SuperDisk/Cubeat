@@ -47,6 +47,7 @@ TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
 VGMCOMPRESSOR4 := $(PY) src/tools/vgmcompressor4.py
 CREDITSMAKER := $(LISP) --load src/tools/creditsmaker.lisp --eval "(main)"
+BUTTONTOOL := $(LISP) --load src/tools/buttontool.lisp --eval "(main)"
 SUPERFAMICONV := superfamiconv
 
 SUPERFAMICONVFLAGS = -M snes --tile-width 8 --tile-height 8
@@ -175,6 +176,12 @@ $(RESDIR)/%.credits.2bpp $(RESDIR)/%.credits.asm: $(RESDIR)/%.2bpp
 $(RESDIR)/%.sep1.png $(RESDIR)/%.sep2.png: $(RESDIR)/%.png
 	@$(MKDIR_P) $(@D)
 	$(PY) $(SRCDIR)/tools/colaz.py $< $@
+
+# The music player menu special processing
+
+$(RESDIR)/%.button.tilemap $(RESDIR)/%.button.asm: $(RESDIR)/%.gif
+	@$(MKDIR_P) $(@D)
+	$(BUTTONTOOL) --input $< --map $(RESDIR)/$*.tilemap --code $(RESDIR)/$*.buttoncode.asm
 
 # Convert .png files using custom atfile arguments
 $(RESDIR)/%.2bpp: $(RESDIR)/%.arg $(RESDIR)/%.png

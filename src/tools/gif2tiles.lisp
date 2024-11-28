@@ -2,14 +2,14 @@
   (ql:quickload '(:skippy :unix-opts) :silent t))
 
 (opts:define-opts
-    (:name :menu-mode
-     :description "Convert the GIF in menu mode"
-     :short #\m
-     :long "menu")
-    (:name :no-colon
-     :description "Don't superimpose a colon on the animation"
-     :short #\n
-     :long "no-colon"))
+  (:name :menu-mode
+   :description "Convert the GIF in menu mode"
+   :short #\m
+   :long "menu")
+  (:name :no-colon
+   :description "Don't superimpose a colon on the animation"
+   :short #\n
+   :long "no-colon"))
 
 (defparameter *menu-mode* nil)
 (defparameter *no-colon* nil)

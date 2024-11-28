@@ -914,12 +914,10 @@ levels_init:
   jp levels_ui
 
 paint_music_buttons_part1:
-  ld a, [scroll_x1]
-  ld l, a
   ld a, [x1highbit]
   rrca
-  srl l
-  or l
+  ld a, [scroll_x1]
+  rra
   srl a
   srl a
 

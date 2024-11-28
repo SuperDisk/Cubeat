@@ -19,10 +19,8 @@ main(Argv) :-
     length(ZeroTile, 32), % each tile is 32 bytes
     maplist(=(0), ZeroTile),
 
-    length(FirstTile, 32),
-
-    append([FirstTile, Before, ZeroTile, After], Bytes),
-    append([ZeroTile, FirstTile, Before, After], NewBytes),
+    append([Before, ZeroTile, After], Bytes),
+    append([ZeroTile, Before, After], NewBytes),
 
     open(InFile, write, Stream, [type(binary)]),
     maplist(put_byte(Stream), NewBytes),

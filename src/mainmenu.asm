@@ -156,6 +156,7 @@ true_x: db
 true_y: db
 
 scroll_amount: dw
+old_scx: db
 
 credits_scroll_amount: db
 credits_row_offset: db
@@ -445,7 +446,7 @@ menu_loop:
   jr z, menu_loop
 
   ;; Special music player stuff
-
+music_player_ui2:
   ld a, BANK(slice_table)
   ld [rROMB0], a
 
@@ -464,7 +465,7 @@ menu_loop:
   bit 7, c ; A8 vs 58.... hack
   jr nz, .going_left
 
-  add 19*2
+  add 20*2
 
 .going_left:
   ld hl, slice_table
@@ -479,8 +480,28 @@ menu_loop:
   xor a
   ld [rIF], a
   halt
-
+  nop
   rst CallHL
+
+.wait_for_split:
+  ld a, [rLY]
+  cp 31
+  jr nz, .wait_for_split
+
+  wait_vram
+  ld a, [old_scx]
+  ld [rSCX], a
+
+  ;... more stuff
+
+.wait_for_split2:
+  ld a, [rLY]
+  cp 111+8
+  jr c, .wait_for_split2
+
+  wait_vram
+  xor a
+  ld [rSCX], a
 
   jr menu_loop
 
@@ -1064,6 +1085,8 @@ music_player_init:
   call paint_music_buttons_part2
 
 .upload_scrolled_gfx:
+  ret
+
   ld a, [scroll_x1]
   and %111
   swap a ; *= 16
@@ -1090,9 +1113,8 @@ music_player_init:
   ld bc, 16
   jp LCDMemcpy ; tail call
 
-music_player_ui2:
-
 music_player_ui:
+
   ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
 
@@ -1114,12 +1136,13 @@ music_player_ui:
   ld a, [scroll_x1]
   and %111
   ld [rSCX], a
+  ld [old_scx], a
 
   pop hl
   pop de
   call paint_music_buttons_part2
 
-.wait_for_split2
+.wait_for_split2:
   ld a, [rLY]
   cp 111+8
   jr c, .wait_for_split2
@@ -1145,9 +1168,9 @@ music_player_ui:
 
 .continue:
   inc a
-  ; inc a
+    ; inc a
   ld [tween_step], a
-  ; dec a
+    ; dec a
   dec a
   add a
 

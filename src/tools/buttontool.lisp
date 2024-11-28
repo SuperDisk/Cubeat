@@ -104,16 +104,9 @@
           for counter downfrom (1- (length slice)) do
             (format stream "ld de, song_buttons_gfx+(~a*16)~%" tile)
             (format stream "ld hl, $8900+(~a*16)~%" index)
-
-            (if (>= upcounter 6)
-                (progn
-                  (format stream "ld c, 16~%")
-                  (if (zerop counter)
-                      (format stream "jp LCDMemcpySmall~%")
-                      (format stream "call LCDMemcpySmall~%")))
-                (if (zerop counter)
-                    (format stream "jp MemcpyTile~%")
-                    (format stream "rst MemcpyTile~%")))
+            (if (zerop counter)
+                (format stream "jp LCDMemcpyMenuTile~%")
+                (format stream "call LCDMemcpyMenuTile~%"))
             (incf bytes 5))
     bytes))
 

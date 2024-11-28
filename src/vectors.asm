@@ -77,9 +77,7 @@ CallHL::
 
 SECTION "Rst $30", ROM0[$30]
 
-MemcpyTile::
-  ld c, 16
-  jr MemcpySmall
+;; free
 
 SECTION "Rst $38", ROM0[$38]
 

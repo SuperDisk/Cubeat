@@ -32,7 +32,7 @@ go(Slices, Indices) :-
     sort(Indices0, Indices),
     Indices ins 0..211,
 
-    length(Window, 20),
+    length(Window, 21),
     append(Window, RemainingSlices, Slices),
     distinct_in_window(Window, RemainingSlices).
 

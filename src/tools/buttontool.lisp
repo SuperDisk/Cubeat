@@ -99,12 +99,22 @@
   (let ((slice (remove-duplicates slice :test #'=))
         (bytes 1))
     (loop for tile in slice
-          for index = (cdr (assoc tile assignments)) do
+          for index = (cdr (assoc tile assignments))
+          for upcounter from 0
+          for counter downfrom (1- (length slice)) do
             (format stream "ld de, song_buttons_gfx+(~a*16)~%" tile)
             (format stream "ld hl, $8900+(~a*16)~%" index)
-            (format stream "rst MemcpyTile~%")
+
+            (if (>= upcounter 6)
+                (progn
+                  (format stream "ld c, 16~%")
+                  (if (zerop counter)
+                      (format stream "jp LCDMemcpySmall~%")
+                      (format stream "call LCDMemcpySmall~%")))
+                (if (zerop counter)
+                    (format stream "jp MemcpyTile~%")
+                    (format stream "rst MemcpyTile~%")))
             (incf bytes 5))
-    (format stream "ret~%")
     bytes))
 
 (defun main ()
@@ -151,7 +161,7 @@
                               :direction :output
                               :element-type '(unsigned-byte 8)
                               :if-exists :supersede)
-        (write-sequence gb-map stream))
+        (write-sequence (mapcar (lambda (x) (mod (+ x #x90) #x100)) gb-map) stream))
       (with-open-file (stream code-file
                               :direction :output
                               :if-exists :supersede)

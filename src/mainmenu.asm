@@ -353,6 +353,7 @@ Menu:
   ld [tweening], a
   ld [tween_step2], a
   ld [tweening2], a
+  ld [tween_endx1], a
   ;; Set up other vars
   ld [level_num], a
   ld [locked_level], a
@@ -448,16 +449,30 @@ menu_loop:
   ld a, BANK(slice_table)
   ld [rROMB0], a
 
+  ld a, [tween_endx1]
+  ld c, a
+
   ld a, [x1highbit]
-  rra
+  rrca
   ld a, [scroll_x1]
   rra
   srl a
-  srl a
-  srl a
 
-  ; ld hl, slice_table
-  ; ld a,
+  ;; force even number
+  res 0, a
+
+  bit 7, c ; A8 vs 58.... hack
+  jr nz, .going_left
+
+  add 19*2
+
+.going_left:
+  ld hl, slice_table
+  add_a_to_hl
+
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
 
   ld a, IEF_VBLANK
   ldh [rIE], a
@@ -465,8 +480,7 @@ menu_loop:
   ld [rIF], a
   halt
 
-  ; call FadeStep
-  ; call tick_sfx
+  rst CallHL
 
   jr menu_loop
 
@@ -1000,6 +1014,32 @@ music_player_init:
   ; ld a, BANK("Main Menu Graphics")
   ; ld [rROMB0], a
 
+  ld a, BANK(slice0)
+  ld [rROMB0], a
+  call slice0
+  call slice1
+  call slice2
+  call slice3
+  call slice4
+  call slice5
+  call slice6
+  call slice7
+  call slice8
+  call slice9
+  call slice10
+  call slice11
+  call slice12
+  call slice13
+  call slice14
+  call slice15
+  call slice16
+  call slice17
+  call slice18
+  call slice19
+  call slice20
+  ld a, BANK(text_select_level_gfx)
+  ld [rROMB0], a
+
   ld hl, $9790
   ld de, text_select_level_gfx
   ld bc, (text_select_level_gfx.end - text_select_level_gfx)
@@ -1051,7 +1091,6 @@ music_player_init:
   jp LCDMemcpy ; tail call
 
 music_player_ui2:
-
 
 music_player_ui:
   ld a, BANK(song_buttons_gfx)

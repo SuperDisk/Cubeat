@@ -146,6 +146,7 @@ incbin "res/menu/pause_buttons.tilemapu"
 SECTION "Menu vars", WRAM0
 menu_ui_ptr: dw
 menu_init_ptr: dw
+menu_ui_ptr2: dw
 
 menu_frame_counter: db
 selected_button: db
@@ -160,6 +161,7 @@ credits_scroll_amount: db
 credits_row_offset: db
 
 main_menu_inited:: db
+main_menu_2part: db
 
 SECTION "Tweening vars", WRAM0
 tween_dist: db
@@ -231,47 +233,64 @@ credits_coords:
 
 CreditsMenu::
   ld hl, menu_ui_ptr
-  ld [hl], LOW(credits_ui)
-  inc hl
-  ld [hl], HIGH(credits_ui)
-  inc hl
-  ld [hl], LOW(credits_init)
-  inc hl
+  ld a, LOW(credits_ui)
+  ld [hl+], a
+  ld a, HIGH(credits_ui)
+  ld [hl+], a
+  ld a, LOW(credits_init)
+  ld [hl+], a
   ld [hl], HIGH(credits_init)
+
+  xor a
+  ld [main_menu_2part], a
+
   jr Menu.no_sgb
 
 
 PauseMenu::
   ld hl, menu_ui_ptr
-  ld [hl], LOW(pause_ui)
-  inc hl
-  ld [hl], HIGH(pause_ui)
-  inc hl
-  ld [hl], LOW(pause_init)
-  inc hl
+  ld a, LOW(pause_ui)
+  ld [hl+], a
+  ld a, HIGH(pause_ui)
+  ld [hl+], a
+  ld a, LOW(pause_init)
+  ld [hl+], a
   ld [hl], HIGH(pause_init)
+
+  xor a
+  ld [main_menu_2part], a
+
   jr Menu.no_sgb
 
 LevelsMenu::
   ld hl, menu_ui_ptr
-  ld [hl], LOW(levels_ui)
-  inc hl
-  ld [hl], HIGH(levels_ui)
-  inc hl
-  ld [hl], LOW(levels_init)
-  inc hl
+  ld a, LOW(levels_ui)
+  ld [hl+], a
+  ld a, HIGH(levels_ui)
+  ld [hl+], a
+  ld a, LOW(levels_init)
+  ld [hl+], a
   ld [hl], HIGH(levels_init)
+
+  xor a
+  ld [main_menu_2part], a
+
   jr Menu.no_sgb
 
 MusicPlayerMenu::
   ld hl, menu_ui_ptr
-  ld [hl], LOW(music_player_ui)
-  inc hl
-  ld [hl], HIGH(music_player_ui)
-  inc hl
-  ld [hl], LOW(music_player_init)
-  inc hl
+
+  ld a, LOW(music_player_ui)
+  ld [hl+], a
+  ld a, HIGH(music_player_ui)
+  ld [hl+], a
+  ld a, LOW(music_player_init)
+  ld [hl+], a
   ld [hl], HIGH(music_player_init)
+
+  ld a, 1
+  ld [main_menu_2part], a
+
   jr Menu.no_sgb
 
 MainMenu::
@@ -283,6 +302,10 @@ MainMenu::
   ld [hl], LOW(main_menu_init)
   inc hl
   ld [hl], HIGH(main_menu_init)
+
+  xor a
+  ld [main_menu_2part], a
+
   jr c, Menu.no_sgb
 
 Menu:
@@ -415,6 +438,35 @@ menu_loop:
   ld h, [hl]
   ld l, a
   rst CallHL
+
+  ld a, [main_menu_2part]
+  or a
+  jr z, menu_loop
+
+  ;; Special music player stuff
+
+  ld a, BANK(slice_table)
+  ld [rROMB0], a
+
+  ld a, [x1highbit]
+  rra
+  ld a, [scroll_x1]
+  rra
+  srl a
+  srl a
+  srl a
+
+  ; ld hl, slice_table
+  ; ld a,
+
+  ld a, IEF_VBLANK
+  ldh [rIE], a
+  xor a
+  ld [rIF], a
+  halt
+
+  ; call FadeStep
+  ; call tick_sfx
 
   jr menu_loop
 
@@ -999,6 +1051,9 @@ music_player_init:
   ld hl, $9310
   ld bc, 16
   jp LCDMemcpy ; tail call
+
+music_player_ui2:
+
 
 music_player_ui:
   ld a, BANK(song_buttons_gfx)

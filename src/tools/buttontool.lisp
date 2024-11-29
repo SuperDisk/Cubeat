@@ -162,9 +162,11 @@
               for i from 0 do
                 (write-slice-code slice i assignments stream))
 
+        (format stream "dw KnownRet~%")
         (format stream "slice_table::~%")
         (loop for i from 0 below (length slices) do
-          (format stream "dw slice~a~%" i)))))
+          (format stream "dw slice~a~%" i))
+        (format stream "dw KnownRet~%"))))
   (exit))
 
 #+nil

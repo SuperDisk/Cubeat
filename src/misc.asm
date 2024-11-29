@@ -104,20 +104,22 @@ LCDMemcpySmall::
 ; @return a Last byte copied
 ; @return f Z set, C reset
 LCDMemcpyMenuTile::
-  ld c, 16
-.loop:
-  wait_vram
-  ld a, [de]
-  ld [hli], a
-  inc de
-  dec c
-  ret z
 
-  ld a, [de]
-  ld [hli], a
-  inc de
-  dec c
-  jr nz, .loop
+REPT 4
+  wait_vram
+  REPT 4
+    ld a, [de]
+    ld [hli], a
+    inc de
+  ENDR
+ENDR
+
+; REPT 16
+;   ld a, [de]
+;   ld [hli], a
+;   inc de
+; ENDR
+
   ret
 
 SECTION "LCDMemcpy", ROM0

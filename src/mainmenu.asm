@@ -465,24 +465,42 @@ music_player_ui2:
   bit 7, c ; A8 vs 58.... hack
   jr nz, .going_left
 
-  add 20*2
+.going_right:
+  add 21*2
+  ld hl, slice_table
+  add_a_to_hl
 
+  push hl
+  dec hl
+  ld a, [hl-]
+  ld l, [hl]
+  ld h, a
+  jr .done
 .going_left:
   ld hl, slice_table
   add_a_to_hl
+  dec hl
+  dec hl
+  push hl
+  inc hl
+  inc hl
 
   ld a, [hl+]
   ld h, [hl]
   ld l, a
-
+.done:
   ld a, IEF_VBLANK
   ldh [rIE], a
   xor a
   ld [rIF], a
   halt
-  nop
+
   rst CallHL
 
+  pop hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
 .wait_for_split:
   ld a, [rLY]
   cp 31
@@ -491,6 +509,8 @@ music_player_ui2:
   wait_vram
   ld a, [old_scx]
   ld [rSCX], a
+
+  rst CallHL
 
   ;... more stuff
 
@@ -503,7 +523,7 @@ music_player_ui2:
   xor a
   ld [rSCX], a
 
-  jr menu_loop
+  jp menu_loop
 
 credits_init:
   ld de, text_credits_gfx

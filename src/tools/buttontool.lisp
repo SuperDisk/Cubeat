@@ -19,6 +19,18 @@
    :long "graphics"
    :arg-parser #'identity))
 
+(defparameter *bg-scrolled-data*
+  #(2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2))
+
+(defparameter *bg-scrolled-topbar-data*
+  #(0 0 0 0 0 0 0 0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2))
+
+(defparameter *bg-scrolled-leftbar-data*
+  #(0 2 2 2 2 2 2 2 0 2 2 2 2 2 2 2 0 2 2 2 2 2 2 2 0 2 2 2 2 2 2 2 0 2 2 2 2 2 2
+    2 0 2 2 2 2 2 2 2 0 2 2 2 2 2 2 2 0 2 2 2 2 2 2 2))
+
 (defun dbg (&rest args)
   (format t "~{~a ~}~%" args)
   (car args))
@@ -100,14 +112,12 @@
         (bytes 1))
     (loop for tile in slice
           for index = (cdr (assoc tile assignments))
-          for upcounter from 0
-          for counter downfrom (1- (length slice)) do
+          when (not (minusp index)) do
             (format stream "ld de, song_buttons_gfx+(~a*16)~%" tile)
             (format stream "ld hl, $8900+(~a*16)~%" index)
-            (if (zerop counter)
-                (format stream "jp LCDMemcpyMenuTile~%")
-                (format stream "call LCDMemcpyMenuTile~%"))
+            (format stream "call LCDMemcpyMenuTile~%")
             (incf bytes 5))
+    (format stream "ret~%")
     bytes))
 
 (defun main ()
@@ -128,8 +138,13 @@
             (skippy:composite img new-tile :sx x :sy y :dx 0 :dy 0)
             (push new-tile segmented-image)
             (when (not (gethash new-tile all-tiles))
-              (setf (gethash new-tile all-tiles) tile-idx)
-              (incf tile-idx))))))
+              (setf (gethash new-tile all-tiles)
+                    (cond
+                      ((equalp (skippy:image-data new-tile) *bg-scrolled-data*) 999)
+                      ((equalp (skippy:image-data new-tile) *bg-scrolled-topbar-data*) 998)
+                      ((equalp (skippy:image-data new-tile) *bg-scrolled-leftbar-data*) 997)
+                      (t (prog1 tile-idx
+                           (incf tile-idx))))))))))
     (setf segmented-image (reverse segmented-image))
     (let* ((slices
              (loop for x below (skippy:width img) by 8

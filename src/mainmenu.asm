@@ -495,6 +495,7 @@ music_player_ui2:
   ld [rIF], a
   halt
 
+  nop
   rst CallHL
 
   pop hl
@@ -1027,6 +1028,11 @@ music_player_init:
   ld [scroll_x1], a
   ld [x1highbit], a
 
+  ;; We can't tween if we'll need to move too fast, so the button checks also
+  ;; test this to make sure it's close enough to done to tween.
+  ld a, $3F
+  ld [tween_step], a
+
   ld a, 24+8-1
   ld [x1], a
   ld [x3], a
@@ -1044,19 +1050,9 @@ music_player_init:
 
   call update_cursor_pos
 
-  ; ld a, BANK(song_buttons_gfx)
-  ; ld [rROMB0], a
-
-  ; ld de, song_buttons_gfx
-  ; ld hl, $8900
-  ; ld bc, (song_buttons_gfx.end - song_buttons_gfx)
-  ; call Memcpy
-
-  ; ld a, BANK("Main Menu Graphics")
-  ; ld [rROMB0], a
-
   ld a, BANK(slice0)
   ld [rROMB0], a
+
   call slice0
   call slice1
   call slice2
@@ -1078,6 +1074,7 @@ music_player_init:
   call slice18
   call slice19
   call slice20
+
   ld a, BANK(text_select_level_gfx)
   ld [rROMB0], a
 
@@ -1105,8 +1102,6 @@ music_player_init:
   call paint_music_buttons_part2
 
 .upload_scrolled_gfx:
-  ret
-
   ld a, [scroll_x1]
   and %111
   swap a ; *= 16
@@ -1115,26 +1110,25 @@ music_player_init:
 
   ld de, bg_scrolled_gfx
   add_a_to_de
-  ld hl, $9000
+  ld hl, $88D0
   ld bc, 16
   call LCDMemcpy
 
   pop af
   ld de, bg_scrolled_leftbar_gfx
   add_a_to_de
-  ld hl, $90E0
+  ld hl, $88F0
   ld bc, 16
   call LCDMemcpy
 
   pop af
   ld de, bg_scrolled_topbar_gfx
   add_a_to_de
-  ld hl, $9310
+  ld hl, $88E0
   ld bc, 16
   jp LCDMemcpy ; tail call
 
 music_player_ui:
-
   ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
 
@@ -1142,7 +1136,11 @@ music_player_ui:
   push de
   push hl
 
+  ld a, BANK(bg_scrolled_gfx)
+  ld [rROMB0], a
   call music_player_init.upload_scrolled_gfx
+  ld a, BANK(song_buttons_gfx)
+  ld [rROMB0], a
 
   ld hl, menu_frame_counter
   inc [hl]
@@ -1285,6 +1283,9 @@ music_player_ui:
 
   bit PADB_RIGHT, a
   jr z, .no_right
+  ld a, [tween_step]
+  cp $10
+  jr c, .no_right
 
   ld hl, scroll_amount
   ld a, [hl+]
@@ -1323,6 +1324,9 @@ music_player_ui:
   ld a, [hPressedKeys]
   bit PADB_LEFT, a
   jr z, .no_left
+  ld a, [tween_step]
+  cp $10
+  jr c, .no_left
 
   ld hl, scroll_amount
   ld a, [hl+]

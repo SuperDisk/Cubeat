@@ -30,14 +30,31 @@ slices_indices([Slice | Rest], Indices) :-
 go(Slices, Indices) :-
     slices_indices(Slices, Indices0),
     sort(Indices0, Indices),
-    Indices ins 0..211,
 
-    length(Window, 21),
+    length(Window, 23), % HACK: This can't be right, but it bandaids over the problem for now...
     append(Window, RemainingSlices, Slices),
     distinct_in_window(Window, RemainingSlices).
 
+special_cases([]).
+special_cases([999-Idx | T]) :-
+    Idx #= -3,
+    special_cases(T).
+special_cases([998-Idx | T]) :-
+    Idx #= -2,
+    special_cases(T).
+special_cases([997-Idx | T]) :-
+    Idx #= -1,
+    special_cases(T).
+special_cases([K-V|T]) :-
+    K #\= 999,
+    K #\= 998,
+    K #\= 997,
+    V in 0..211,
+    special_cases(T).
+
 main(_Argv) :-
     read([Slices, Pairs]),
+    special_cases(Pairs),
     go(Slices, Indices),
     labeling([ff], Indices),
     maplist(print_lisp, Pairs).

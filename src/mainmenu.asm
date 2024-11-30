@@ -447,6 +447,8 @@ menu_loop:
 
   ;; Special music player stuff
 music_player_ui2:
+  call FadeStep
+
   ld a, BANK(slice_table)
   ld [rROMB0], a
 
@@ -495,7 +497,6 @@ music_player_ui2:
   ld [rIF], a
   halt
 
-  nop
   rst CallHL
 
   pop hl
@@ -513,7 +514,7 @@ music_player_ui2:
 
   rst CallHL
 
-  ;... more stuff
+  call tick_sfx
 
 .wait_for_split2:
   ld a, [rLY]
@@ -1144,6 +1145,7 @@ music_player_ui:
 
   ld hl, menu_frame_counter
   inc [hl]
+  inc [hl]
 
 .wait_for_split:
   ld a, [rLY]
@@ -1186,9 +1188,9 @@ music_player_ui:
 
 .continue:
   inc a
-    ; inc a
+    inc a
   ld [tween_step], a
-    ; dec a
+    dec a
   dec a
   add a
 

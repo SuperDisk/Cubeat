@@ -524,7 +524,7 @@ music_player_ui2:
 
 credits_init:
   ld de, text_credits_gfx
-  ld hl, $8800
+  ld hl, $9790
   ld c, (text_credits_gfx.end - text_credits_gfx)
   rst MemcpySmall
 

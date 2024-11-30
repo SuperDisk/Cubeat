@@ -441,6 +441,8 @@ menu_loop:
   ld l, a
   rst CallHL
 
+  jr menu_loop
+
   ld a, [main_menu_2part]
   or a
   jr z, menu_loop
@@ -970,7 +972,16 @@ levels_init:
   call Memcpy
   jp levels_ui
 
-paint_music_buttons_part1:
+paint_music_buttons:
+.wait_for_split:
+  ld a, [rLY]
+  cp 32
+  jr nz, .wait_for_split
+
+.done_waiting:
+  ld a, c
+  ldh [rSCX], a
+
   ld a, [x1highbit]
   rrca
   ld a, [scroll_x1]
@@ -982,12 +993,15 @@ paint_music_buttons_part1:
   ld de, song_buttons_map
   add_a_to_de
 
-  ld b, 5
+  ld b, 10
 .loop0:
-REPT 21
-  ld a, [de]
-  ld [hl+], a
-  inc de
+REPT 3
+  wait_vblank_or_hblank
+  REPT 7
+    ld a, [de]
+    ld [hl+], a
+    inc de
+  ENDR
 ENDR
 
   ld a, $20-21
@@ -998,27 +1012,6 @@ ENDR
 
   dec b
   jr nz, .loop0
-
-  ret
-
-paint_music_buttons_part2:
-  ld b, 6
-.loop0:
-REPT 21
-  wait_vram
-  ld a, [de]
-  ld [hl+], a
-  inc de
-ENDR
-
-  ld a, $20-21
-  add_a_to_hl
-
-  ld a, 65-21
-  add_a_to_de
-
-  dec b
-  jp nz, .loop0
 
   ret
 
@@ -1099,8 +1092,7 @@ music_player_init:
   ld hl, back_map
   call MapRegion
 
-  call paint_music_buttons_part1
-  call paint_music_buttons_part2
+  call paint_music_buttons.done_waiting
 
 .upload_scrolled_gfx:
   ld a, [scroll_x1]
@@ -1112,55 +1104,91 @@ music_player_init:
   ld de, bg_scrolled_gfx
   add_a_to_de
   ld hl, $88D0
-  ld bc, 16
-  call LCDMemcpy
+  call LCDMemcpyMenuTile
 
   pop af
   ld de, bg_scrolled_leftbar_gfx
   add_a_to_de
   ld hl, $88F0
-  ld bc, 16
-  call LCDMemcpy
+  call LCDMemcpyMenuTile
 
   pop af
   ld de, bg_scrolled_topbar_gfx
   add_a_to_de
   ld hl, $88E0
-  ld bc, 16
-  jp LCDMemcpy ; tail call
+  jp LCDMemcpyMenuTile ; tail call
 
 music_player_ui:
+  ld a, BANK(slice_table)
+  ld [rROMB0], a
+
+  ld a, [tween_endx1]
+  ld c, a
+
+  ld a, [x1highbit]
+  rrca
+  ld a, [scroll_x1]
+  rra
+  srl a
+
+  ;; force even number
+  res 0, a
+
+  bit 7, c ; A8 vs 58.... hack
+  jr nz, .going_left
+
+.going_right:
+  add 21*2
+  ld hl, slice_table
+  add_a_to_hl
+
+  ; push hl
+  dec hl
+  ld a, [hl-]
+  ld l, [hl]
+  ld h, a
+  jr .done
+.going_left:
+  ld hl, slice_table
+  add_a_to_hl
+  dec hl
+  dec hl
+  ; push hl
+  inc hl
+  inc hl
+
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+.done:
   ld a, BANK(song_buttons_gfx)
   ld [rROMB0], a
 
-  call paint_music_buttons_part1
-  push de
-  push hl
+  wait_hblank
+  wait_mode3
 
-  ld a, BANK(bg_scrolled_gfx)
-  ld [rROMB0], a
-  call music_player_init.upload_scrolled_gfx
-  ld a, BANK(song_buttons_gfx)
-  ld [rROMB0], a
+  rst CallHL
+
+  ; call paint_music_buttons_part1
+  ; push de
+  ; push hl
+
+  ; ld a, BANK(bg_scrolled_gfx)
+  ; ld [rROMB0], a
+  ; call music_player_init.upload_scrolled_gfx
+
+  ; ld a, BANK(song_buttons_gfx)
+  ; ld [rROMB0], a
 
   ld hl, menu_frame_counter
   inc [hl]
-  inc [hl]
 
-.wait_for_split:
-  ld a, [rLY]
-  cp 31
-  jr nz, .wait_for_split
-
-  wait_vram
+  ld hl, rSCX
   ld a, [scroll_x1]
   and %111
-  ld [rSCX], a
-  ld [old_scx], a
+  ld c, a
 
-  pop hl
-  pop de
-  call paint_music_buttons_part2
+  call paint_music_buttons
 
 .wait_for_split2:
   ld a, [rLY]
@@ -1188,9 +1216,9 @@ music_player_ui:
 
 .continue:
   inc a
-    inc a
+    ; inc a
   ld [tween_step], a
-    dec a
+    ; dec a
   dec a
   add a
 

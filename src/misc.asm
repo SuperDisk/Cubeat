@@ -105,9 +105,9 @@ LCDMemcpySmall::
 ; @return f Z set, C reset
 LCDMemcpyMenuTile::
 
-REPT 4
-  wait_vram
-  REPT 4
+REPT 2
+  wait_vblank_or_hblank
+  REPT 8
     ld a, [de]
     ld [hli], a
     inc de

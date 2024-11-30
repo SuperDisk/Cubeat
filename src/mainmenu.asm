@@ -28,9 +28,26 @@ ENDM
 
 include "res/menu/bgmenu.menu.asm"
 
-SECTION "Music player buttons", ROMX
+SECTION "Music player buttons", ROMX, ALIGN[8]
+bg_scrolled_gfx:
+incbin "res/menu/bg_scrolled.2bpp"
+.end:
+
+ds 144+16
+
+bg_scrolled_leftbar_gfx:
+incbin "res/menu/bg_scrolled_leftbar.2bpp"
+.end:
+
+ds 144+16
+
+bg_scrolled_topbar_gfx:
+incbin "res/menu/bg_scrolled_topbar.2bpp"
+.end:
+
 song_buttons_map:
 incbin "res/menu/song_buttons.button.tilemap"
+
 song_buttons_gfx:
 incbin "res/menu/song_buttons.button.2bpp"
 .end:
@@ -105,26 +122,6 @@ incbin "res/menu/text_lost_progress.tilemapu"
 
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
-.end:
-
-; song_buttons_gfx:
-; incbin "res/menu/song_buttons.2bppu"
-; .end:
-
-; song_buttons_map:
-; incbin "res/menu/song_buttons.tilemapu"
-; .end:
-
-bg_scrolled_gfx:
-incbin "res/menu/bg_scrolled.2bpp"
-.end:
-
-bg_scrolled_leftbar_gfx:
-incbin "res/menu/bg_scrolled_leftbar.2bpp"
-.end:
-
-bg_scrolled_topbar_gfx:
-incbin "res/menu/bg_scrolled_topbar.2bpp"
 .end:
 
 credits_scroll_gfx:
@@ -975,13 +972,10 @@ levels_init:
 paint_music_buttons:
 .wait_for_split:
   ld a, [rLY]
-  cp 32
+  cp 29
   jr nz, .wait_for_split
 
 .done_waiting:
-  ld a, c
-  ldh [rSCX], a
-
   ld a, [x1highbit]
   rrca
   ld a, [scroll_x1]
@@ -993,7 +987,23 @@ paint_music_buttons:
   ld de, song_buttons_map
   add_a_to_de
 
-  ld b, 10
+  ld b, 9
+
+  REPT 3
+    wait_vblank_or_hblank
+    REPT 7
+      ld a, [de]
+      ld [hl+], a
+      inc de
+    ENDR
+  ENDR
+  ld a, c
+  ldh [rSCX], a
+  ld a, $20-21
+  add_a_to_hl
+  ld a, 65-21
+  add_a_to_de
+
 .loop0:
 REPT 3
   wait_vblank_or_hblank
@@ -1098,29 +1108,25 @@ music_player_init:
   ld a, [scroll_x1]
   and %111
   swap a ; *= 16
-  push af
-  push af
 
   ld de, bg_scrolled_gfx
   add_a_to_de
   ld hl, $88D0
-  call LCDMemcpyMenuTile
+  ld c, 16
+  rst MemcpySmall
 
-  pop af
-  ld de, bg_scrolled_leftbar_gfx
-  add_a_to_de
-  ld hl, $88F0
-  call LCDMemcpyMenuTile
+  inc d
+  ld c, 16
+  rst MemcpySmall
 
-  pop af
-  ld de, bg_scrolled_topbar_gfx
-  add_a_to_de
-  ld hl, $88E0
-  jp LCDMemcpyMenuTile ; tail call
+  inc d
+  ld c, 16
+  jp MemcpySmall ; tail call
 
 music_player_ui:
   ld a, BANK(slice_table)
   ld [rROMB0], a
+  call music_player_init.upload_scrolled_gfx
 
   ld a, [tween_endx1]
   ld c, a
@@ -1161,24 +1167,10 @@ music_player_ui:
   ld h, [hl]
   ld l, a
 .done:
-  ld a, BANK(song_buttons_gfx)
-  ld [rROMB0], a
-
   wait_hblank
   wait_mode3
 
   rst CallHL
-
-  ; call paint_music_buttons_part1
-  ; push de
-  ; push hl
-
-  ; ld a, BANK(bg_scrolled_gfx)
-  ; ld [rROMB0], a
-  ; call music_player_init.upload_scrolled_gfx
-
-  ; ld a, BANK(song_buttons_gfx)
-  ; ld [rROMB0], a
 
   ld hl, menu_frame_counter
   inc [hl]

@@ -1150,7 +1150,7 @@ music_player_ui:
   ld hl, slice_table
   add_a_to_hl
 
-  ; push hl
+  push hl
   dec hl
   ld a, [hl-]
   ld l, [hl]
@@ -1161,7 +1161,7 @@ music_player_ui:
   add_a_to_hl
   dec hl
   dec hl
-  ; push hl
+  push hl
   inc hl
   inc hl
 
@@ -1183,6 +1183,12 @@ music_player_ui:
   ld c, a
 
   call paint_music_buttons
+
+  pop hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  rst CallHL
 
 .wait_for_split2:
   ld a, [rLY]

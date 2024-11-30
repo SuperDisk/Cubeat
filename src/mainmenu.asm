@@ -33,13 +33,9 @@ bg_scrolled_gfx:
 incbin "res/menu/bg_scrolled.2bpp"
 .end:
 
-ds 144+16
-
 bg_scrolled_leftbar_gfx:
 incbin "res/menu/bg_scrolled_leftbar.2bpp"
 .end:
-
-ds 144+16
 
 bg_scrolled_topbar_gfx:
 incbin "res/menu/bg_scrolled_topbar.2bpp"
@@ -987,7 +983,7 @@ paint_music_buttons:
   ld de, song_buttons_map
   add_a_to_de
 
-  ld b, 9
+  ld b, 10
 
   REPT 3
     wait_vblank_or_hblank
@@ -1108,6 +1104,8 @@ music_player_init:
   ld a, [scroll_x1]
   and %111
   swap a ; *= 16
+  push af
+  push af
 
   ld de, bg_scrolled_gfx
   add_a_to_de
@@ -1115,11 +1113,15 @@ music_player_init:
   ld c, 16
   rst MemcpySmall
 
-  inc d
+  ld de, bg_scrolled_topbar_gfx
+  pop af
+  add_a_to_de
   ld c, 16
   rst MemcpySmall
 
-  inc d
+  ld de, bg_scrolled_leftbar_gfx
+  pop af
+  add_a_to_de
   ld c, 16
   jp MemcpySmall ; tail call
 

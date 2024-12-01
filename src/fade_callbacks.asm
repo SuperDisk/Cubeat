@@ -51,11 +51,11 @@ goto_gameplay::
   ld [rLCDC], a
 
   pop af
-  jp Intro
+  jp Kernel
 
 goto_gameplay_restore::
   xor a
   ld [rLCDC], a
 
   pop af
-  jp Intro
+  jp Kernel

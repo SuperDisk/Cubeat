@@ -120,11 +120,11 @@ Reset::
   ld [playing_sfx], a
   ld [sfx_priority], a
 
-  ;; jp Intro
-  ; jp MainMenu
+  ; jp Kernel
+  jp MainMenu
   ; jp TitleScreen
   ; jp CreditsMenu
-  jp MusicPlayerMenu
+  ; jp MusicPlayerMenu
   ; jp PauseMenu
   ; jp SplashScreen
 

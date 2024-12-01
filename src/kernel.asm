@@ -143,9 +143,9 @@ ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
 include "res/music/try_again.asm"
 
-SECTION "Intro", ROM0
+SECTION "Kernel", ROM0
 
-Intro::
+Kernel::
   call clear_oam
 
   ld hl, skin0.border_bank

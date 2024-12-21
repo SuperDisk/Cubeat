@@ -323,11 +323,11 @@ IF DEF(DBG_SCANLINES1)
   ld [rBGP], a
 ENDC
 
-.wait_for_below_play_area
+.wait_for_below_play_area:
   ld a, [rLY]
   cp 135 ; free to do OAM DMA here (past the play area)
   jr c, .wait_for_below_play_area
-.wait_for_below_play_area_hblank
+.wait_for_below_play_area_hblank:
   ld a, [rSTAT]
   and %0000011
   jr nz, .wait_for_below_play_area_hblank
@@ -395,11 +395,11 @@ ENDC
 
   call FadeStep
 
-.wait_for_before_radar
+.wait_for_before_radar:
   ld a, [rLY]
   cp 30
   jr nz, .wait_for_before_radar
-.wait_for_before_radar_hblank
+.wait_for_before_radar_hblank:
   ld a, [rSTAT]
   and %0000011
   jr nz, .wait_for_before_radar_hblank
@@ -433,11 +433,11 @@ ENDC
 
   call tick_sfx
 
-.wait_for_below_play_area0
+.wait_for_below_play_area0:
   ld a, [rLY]
   cp 135 ; free to do OAM DMA here (past the play area)
   jr c, .wait_for_below_play_area0
-.wait_for_below_play_area_hblank0
+.wait_for_below_play_area_hblank0:
   ld a, [rSTAT]
   and %0000011
   jr nz, .wait_for_below_play_area_hblank0

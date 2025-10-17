@@ -438,6 +438,23 @@ game_step::
   bit PADB_START, a
   jp z, .no_shit
 
+
+  ld a, BANK(levels)
+  ld [rROMB0], a
+
+  ld hl, level_num
+  ld a, [hl]
+  inc a
+  ld [hl], a
+
+  ld hl, level_table
+  add a
+  add_a_to_hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  call load_level
+
   ; ld hl, goto_titlescreen
   ; call FadeOut
 

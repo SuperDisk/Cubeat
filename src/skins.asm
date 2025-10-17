@@ -1,6 +1,7 @@
 include "defines.asm"
 
 DEF NUM_SKINS = 2
+; DEF NUM_SKINS = 25
 
 MACRO pal_packet
   .sgb::

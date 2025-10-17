@@ -33,6 +33,7 @@ sfx_ui_move::                 defsfx 1, "res/sfx/ui_move.sfx"
 SECTION "SFX Playback", ROM0
 
 play_sfx::
+  ret
   ld a, [wFading]
   or a
   ret nz

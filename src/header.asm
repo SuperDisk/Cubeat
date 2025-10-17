@@ -120,6 +120,10 @@ Reset::
   ld [playing_sfx], a
   ld [sfx_priority], a
 
+  ;; Recenter camera
+  ld [rSCX], a
+  ld [rSCY], a
+
   ; jp Kernel
   jp MainMenu
   ; jp TitleScreen

@@ -345,6 +345,11 @@ INCLUDE "res/crash_font.1bpp.pb8.size"
   dec [hl]
   jr .loop
 .unlocked
+  ld a,11
+  ld b,0
+  ld c,0
+  jp Reset ;; hack
+
   assert vUnlockCounter + 1 == vWhichDump
   bit PADB_B, c
   ld a, [hl]

@@ -45,6 +45,17 @@ Reset::
   ld a, $FF
   ld [rAUDVOL], a
 
+  ld a, $1e
+  ldh [rAUD1SWEEP], a
+  ld a, $10
+  ldh [rAUD1LEN], a
+  ld a, $f3
+  ldh [rAUD1ENV], a
+  ld a, $00
+  ldh [rAUD1LOW], a
+  ld a, $85
+  ldh [rAUD1HIGH], a
+
   ; Wait for VBlank and turn LCD off
 .waitVBlank
   ldh a, [rLY]

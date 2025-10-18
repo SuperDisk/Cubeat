@@ -141,9 +141,178 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
+; include "res/music/sinstrat.asm"
+
+include "res/music/asof.asm"
+purge dwbe
+include "res/music/cutie.asm"
+purge dwbe
+include "res/music/db.asm"
+purge dwbe
+include "res/music/haunted.asm"
+purge dwbe
+include "res/music/hydroplane.asm"
+purge dwbe
+include "res/music/jazzberr.asm"
+purge dwbe
+include "res/music/josss.asm"
+purge dwbe
+include "res/music/journey.asm"
+purge dwbe
+include "res/music/keisari.asm"
+purge dwbe
+include "res/music/leafpile.asm"
+purge dwbe
+include "res/music/nerve.asm"
+purge dwbe
+include "res/music/opl3_journey_to_the_forgotten_star.asm"
+purge dwbe
+include "res/music/opl3thing.asm"
+purge dwbe
+include "res/music/orca.asm"
+purge dwbe
+include "res/music/restart.asm"
+purge dwbe
+include "res/music/sinstrat.asm"
+purge dwbe
+include "res/music/sxtnt.asm"
+purge dwbe
+include "res/music/test.asm"
+purge dwbe
+include "res/music/thumb.asm"
+purge dwbe
+include "res/music/trance.asm"
+purge dwbe
+include "res/music/trial.asm"
+purge dwbe
 include "res/music/try_again.asm"
+purge dwbe
+include "res/music/wtf.asm"
+purge dwbe
+include "res/music/zen.asm"
+purge dwbe
+; include "res/music/asof.asm"
+; purge dwbe
 
 SECTION "Kernel", ROM0
+
+mus_table:
+
+db LOW(BANK(asof0))
+dw asof0
+db 0
+
+db LOW(BANK(cutie0))
+dw cutie0
+db 0
+
+db LOW(BANK(db0))
+dw db0
+db 0
+
+db LOW(BANK(opl3thing0))
+dw opl3thing0
+db 0
+
+db LOW(BANK(hydroplane0))
+dw hydroplane0
+db 0
+
+db LOW(BANK(jazzberr0))
+dw jazzberr0
+db 0
+
+db LOW(BANK(josss0))
+dw josss0
+db 0
+
+db LOW(BANK(journey0))
+dw journey0
+db 0
+
+db LOW(BANK(keisari0))
+dw keisari0
+db 0
+
+db LOW(BANK(keisari0))
+dw keisari0
+db 0
+
+db LOW(BANK(nerve0))
+dw nerve0
+db 0
+
+db LOW(BANK(opl3_journey_to_the_forgotten_star0))
+dw opl3_journey_to_the_forgotten_star0
+db 0
+
+db LOW(BANK(opl3thing0))
+dw opl3thing0
+db 0
+
+db LOW(BANK(orca0))
+dw orca0
+db 0
+
+db LOW(BANK(restart0))
+dw restart0
+db 0
+
+db LOW(BANK(sinstrat0))
+dw sinstrat0
+db 0
+
+db LOW(BANK(sxtnt0))
+dw sxtnt0
+db 0
+
+db LOW(BANK(thumb0))
+dw test0
+db 0
+
+db LOW(BANK(thumb0))
+dw thumb0
+db 0
+
+db LOW(BANK(trance0))
+dw trance0
+db 0
+
+db LOW(BANK(trial0))
+dw trial0
+db 0
+
+db LOW(BANK(try_again0))
+dw try_again0
+db 0
+
+db LOW(BANK(wtf0))
+dw wtf0
+db 0
+
+db LOW(BANK(zen0))
+dw zen0
+db 0
+
+db LOW(BANK(zen0))
+dw zen0
+db 0
+
+reset_opl3:
+    ld hl, $A000       ; HL points to address port
+    ld de, $A001       ; DE points to data port
+    ld a, $00          ; start at register 0
+
+.loop:
+    ld [hl], a         ; select register A
+    ld b, a
+    ld a, 0
+    ld [de], a         ; write zero to it
+    ld a, b
+    inc a
+    jr nz, .loop       ; loop until A wraps (after 256 registers)
+
+    ret
 
 Kernel::
   call clear_oam
@@ -152,12 +321,24 @@ Kernel::
   call colorize
   call safe_turn_off_lcd
 
-  ld a, LOW(BANK(try_again0))
+  call reset_opl3
+
+  ld a, [level_num]
+  ld hl, mus_table
+  add_a_to_hl
+  ld a, [hl+]
   ld [music_bank], a
-  ld a, LOW(try_again0)
+  ld a, [hl+]
   ld [music_pointer], a
-  ld a, HIGH(try_again0)
+  ld a, [hl]
   ld [music_pointer+1], a
+
+  ; ld a, LOW(BANK(sinstrat0))
+  ; ld [music_bank], a
+  ; ld a, LOW(sinstrat0)
+  ; ld [music_pointer], a
+  ; ld a, HIGH(sinstrat0)
+  ; ld [music_pointer+1], a
 
   xor a
   ld [hPressedKeys], a
@@ -667,6 +848,9 @@ transition_stage:
   xor a
   ld [rIF], a
   halt ; wait for VBlank
+
+  ld a, BANK(skin_table)
+  ld [rROMB0], a
 
   ld a, [current_skin]
   add a

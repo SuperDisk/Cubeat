@@ -439,21 +439,33 @@ game_step::
   jp z, .no_shit
 
 
-  ld a, BANK(levels)
-  ld [rROMB0], a
+  ld a, [level_num]
+  add 4
+  ld [level_num], a
+  inc a ; set a to nonzero (level num is never 255)
+  ld [locked_level], a
+  ld hl, goto_gameplay
+  call FadeOut
 
-  ld hl, level_num
-  ld a, [hl]
-  inc a
-  ld [hl], a
+;;;;;;;;;;;;;;;;;;;;;;;
 
-  ld hl, level_table
-  add a
-  add_a_to_hl
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  call load_level
+  ; ld a, BANK(levels)
+  ; ld [rROMB0], a
+
+  ; ld hl, level_num
+  ; ld a, [hl]
+  ; inc a
+  ; ld [hl], a
+
+  ; ld hl, level_table
+  ; add a
+  ; add_a_to_hl
+  ; ld a, [hl+]
+  ; ld h, [hl]
+  ; ld l, a
+  ; call load_level
+
+;;;;;;;;;;
 
   ; ld hl, goto_titlescreen
   ; call FadeOut

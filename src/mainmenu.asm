@@ -308,6 +308,7 @@ Menu:
   call safe_turn_off_lcd
 
 .no_sgb:
+  call reset_opl3
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   call init_playfield_buffer
 

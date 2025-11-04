@@ -34,3 +34,35 @@ init_playfield_buffer::
   ld hl, playfield_buffer
   ld bc, playfield_buffer_rom.end - playfield_buffer_rom
   jp Memcpy
+
+opl3_fill:
+  ld l, 0
+
+  ld [hl], c
+  inc l
+  ld [hl], d
+  inc l
+
+  ld [hl], c
+  inc l
+  ld [hl], d
+  inc l
+
+  inc c
+  cp c
+  jr nz, opl3_fill
+  ret
+
+reset_opl3::
+  ld h, $A0
+  ld c, $B0
+  ld a, $C0
+  ld d, 0
+  call opl3_fill
+
+  ld c, $80
+  ld a, $96
+  ld d, $FF
+  call opl3_fill
+
+  ret

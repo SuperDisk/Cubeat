@@ -298,22 +298,6 @@ db LOW(BANK(zen0))
 dw zen0
 db 0
 
-reset_opl3:
-    ld hl, $A000       ; HL points to address port
-    ld de, $A001       ; DE points to data port
-    ld a, $00          ; start at register 0
-
-.loop:
-    ld [hl], a         ; select register A
-    ld b, a
-    ld a, 0
-    ld [de], a         ; write zero to it
-    ld a, b
-    inc a
-    jr nz, .loop       ; loop until A wraps (after 256 registers)
-
-    ret
-
 Kernel::
   call clear_oam
 
@@ -940,6 +924,14 @@ jumptable:
   jr switch_bank
   jr switch_port0
 
+switch_port0:
+  dec sp
+switch_port:
+  dec c
+  dec c
+  jr nz, decode_done
+  ;; fallthrough
+
 mus_loop:
   pop hl
   ld a, l
@@ -1014,15 +1006,6 @@ vgm_literals:
 
   dec a
   jr nz, .lit_loop
-  jr mus_loop
-
-switch_port0:
-  dec sp
-switch_port:
-  ld a, c
-  sub 2
-  jr c, decode_done
-  ld c, a
   jr mus_loop
 
 switch_bank:

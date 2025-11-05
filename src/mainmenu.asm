@@ -530,34 +530,37 @@ credits_ui:
 
   ld a, [credits_scroll_amount]
   ld c, a
-  ld b, 116-92+8
+  ld b, 32
 
+;; we always render 6 lines of credits at a time, for a max of 60 sprites, but
+;; hopefully we don't go over 40 since there usually will be line breaks and not
+;; every line will be 10 sprites wide
 REPT 6
 :
-  ld a, c
+  ld a, c ; c = y pos
   ld [hl+], a
-  ld a, b
+  ld a, b ; b = 32 = x pos
   ld [hl+], a
   add 8
-  ld b, a
-  ld a, [de]
-  or a
+  ld b, a ; move B along horizontally
+  ld a, [de] ; tile index in credits data
+  or a ; zero indicates end, tiles are offset +1
   jr z, :+
-  dec a
-  add a
-  ld [hl+], a
+  dec a ; correct off-by-one
+  add a ; double since we're using 8x16 tiles
+  ld [hl+], a ; set sprite tile index
   inc de
-  inc hl
+  inc hl ; skip OAM flags
   jr :-
-:
+: ; one line done, move to next line
   dec hl
-  dec hl
-  inc de
+  dec hl ; go back to y pos
+  inc de ; move to break flag
   ld a, [de]
   add c
-  add 16
+  add 16 ; when moving y pos to the next line, add an extra 8 pixels if break
   ld c, a
-  ld b, 116-92+8
+  ld b, 32 ; reset x pos
   inc de
 ENDR
 

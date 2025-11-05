@@ -38,11 +38,11 @@ init_playfield_buffer::
 reset_opl3::
   ld h, $A0
 
-  lb bc, 0, $c0
-  ld a, $b0
+  lb bc, 0, $C0
+  ld a, $A0
   call opl3_fill
 
-  lb bc, $ff, $96
+  lb bc, $0F, $96
   ld a, $80
   ;; fallthrough
 

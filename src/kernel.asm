@@ -922,7 +922,7 @@ jumptable:
   jr vgm_literals_end
   jr vgm_literals
   jr switch_bank
-  jr switch_port0
+  ; jr switch_port0 -- not needed since switch_port0 immediately follows
 
 switch_port0:
   dec sp

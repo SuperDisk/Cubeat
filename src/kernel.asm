@@ -145,52 +145,52 @@ ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
 include "res/music/asof.asm"
 purge dwbe
-include "res/music/cutie.asm"
-purge dwbe
-include "res/music/db.asm"
-purge dwbe
-include "res/music/haunted.asm"
-purge dwbe
-include "res/music/hydroplane.asm"
-purge dwbe
-include "res/music/jazzberr.asm"
-purge dwbe
-include "res/music/josss.asm"
-purge dwbe
-include "res/music/journey.asm"
-purge dwbe
-include "res/music/keisari.asm"
-purge dwbe
-include "res/music/leafpile.asm"
-purge dwbe
-include "res/music/nerve.asm"
-purge dwbe
-include "res/music/opl3_journey_to_the_forgotten_star.asm"
-purge dwbe
-include "res/music/opl3thing.asm"
-purge dwbe
-include "res/music/orca.asm"
-purge dwbe
-include "res/music/restart.asm"
-purge dwbe
-include "res/music/sinstrat.asm"
-purge dwbe
-include "res/music/sxtnt.asm"
-purge dwbe
-include "res/music/test.asm"
-purge dwbe
-include "res/music/thumb.asm"
-purge dwbe
-include "res/music/trance.asm"
-purge dwbe
-include "res/music/trial.asm"
-purge dwbe
-include "res/music/try_again.asm"
-purge dwbe
-include "res/music/wtf.asm"
-purge dwbe
-include "res/music/zen.asm"
-purge dwbe
+; include "res/music/cutie.asm"
+; purge dwbe
+; include "res/music/db.asm"
+; purge dwbe
+; include "res/music/haunted.asm"
+; purge dwbe
+; include "res/music/hydroplane.asm"
+; purge dwbe
+; include "res/music/jazzberr.asm"
+; purge dwbe
+; include "res/music/josss.asm"
+; purge dwbe
+; include "res/music/journey.asm"
+; purge dwbe
+; include "res/music/keisari.asm"
+; purge dwbe
+; include "res/music/leafpile.asm"
+; purge dwbe
+; include "res/music/nerve.asm"
+; purge dwbe
+; include "res/music/opl3_journey_to_the_forgotten_star.asm"
+; purge dwbe
+; include "res/music/opl3thing.asm"
+; purge dwbe
+; include "res/music/orca.asm"
+; purge dwbe
+; include "res/music/restart.asm"
+; purge dwbe
+; include "res/music/sinstrat.asm"
+; purge dwbe
+; include "res/music/sxtnt.asm"
+; purge dwbe
+; include "res/music/test.asm"
+; purge dwbe
+; include "res/music/thumb.asm"
+; purge dwbe
+; include "res/music/trance.asm"
+; purge dwbe
+; include "res/music/trial.asm"
+; purge dwbe
+; include "res/music/try_again.asm"
+; purge dwbe
+; include "res/music/wtf.asm"
+; purge dwbe
+; include "res/music/zen.asm"
+; purge dwbe
 ; include "res/music/asof.asm"
 ; purge dwbe
 
@@ -202,101 +202,101 @@ db LOW(BANK(asof0))
 dw asof0
 db 0
 
-db LOW(BANK(cutie0))
-dw cutie0
-db 0
+; db LOW(BANK(cutie0))
+; dw cutie0
+; db 0
 
-db LOW(BANK(db0))
-dw db0
-db 0
+; db LOW(BANK(db0))
+; dw db0
+; db 0
 
-db LOW(BANK(opl3thing0))
-dw opl3thing0
-db 0
+; db LOW(BANK(opl3thing0))
+; dw opl3thing0
+; db 0
 
-db LOW(BANK(hydroplane0))
-dw hydroplane0
-db 0
+; db LOW(BANK(hydroplane0))
+; dw hydroplane0
+; db 0
 
-db LOW(BANK(jazzberr0))
-dw jazzberr0
-db 0
+; db LOW(BANK(jazzberr0))
+; dw jazzberr0
+; db 0
 
-db LOW(BANK(josss0))
-dw josss0
-db 0
+; db LOW(BANK(josss0))
+; dw josss0
+; db 0
 
-db LOW(BANK(journey0))
-dw journey0
-db 0
+; db LOW(BANK(journey0))
+; dw journey0
+; db 0
 
-db LOW(BANK(keisari0))
-dw keisari0
-db 0
+; db LOW(BANK(keisari0))
+; dw keisari0
+; db 0
 
-db LOW(BANK(keisari0))
-dw keisari0
-db 0
+; db LOW(BANK(keisari0))
+; dw keisari0
+; db 0
 
-db LOW(BANK(nerve0))
-dw nerve0
-db 0
+; db LOW(BANK(nerve0))
+; dw nerve0
+; db 0
 
-db LOW(BANK(opl3_journey_to_the_forgotten_star0))
-dw opl3_journey_to_the_forgotten_star0
-db 0
+; db LOW(BANK(opl3_journey_to_the_forgotten_star0))
+; dw opl3_journey_to_the_forgotten_star0
+; db 0
 
-db LOW(BANK(opl3thing0))
-dw opl3thing0
-db 0
+; db LOW(BANK(opl3thing0))
+; dw opl3thing0
+; db 0
 
-db LOW(BANK(orca0))
-dw orca0
-db 0
+; db LOW(BANK(orca0))
+; dw orca0
+; db 0
 
-db LOW(BANK(restart0))
-dw restart0
-db 0
+; db LOW(BANK(restart0))
+; dw restart0
+; db 0
 
-db LOW(BANK(sinstrat0))
-dw sinstrat0
-db 0
+; db LOW(BANK(sinstrat0))
+; dw sinstrat0
+; db 0
 
-db LOW(BANK(sxtnt0))
-dw sxtnt0
-db 0
+; db LOW(BANK(sxtnt0))
+; dw sxtnt0
+; db 0
 
-db LOW(BANK(thumb0))
-dw test0
-db 0
+; db LOW(BANK(thumb0))
+; dw test0
+; db 0
 
-db LOW(BANK(thumb0))
-dw thumb0
-db 0
+; db LOW(BANK(thumb0))
+; dw thumb0
+; db 0
 
-db LOW(BANK(trance0))
-dw trance0
-db 0
+; db LOW(BANK(trance0))
+; dw trance0
+; db 0
 
-db LOW(BANK(trial0))
-dw trial0
-db 0
+; db LOW(BANK(trial0))
+; dw trial0
+; db 0
 
-db LOW(BANK(try_again0))
-dw try_again0
-db 0
+; db LOW(BANK(try_again0))
+; dw try_again0
+; db 0
 
-db LOW(BANK(wtf0))
-dw wtf0
-db 0
+; db LOW(BANK(wtf0))
+; dw wtf0
+; db 0
 
-db LOW(BANK(zen0))
-dw zen0
-db 0
+; db LOW(BANK(zen0))
+; dw zen0
+; db 0
 
-db LOW(BANK(zen0))
-dw zen0
-db 0
+; db LOW(BANK(zen0))
+; dw zen0
+; db 0
 
 Kernel::
   call clear_oam

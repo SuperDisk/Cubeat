@@ -491,14 +491,6 @@ credits_ui:
   ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON | LCDCF_OBJ16
   ld [rLCDC], a
 
-.wait_for_split2:
-  ld a, [rLY]
-  cp 120
-  jr nz, .wait_for_split2
-
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF | LCDCF_OBJ16
-  ld [rLCDC], a
-
   ld hl, wShadowOAM
   ld c, NB_SPRITES * 4
   xor a
@@ -568,6 +560,14 @@ ENDR
   ld [hl-], a
   ld [hl-], a
 
+.wait_for_split2:
+  ld a, [rLY]
+  cp 120
+  jr nz, .wait_for_split2
+
+  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJOFF | LCDCF_OBJ16
+  ld [rLCDC], a
+
   ld a, [hHeldKeys]
   and ~PADF_B
   jr nz, .held_a
@@ -606,7 +606,7 @@ ENDR
 
   ld a, [credits_row_offset]
   inc a
-  cp $9
+  cp $9*2
   jr nz, .no_reset_credits
 
   ld a, 120+16

@@ -50,6 +50,7 @@
                     (* (rem (1- idx) 64) 16 2) ; dest
                     )
             (incf idx (length tiles)))
+    (format asm ";;~%")
     (loop for row in trimmed-rows
           for (broken . tiles) = row
           repeat 6

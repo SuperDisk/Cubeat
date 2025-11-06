@@ -609,9 +609,13 @@ ENDR
 .memcpy:
   xor a
   ldh [rIF], a
+  ld a, [de]
+  inc de
   halt
+  nop
 
-REPT 8
+  ld [hl+], a
+REPT 7
   ld a, [de]
   ld [hl+], a
   inc de

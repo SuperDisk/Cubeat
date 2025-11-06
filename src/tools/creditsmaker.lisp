@@ -1,10 +1,6 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ql:quickload '(:alexandria) :silent t))
 
-;; TODO TASK: for each row, after the terminating 0 and break flag, have a src,dst
-;; pointer to memcpy such that each new row copies itself into the right
-;; position in vram.
-
 (defun generate (gfx asm)
   (let* ((bytes (coerce (alexandria:read-stream-content-into-byte-vector *standard-input*) 'list))
          (tiles (loop for bs = bytes then (nthcdr 16 bs)

@@ -1,0 +1,5 @@
+- Make music player work
+- Implement game over menus
+- Make game loop forever once we get to end
+- Make bonus work
+- Make bombs work

@@ -1434,7 +1434,7 @@ game_step2::
 .failed_match:
   ld a, c
   or a
-  jp z, .perform_destroy ; TODO: make JR
+  jr z, .perform_destroy
   xor a
 .fall_loop:
   or [hl]
@@ -1448,15 +1448,15 @@ game_step2::
 .no_take:
   dec l
   dec c
-  jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
-  jp .perform_destroy
+  jr nz, .fall_loop
+  jr .perform_destroy
 
 .no_take2:
   xor a
   dec l
   dec c
-  jr nz, .fall_loop ; TODO: make JR (reorder this code in general to save double comparisons)
-  jp .perform_destroy
+  jr nz, .fall_loop
+  jr .perform_destroy
 
 .try_find_match:
   ld h, HIGH(edge_array)
@@ -1555,7 +1555,7 @@ game_step2::
   pop hl
 
   ld e, %10000001
-  jp .no_take2
+  jr .no_take2
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Perform a destroy if necessary

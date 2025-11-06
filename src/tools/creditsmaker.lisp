@@ -39,14 +39,29 @@
           for (broken . tiles) = row
           with idx = 1 do
             (write-sequence (apply #'append tiles) gfx)
-            (format asm "db ~{~a,~}0,~a~%"
+            (format asm "db ~{~a,~}0,~a,$~x~%"
                     (loop for i from idx
                           repeat (length tiles)
-                          collect (1+ (rem (1- i) 64))
-                          finally (setf idx i))
-                    (if (eq broken :break) 8 0)))
-    (loop repeat 9 do
-          (format asm "db 0,0~%"))))
+                          collect (1+ (rem (1- i) 64)))
+                    (if (eq broken :break) 8 0)
+                    (ceiling (* (length tiles) 16) 4))
+            (format asm "dw credits_scroll_gfx + $~x, $8000 + $~x~%"
+                    (* (1- idx) 16 2) ; source
+                    (* (rem (1- idx) 64) 16 2) ; dest
+                    )
+            (incf idx (length tiles)))
+    (loop for row in trimmed-rows
+          for (broken . tiles) = row
+          repeat 6
+          with idx = 1 do
+            (format asm "db 0,~a,$~x~%"
+                    (if (eq broken :break) 8 0)
+                    (ceiling (* (length tiles) 16) 4))
+            (format asm "dw credits_scroll_gfx + $~x, $8000 + $~x~%"
+                    (* (1- idx) 16 2) ; source
+                    (* (rem (1- idx) 64) 16 2) ; dest
+                    )
+            (incf idx (length tiles)))))
 
 (defun main ()
   (destructuring-bind (gfx-file asm-file) (cdr sb-ext:*posix-argv*)

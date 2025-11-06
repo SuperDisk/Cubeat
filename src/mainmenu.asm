@@ -445,7 +445,7 @@ credits_init:
 
   ld de, credits_scroll_gfx
   ld hl, $8000
-  ld bc, (credits_scroll_gfx.end - credits_scroll_gfx)
+  ld bc, $800
   call Memcpy
 
   lb bc, 4, 2
@@ -509,7 +509,14 @@ credits_ui:
   ld a, [hl+]
   or a
   jr nz, .scan_zeros
+
+  inc hl ; skip break offset
+  inc hl ; skip copy count
   inc hl
+  inc hl ; skip src ptr
+  inc hl
+  inc hl ; skip dest ptr
+
   dec c
   jr nz, .scan_zeros
 
@@ -527,7 +534,7 @@ credits_ui:
 ;; we always render 6 lines of credits at a time, for a max of 60 sprites, but
 ;; hopefully we don't go over 40 since there usually will be line breaks and not
 ;; every line will be 10 sprites wide
-REPT 6
+FOR I, 6
 :
   ld a, c ; c = y pos
   ld [hl+], a
@@ -553,12 +560,69 @@ REPT 6
   add 16 ; when moving y pos to the next line, add an extra 8 pixels if break
   ld c, a
   ld b, 32 ; reset x pos
+
+  inc de ; move onto count
+  IF I < 5
+  ;; move onto src
   inc de
+
+  ;; move onto dst
+  inc de
+  inc de
+
+  ;; move onto next row
+  inc de
+  inc de
+  ENDC
 ENDR
 
   xor a
   ld [hl-], a
   ld [hl-], a
+
+  ld h, d
+  ld l, e
+
+  ;; tile count
+  ld a, [hl+]
+  or a
+  jr z, .no_memcpy
+  ld c, a
+
+  ;; src
+  ld e, [hl]
+  inc hl
+  ld d, [hl]
+  inc hl
+
+  ;; dest
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+
+  ;; Memcpy the last row into vram
+
+  ld a, %00001000
+  ldh [rSTAT], a
+  ld a, IEF_STAT
+  ldh [rIE], a
+.memcpy:
+  xor a
+  ldh [rIF], a
+  halt
+
+REPT 8
+  ld a, [de]
+  ld [hl+], a
+  inc de
+ENDR
+
+  res 3, h ; modulo $88
+
+  dec c
+  jr nz, .memcpy
+
+.no_memcpy:
 
 .wait_for_split2:
   ld a, [rLY]

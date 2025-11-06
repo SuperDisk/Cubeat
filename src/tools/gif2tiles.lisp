@@ -170,10 +170,7 @@
     (format stream "ld a, HIGH(~a_map~a)~%" prefix next-frame)
     (format stream "ld [update_playfield_buffer+2], a~%")
 
-    ;; HACK
-    (if *no-colon*
-        (format stream "ld a, LOW(BANK(~a_map~a))~%" prefix next-frame)
-        (format stream "ld a, BANK(~a_map~a)~%" prefix next-frame))
+    (format stream "ld a, BANK(~a_map~a) & $FF~%" prefix next-frame)
     (format stream "ld [next_map_bank], a~%")
 
     (format stream "ret~%")))

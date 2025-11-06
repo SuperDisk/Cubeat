@@ -3,3 +3,9 @@
 - Make game loop forever once we get to end
 - Make bonus work
 - Make bombs work
+
+- get music done
+
+- Get assets from Elias
+  - Music player buttons
+  - Credits sequence

@@ -3,8 +3,6 @@ include "defines.asm"
 SECTION "Fade callbacks", ROM0
 
 goto_mainmenu::
-  call wait_vblank
-
   pop af
   scf
   jp MainMenu
@@ -39,6 +37,8 @@ goto_creditsmenu::
   jp CreditsMenu
 
 goto_musicplayermenu::
+  call wait_vblank
+
   xor a
   ld [rLCDC], a
 

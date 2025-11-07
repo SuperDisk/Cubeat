@@ -18,6 +18,9 @@ SECTION "Music Player gfx", ROMX
 back_gfx: incbin "res/menu/back_sprite.2bpp"
 .end:
 
+wip_disclaimer_gfx: incbin "res/wip_disclaimer.2bpp"
+.end:
+
 SECTION "Music Player", ROM0
 
 MusicPlayer::
@@ -72,6 +75,11 @@ MusicPlayer::
   ld c, (back_gfx.end - back_gfx)
   rst MemcpySmall
 
+  ld de, wip_disclaimer_gfx
+  ld hl, $8050
+  ld bc, (wip_disclaimer_gfx.end - wip_disclaimer_gfx)
+  call Memcpy
+
   update_sprite 0, 8+(8*0), 7, 0
   update_sprite 1, 8+(8*1), 7, 1
   update_sprite 2, 8+(8*2), 7, 2
@@ -82,6 +90,14 @@ MusicPlayer::
   alt_palette 2
   alt_palette 3
   alt_palette 4
+
+DEF BLA = 5
+FOR Y, 3
+  FOR X, 10
+    update_sprite BLA, 40+(8*X), 100+(8*Y), BLA
+    DEF BLA = BLA+1
+  ENDR
+ENDR
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA

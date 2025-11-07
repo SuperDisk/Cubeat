@@ -40,15 +40,6 @@ MACRO BGColor
   ld a, \1 | (\2 << 2) | (\3 << 4) | (\4 << 6)
 ENDM
 
-SECTION "Music vars", WRAM0
-music_bank: db
-music_pointer: dw
-decompress_in: dw
-decompress_out: dw
-
-SECTION "Music Buffer", WRAM0[$D000]
-music_buffer: ds $FFF
-
 SECTION "Animation vars", WRAM0
 current_skin:: db
 current_bg:: db
@@ -141,162 +132,8 @@ SECTION "Playfield Buffer RAM", WRAM0
 playfield_buffer::
 ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
-; include "res/music/sinstrat.asm"
-
-include "res/music/asof.asm"
-purge dwbe
-; include "res/music/cutie.asm"
-; purge dwbe
-; include "res/music/db.asm"
-; purge dwbe
-; include "res/music/haunted.asm"
-; purge dwbe
-; include "res/music/hydroplane.asm"
-; purge dwbe
-; include "res/music/jazzberr.asm"
-; purge dwbe
-; include "res/music/josss.asm"
-; purge dwbe
-; include "res/music/journey.asm"
-; purge dwbe
-; include "res/music/keisari.asm"
-; purge dwbe
-; include "res/music/leafpile.asm"
-; purge dwbe
-; include "res/music/nerve.asm"
-; purge dwbe
-; include "res/music/opl3_journey_to_the_forgotten_star.asm"
-; purge dwbe
-; include "res/music/opl3thing.asm"
-; purge dwbe
-; include "res/music/orca.asm"
-; purge dwbe
-; include "res/music/restart.asm"
-; purge dwbe
-; include "res/music/sinstrat.asm"
-; purge dwbe
-; include "res/music/sxtnt.asm"
-; purge dwbe
-; include "res/music/test.asm"
-; purge dwbe
-; include "res/music/thumb.asm"
-; purge dwbe
-; include "res/music/trance.asm"
-; purge dwbe
-; include "res/music/trial.asm"
-; purge dwbe
-; include "res/music/try_again.asm"
-; purge dwbe
-; include "res/music/wtf.asm"
-; purge dwbe
-; include "res/music/zen.asm"
-; purge dwbe
-; include "res/music/asof.asm"
-; purge dwbe
 
 SECTION "Kernel", ROM0
-
-mus_table:
-
-db LOW(BANK(asof0))
-dw asof0
-db 0
-
-; db LOW(BANK(cutie0))
-; dw cutie0
-; db 0
-
-; db LOW(BANK(db0))
-; dw db0
-; db 0
-
-; db LOW(BANK(opl3thing0))
-; dw opl3thing0
-; db 0
-
-; db LOW(BANK(hydroplane0))
-; dw hydroplane0
-; db 0
-
-; db LOW(BANK(jazzberr0))
-; dw jazzberr0
-; db 0
-
-; db LOW(BANK(josss0))
-; dw josss0
-; db 0
-
-; db LOW(BANK(journey0))
-; dw journey0
-; db 0
-
-; db LOW(BANK(keisari0))
-; dw keisari0
-; db 0
-
-; db LOW(BANK(keisari0))
-; dw keisari0
-; db 0
-
-; db LOW(BANK(nerve0))
-; dw nerve0
-; db 0
-
-; db LOW(BANK(opl3_journey_to_the_forgotten_star0))
-; dw opl3_journey_to_the_forgotten_star0
-; db 0
-
-; db LOW(BANK(opl3thing0))
-; dw opl3thing0
-; db 0
-
-; db LOW(BANK(orca0))
-; dw orca0
-; db 0
-
-; db LOW(BANK(restart0))
-; dw restart0
-; db 0
-
-; db LOW(BANK(sinstrat0))
-; dw sinstrat0
-; db 0
-
-; db LOW(BANK(sxtnt0))
-; dw sxtnt0
-; db 0
-
-; db LOW(BANK(thumb0))
-; dw test0
-; db 0
-
-; db LOW(BANK(thumb0))
-; dw thumb0
-; db 0
-
-; db LOW(BANK(trance0))
-; dw trance0
-; db 0
-
-; db LOW(BANK(trial0))
-; dw trial0
-; db 0
-
-; db LOW(BANK(try_again0))
-; dw try_again0
-; db 0
-
-; db LOW(BANK(wtf0))
-; dw wtf0
-; db 0
-
-; db LOW(BANK(zen0))
-; dw zen0
-; db 0
-
-; db LOW(BANK(zen0))
-; dw zen0
-; db 0
 
 Kernel::
   call clear_oam
@@ -306,23 +143,6 @@ Kernel::
   call safe_turn_off_lcd
 
   call reset_opl3
-
-  ld a, [level_num]
-  ld hl, mus_table
-  add_a_to_hl
-  ld a, [hl+]
-  ld [music_bank], a
-  ld a, [hl+]
-  ld [music_pointer], a
-  ld a, [hl]
-  ld [music_pointer+1], a
-
-  ; ld a, LOW(BANK(sinstrat0))
-  ; ld [music_bank], a
-  ; ld a, LOW(sinstrat0)
-  ; ld [music_pointer], a
-  ; ld a, HIGH(sinstrat0)
-  ; ld [music_pointer+1], a
 
   xor a
   ld [hPressedKeys], a
@@ -653,7 +473,7 @@ ENDC
 
   jp kernel_loop
 
-load_skin:
+load_skin::
   ld a, BANK(skins)
   ld [rROMB0], a
 
@@ -785,6 +605,13 @@ load_skin:
   ld a, [hl+]
   ld [update_playfield_buffer+2], a
 
+  ld a, [hl+]
+  ld [music_bank], a
+  ld a, [hl+]
+  ld [music_pointer], a
+  ld a, [hl+]
+  ld [music_pointer+1], a
+
   ret
 
 transition_stage:
@@ -915,127 +742,4 @@ transition_stage:
   ld a, 1
   ld [transition_state], a
 
-  ret
-
-SECTION "Music Jumptable actions", ROM0, ALIGN[8]
-jumptable:
-  jr vgm_literals_end
-  jr vgm_literals
-  jr switch_bank
-  ; jr switch_port0 -- not needed since switch_port0 immediately follows
-
-switch_port0:
-  dec sp
-switch_port:
-  dec c
-  dec c
-  jr nz, decode_done
-  ;; fallthrough
-
-mus_loop:
-  pop hl
-  ld a, l
-  cp 4
-  jr nc, .phrase
-  add a
-  ld l, a
-  ld a, h
-  ld h, HIGH(jumptable)
-  jp hl
-
-.phrase:
-  ld e, l
-  res 7, l
-
-  ld a, h
-  ld h, l
-  ld l, a
-REPT 2
-  ld a, [hl+]
-  ld [bc], a
-  inc c
-  ld a, [hl+]
-  ld [bc], a
-  dec c
-ENDR
-
-REPT 2
-  ld a, [hl+]
-  or a
-  jr z, .phrase_done
-
-  ld [bc], a
-  inc c
-  ld a, [hl+]
-  ld [bc], a
-  dec c
-ENDR
-
-.phrase_done:
-  bit 7, e
-  jr nz, switch_port
-  jr mus_loop
-
-
-vgm_literals_end:
-  ld h, b
-  ld l, c
-
-.lit_loop:
-  pop de
-  ld [hl], e
-  inc l
-  ld [hl], d
-  dec l
-
-  dec a
-  jr nz, .lit_loop
-  jr switch_port
-
-vgm_literals:
-  ld h, b
-  ld l, c
-
-.lit_loop:
-  pop de
-
-  ld [hl], e
-  inc l
-  ld [hl], d
-  dec l
-
-  dec a
-  jr nz, .lit_loop
-  jr mus_loop
-
-switch_bank:
-  pop hl
-  ld sp, hl
-  ld [rROMB0], a
-  ld [music_bank], a
-  jr mus_loop
-
-do_music::
-  ; ret
-
-  ld a, [music_bank]
-  ld hl, $2FFF
-  ld [hl+], a
-  ld [hl], 1
-  assert $2FFF + 1 == rROMB1
-
-  ld sp, music_pointer
-  pop hl
-  ld sp, hl
-
-  ld bc, $A002
-  jp mus_loop
-
-decode_done:
-  ld [music_pointer], sp
-
-  ld hl, rROMB1
-  ld [hl], 0
-
-  ld sp, wStackBottom-2
   ret

@@ -221,6 +221,7 @@ def go():
         bankno += 1
 
     # print("total:",total)
+    print("purge dwbe")
     print("emitted:",emitted,file=sys.stderr)
     # print("dict:",justdict,"bytes",len(usedshit),"entries")
     # print([len(x) for x in usedper])

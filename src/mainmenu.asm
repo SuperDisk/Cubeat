@@ -143,6 +143,7 @@ menu_ui_ptr2: dw
 
 menu_frame_counter: db
 selected_button: db
+selected_music: db
 
 selected_level: db
 true_x: db
@@ -356,7 +357,7 @@ Menu:
   ld a, [main_menu_inited]
   or a
   jr nz, .no_init_selected_button
-  xor a
+  ; xor a ; a = 0 already
   ld [selected_button], a
   inc a
   ld [main_menu_inited], a
@@ -1013,6 +1014,9 @@ music_player_init:
   ld [scroll_amount+1], a
   ld [scroll_x1], a
   ld [x1highbit], a
+  ld [selected_music], a
+
+.no_init_selected_music:
 
   ;; We can't tween if we'll need to move too fast, so the button checks also
   ;; test this to make sure it's close enough to done to tween.

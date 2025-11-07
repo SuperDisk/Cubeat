@@ -3,8 +3,7 @@ include "defines.asm"
 SECTION "Fade callbacks", ROM0
 
 goto_mainmenu::
-  xor a
-  ld [rLCDC], a
+  call wait_vblank
 
   pop af
   scf

@@ -3,6 +3,7 @@
 - Make game loop forever once we get to end
 - Make bonus work
 - Make bombs work
+- Fix bug where radar can half-delete blocks
 
 - get music done
 

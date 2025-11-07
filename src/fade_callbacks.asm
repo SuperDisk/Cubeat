@@ -52,6 +52,13 @@ goto_gameplay::
   pop af
   jp Kernel
 
+goto_musicplayer::
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  jp MusicPlayer
+
 goto_gameplay_restore::
   xor a
   ld [rLCDC], a

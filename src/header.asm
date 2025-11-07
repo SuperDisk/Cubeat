@@ -135,9 +135,9 @@ Reset::
   ld [rSCX], a
   ld [rSCY], a
 
-  jp MusicPlayer
+  ; jp MusicPlayer
   ; jp Kernel
-  ; jp MainMenu
+  jp MainMenu
   ; jp TitleScreen
   ; jp CreditsMenu
   ; jp MusicPlayerMenu

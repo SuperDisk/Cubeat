@@ -143,7 +143,7 @@ menu_ui_ptr2: dw
 
 menu_frame_counter: db
 selected_button: db
-selected_music: db
+selected_music:: db
 
 selected_level: db
 true_x: db
@@ -1016,8 +1016,6 @@ music_player_init:
   ld [x1highbit], a
   ld [selected_music], a
 
-.no_init_selected_music:
-
   ;; We can't tween if we'll need to move too fast, so the button checks also
   ;; test this to make sure it's close enough to done to tween.
   ld a, $3F
@@ -1043,6 +1041,9 @@ music_player_init:
   ld a, BANK(slice0)
   ld [rROMB0], a
 
+  ;; TODO: we want the music player menu to save its state so we can go back to
+  ;; it from the music player itself. replace these calls with something indexed
+  ;; by selected_music
   call slice0
   call slice1
   call slice2
@@ -1340,6 +1341,10 @@ music_player_ui:
   ld hl, sfx_ui_move
   call play_sfx
 
+  ld a, [selected_music]
+  add 5
+  ld [selected_music], a
+
 .no_right:
   ld a, [hPressedKeys]
   bit PADB_LEFT, a
@@ -1381,6 +1386,10 @@ music_player_ui:
   ld hl, sfx_ui_move
   call play_sfx
 
+  ld a, [selected_music]
+  sub 5
+  ld [selected_music], a
+
 .no_left:
   ld a, [hPressedKeys]
   bit PADB_DOWN, a
@@ -1402,6 +1411,9 @@ music_player_ui:
 
   ld hl, sfx_ui_move
   call play_sfx
+
+  ld hl, selected_music
+  inc [hl]
 
 .no_down:
   ld a, [hPressedKeys]
@@ -1425,10 +1437,13 @@ music_player_ui:
   ld hl, sfx_ui_move
   call play_sfx
 
+  ld hl, selected_music
+  dec [hl]
+
 .no_up:
   ld a, [hPressedKeys]
   bit PADB_B, a
-  ret z
+  jr z, .no_b
 
   ld hl, sfx_ui_back
   call play_sfx
@@ -1436,7 +1451,14 @@ music_player_ui:
   ld hl, goto_mainmenu
   call FadeOut
 
-  ret
+.no_b:
+  ld a, [hPressedKeys]
+  bit PADB_A, a
+  ret z
+
+  ;; load up
+  ld hl, goto_musicplayer
+  jp FadeOut
 
 levels_ui:
   ld a, BANK(levels_gfx)

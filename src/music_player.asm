@@ -52,7 +52,13 @@ MusicPlayer::
   ; ld [draw_block0], a
   ; ld [draw_block1], a
 
-  ld hl, skin2
+  ld a, [selected_music]
+  add a
+  ld hl, skin_table
+  add_a_to_hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
   call load_skin
 
   call init_playfield_buffer
@@ -101,7 +107,7 @@ music_player_loop:
   ld hl, sfx_ui_back
   call play_sfx
 
-  ld hl, goto_mainmenu
+  ld hl, goto_musicplayermenu
   call FadeOut
 
 .no_quit:

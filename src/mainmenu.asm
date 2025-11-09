@@ -289,7 +289,7 @@ MusicPlayerMenu::
   ld a, 1
   ld [main_menu_2part], a
 
-  jr Menu.no_sgb
+  jr Menu
 
 MainMenu::
   ld hl, menu_ui_ptr

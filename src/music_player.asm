@@ -24,12 +24,10 @@ wip_disclaimer_gfx: incbin "res/wip_disclaimer.2bpp"
 SECTION "Music Player", ROM0
 
 MusicPlayer::
+  ld a, BANK(skins)
+  ld [rROMB0], a
+
   call clear_oam
-
-  ld hl, skin0.border_bank
-  call colorize
-  call safe_turn_off_lcd
-
   call reset_opl3
 
   xor a
@@ -47,14 +45,6 @@ MusicPlayer::
   ld a, $C3 ; jp xxxx
   ld [update_playfield_buffer], a
 
-  ;; Set transition state
-  ld a, 1
-  ld [transition_state], a
-
-  ; ld a, $C3 ; JP
-  ; ld [draw_block0], a
-  ; ld [draw_block1], a
-
   ld a, [selected_music]
   add a
   ld hl, skin_table
@@ -62,8 +52,15 @@ MusicPlayer::
   ld a, [hl+]
   ld h, [hl]
   ld l, a
-  call load_skin
+  push hl
 
+  ld de, skin0.border_bank-skin0
+  add hl, de
+  call colorize
+  call safe_turn_off_lcd
+  pop hl
+
+  call load_skin
   call init_playfield_buffer
 
   ;; Setup music player UI stuff

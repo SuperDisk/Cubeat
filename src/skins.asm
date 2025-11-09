@@ -37,11 +37,15 @@ INCBIN "res/borders/SplashScreen_Clean.borderchr.pb16"
 frame_title_attrs:
 INCBIN "res/borders/SplashScreen_Clean.borderattr.pb16"
 
+pal_title:: pal_packet $fff9f4, $6d94b1, $516a95, $29334d
+
 SECTION "Menus border", ROMX
 frame_menus_tiles:
 INCBIN "res/borders/menus_Clean.borderchr.pb16"
 frame_menus_attrs:
 INCBIN "res/borders/menus_Clean.borderattr.pb16"
+
+pal_menus:: pal_packet $fff9f4, $6d94b1, $516a95, $29334d
 
 FOR I, 1, NUM_SKINS+1
   include "res/backgrounds/bg{02d:I}.asm"
@@ -73,7 +77,7 @@ include "res/music/cutie.asm"
 ; include "res/music/zen.asm"
 
 FOR I, 1, NUM_SKINS+1
-  SECTION "frame_{02d:I}", ROMX
+  SECTION FRAGMENT "frame_{02d:I}", ROMX
   frame_{02d:I}_tiles:
   INCBIN "res/borders/SuperGameBoyFrame_{02d:I}_Clean.borderchr.pb16"
   frame_{02d:I}_attrs:
@@ -104,35 +108,59 @@ ENDM
 ;; Defines its own sections
 include "res/sprite_block_gfx.sep1.2bpp.asm"
 
-SECTION "Skins", ROMX
-
-pal_splash:: pal_packet $faffff, $e68484, $000000, $d61313
-pal_title:: pal_packet $fff9f4, $6d94b1, $516a95, $29334d
+SECTION FRAGMENT "frame_01", ROMX
 pal0:: pal_packet $ffffff, $00649e, $124882, $ff9d00
+SECTION FRAGMENT "frame_02", ROMX
 pal1:  pal_packet $0036b2, $ffc4a2, $ff766e, $f4ff00
+SECTION FRAGMENT "frame_03", ROMX
 pal2:  pal_packet $ded40f, $fffded, $57dbf1, $5a55ae
+SECTION FRAGMENT "frame_04", ROMX
 pal3:  pal_packet $ffee00, $8763cc, $763eb2, $07b9f1
+SECTION FRAGMENT "frame_05", ROMX
 pal4:  pal_packet $9c00cd, $fdc540, $e99418, $ffffff
+SECTION FRAGMENT "frame_06", ROMX
 pal5:  pal_packet $ffffff, $ffd300, $ff9800, $c44a1d
+SECTION FRAGMENT "frame_07", ROMX
 pal6:  pal_packet $e7e312, $347648, $4c5161, $5cae23
+SECTION FRAGMENT "frame_08", ROMX
 pal7:  pal_packet $0036b2, $ffc4a2, $ff766e, $f4ff00
+SECTION FRAGMENT "frame_09", ROMX
 pal8:  pal_packet $ded40f, $fffded, $57dbf1, $5a55ae
+SECTION FRAGMENT "frame_10", ROMX
 pal9:  pal_packet $9c00cd, $fdc540, $e99418, $ffffff
+SECTION FRAGMENT "frame_11", ROMX
 pal10: pal_packet $ded40f, $fffded, $57dbf1, $5a55ae
+SECTION FRAGMENT "frame_12", ROMX
 pal11: pal_packet $0036b2, $ffc4a2, $ff766e, $f4ff00
+SECTION FRAGMENT "frame_13", ROMX
 pal12: pal_packet $ffffff, $9fa395, $b0b6a1, $e10019
+SECTION FRAGMENT "frame_14", ROMX
 pal13: pal_packet $4c5161, $cdd912, $8dc112, $ffffff
+SECTION FRAGMENT "frame_15", ROMX
 pal14: pal_packet $ffee00, $8763cc, $763eb2, $07b9f1
+SECTION FRAGMENT "frame_16", ROMX
 pal15: pal_packet $ffffff, $ffd300, $ff9800, $c44a1d
+SECTION FRAGMENT "frame_17", ROMX
 pal16: pal_packet $9c00cd, $fdc540, $e99418, $ffffff
+SECTION FRAGMENT "frame_18", ROMX
 pal17: pal_packet $ded40f, $fffded, $57dbf1, $5a55ae
+SECTION FRAGMENT "frame_19", ROMX
 pal18: pal_packet $fffa00, $0c5c70, $00362a, $00bcd8
+SECTION FRAGMENT "frame_20", ROMX
 pal19: pal_packet $0036b2, $ffc4a2, $ff766e, $f4ff00
+SECTION FRAGMENT "frame_21", ROMX
 pal20: pal_packet $ffffff, $0008f7, $00108c, $f708ff
+SECTION FRAGMENT "frame_22", ROMX
 pal21: pal_packet $ffffff, $9fa395, $b0b6a1, $e10019
+SECTION FRAGMENT "frame_23", ROMX
 pal22: pal_packet $c3db7b, $8aa346, $617b38, $003d2e
+SECTION FRAGMENT "frame_24", ROMX
 pal23: pal_packet $ffff00, $000091, $000000, $ff0000
+SECTION FRAGMENT "frame_25", ROMX
 pal24: pal_packet $9c00cd, $fdc540, $e99418, $ffffff
+
+SECTION "Skins", ROMX
+pal_splash:: pal_packet $faffff, $e68484, $000000, $d61313
 
 skin_title::
 db BANK(frame_title_tiles)
@@ -142,7 +170,7 @@ dw pal_title
 skin_menus::
 db BANK(frame_menus_tiles)
 dw frame_menus_tiles, frame_menus_attrs
-dw pal_title
+dw pal_menus
 
 skins::
 

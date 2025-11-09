@@ -25,7 +25,7 @@ colorize::
 .sgb:
   ;; bank
   ld a, [hl+]
-  ld [rROMB0], a
+  push af
 
   ;; tiles
   ld e, [hl]
@@ -44,14 +44,23 @@ colorize::
   ld h, [hl]
   ld l, a
 
+  pop af
+  ld [rROMB0], a
   jp ChangeSGBBorder
 
 .cgb:
-  ld de, 5
-  add hl, de
+  ld a, [hl+]
+  ld c, a
+
+  REPT 4
+  inc hl
+  ENDR
   ld a, [hl+]
   ld h, [hl]
   ld l, a
+
+  ld a, c
+  ld [rROMB0], a
 
 .cgb_atpacket:
   ld de, 9

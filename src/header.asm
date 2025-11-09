@@ -137,8 +137,8 @@ Reset::
 
   ; jp MusicPlayer
   ; jp Kernel
-  jp MainMenu
-  ; jp TitleScreen
+  ; jp MainMenu
+  jp TitleScreen
   ; jp CreditsMenu
   ; jp MusicPlayerMenu
   ; jp PauseMenu

@@ -144,6 +144,7 @@ menu_ui_ptr2: dw
 menu_frame_counter: db
 selected_button: db
 selected_music:: db
+selected_column:: db
 
 selected_level: db
 true_x: db
@@ -157,6 +158,8 @@ credits_row_offset: db
 
 main_menu_inited:: db
 main_menu_2part: db
+
+coming_from_mainmenu: db
 
 SECTION "Tweening vars", WRAM0
 tween_dist: db
@@ -690,6 +693,9 @@ ENDR
   ret
 
 main_menu_init:
+  ld a, 1
+  ld [coming_from_mainmenu], a
+
   ld a, [selected_button]
   ld de, button_coords
   add a
@@ -1008,25 +1014,40 @@ ENDR
 
   ret
 
+selected_column_multiplier: dw 0, 88, 176, 264, 352
+
 music_player_init:
+  ld a, [coming_from_mainmenu]
+  or a
+  jr nz, .do_zero
+
+  ld a, [true_y]
+  ld [y1], a
+  ld [y2], a
+  add 17-6
+  ld [y3], a
+  ld [y4], a
+
+  ld a, [selected_column]
+  add a
+  ld hl, selected_column_multiplier
+  add_a_to_hl
+  ld a, [hl+]
+  ld [scroll_x1], a
+  ld a, [hl]
+  ld [x1highbit], a
+
+  jr .done_zero
+
+.do_zero:
   xor a
+  ld [selected_music], a
+  ld [selected_column], a
   ld [scroll_amount], a
   ld [scroll_amount+1], a
   ld [scroll_x1], a
   ld [x1highbit], a
-  ld [selected_music], a
-
-  ;; We can't tween if we'll need to move too fast, so the button checks also
-  ;; test this to make sure it's close enough to done to tween.
-  ld a, $3F
-  ld [tween_step], a
-
-  ld a, 24+8-1
-  ld [x1], a
-  ld [x3], a
-  add 89-6
-  ld [x2], a
-  ld [x4], a
+  ld [coming_from_mainmenu], a
 
   ld a, 32-1
   ld [y1], a
@@ -1036,35 +1057,54 @@ music_player_init:
   ld [y3], a
   ld [y4], a
 
+.done_zero:
+  ld a, 24+8-1
+  ld [x1], a
+  ld [x3], a
+  add 89-6
+  ld [x2], a
+  ld [x4], a
+.no_zero:
+
+  ;; We can't tween if we'll need to move too fast, so the button checks also
+  ;; test this to make sure it's close enough to done to tween.
+  ld a, $3F
+  ld [tween_step], a
+
   call update_cursor_pos
 
   ld a, BANK(slice0)
   ld [rROMB0], a
 
-  ;; TODO: we want the music player menu to save its state so we can go back to
-  ;; it from the music player itself. replace these calls with something indexed
-  ;; by selected_music
-  call slice0
-  call slice1
-  call slice2
-  call slice3
-  call slice4
-  call slice5
-  call slice6
-  call slice7
-  call slice8
-  call slice9
-  call slice10
-  call slice11
-  call slice12
-  call slice13
-  call slice14
-  call slice15
-  call slice16
-  call slice17
-  call slice18
-  call slice19
-  call slice20
+  ld a, [selected_column]
+  ld c, a
+
+  swap a ; *= 16
+  sub c ; 15
+  sub c ; 14
+  sub c ; 13
+  sub c ; 12
+  sub c ; 11
+
+  add 20
+  ld c, a
+  ld hl, slice_table
+
+.slice_loop:
+  ld a, [hl+]
+  push hl
+  ld h, [hl]
+  ld l, a
+
+  push bc
+  rst CallHL
+  pop bc
+
+  pop hl
+  inc hl
+
+  dec c
+  jr nz, .slice_loop
 
   ld a, BANK(text_select_level_gfx)
   ld [rROMB0], a
@@ -1341,6 +1381,9 @@ music_player_ui:
   ld hl, sfx_ui_move
   call play_sfx
 
+  ld hl, selected_column
+  inc [hl]
+
   ld a, [selected_music]
   add 5
   ld [selected_music], a
@@ -1385,6 +1428,9 @@ music_player_ui:
 
   ld hl, sfx_ui_move
   call play_sfx
+
+  ld hl, selected_column
+  dec [hl]
 
   ld a, [selected_music]
   sub 5

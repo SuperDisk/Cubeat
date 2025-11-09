@@ -6,6 +6,7 @@
 - Fix bug where radar can half-delete blocks
 
 - get music done
+- make music loop properly
 
 - Get assets from Elias
   - Music player buttons

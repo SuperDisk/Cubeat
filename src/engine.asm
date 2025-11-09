@@ -250,6 +250,23 @@ edge_array2:
 ; db 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1
 ; ENDR
 
+;; TODO: Move these out of rom0
+SECTION "X lookup table", ROM0, ALIGN[8]
+x_lookup_table:
+REPT BOARD_H
+  FOR X, 0, BOARD_W
+   db X
+  ENDR
+ENDR
+
+SECTION "Y lookup table", ROM0, ALIGN[8]
+y_lookup_table:
+FOR Y, 0, BOARD_H
+  REPT BOARD_W
+    db Y
+  ENDR
+ENDR
+
 
 SECTION "Game vars", WRAM0
 score: ds 4 ; 7 digits
@@ -1435,7 +1452,7 @@ game_step2::
 .failed_match:
   ld a, c
   or a
-  jr z, .perform_destroy
+  jp z, .perform_destroy
   xor a
 .fall_loop:
   or [hl]
@@ -1501,7 +1518,27 @@ game_step2::
 
   ;;;;;;;
 
+  ;; Check if the rightmost tile is touching the radar. If so, make ourselves
+  ;; preemptively marked. This prevents the problem of detecting a match that is
+  ;; half-detected by the radar already.
+  ld a, [radar_pos+1]
+
+  srl a ; /2
+  srl a ; /4
+  srl a ; /8
+
+  ld e, a
+  ld h, HIGH(x_lookup_table)
+  ld a, [hl]
+  cp e
+  ld h, HIGH(board)
+
   ld a, d
+  jr nz, .not_radared
+
+  or %110 ; turn it into a marked block
+
+.not_radared:
   or $80 | (1 << 6) ; TODO: Make this use the actual block, not replace it with the standard
   ld [hl+], a
   ld [bc], a

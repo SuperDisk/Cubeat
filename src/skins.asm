@@ -39,13 +39,10 @@ INCBIN "res/borders/SplashScreen_Clean.borderattr.pb16"
 
 pal_title:: pal_packet $fff9f4, $6d94b1, $516a95, $29334d
 
-SECTION "Menus border", ROMX
 frame_menus_tiles:
 INCBIN "res/borders/menus_Clean.borderchr.pb16"
 frame_menus_attrs:
 INCBIN "res/borders/menus_Clean.borderattr.pb16"
-
-pal_menus:: pal_packet $fff9f4, $6d94b1, $516a95, $29334d
 
 FOR I, 1, NUM_SKINS+1
   include "res/backgrounds/bg{02d:I}.asm"
@@ -170,7 +167,7 @@ dw pal_title
 skin_menus::
 db BANK(frame_menus_tiles)
 dw frame_menus_tiles, frame_menus_attrs
-dw pal_menus
+dw pal_title
 
 skins::
 

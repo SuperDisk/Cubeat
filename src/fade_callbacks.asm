@@ -45,6 +45,15 @@ goto_musicplayermenu::
   pop af
   jp MusicPlayerMenu
 
+goto_musicplayermenu_nosgb::
+  call wait_vblank
+
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  jp MusicPlayerMenu_nosgb
+
 goto_gameplay::
   xor a
   ld [rLCDC], a

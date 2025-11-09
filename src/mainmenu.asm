@@ -291,7 +291,24 @@ MusicPlayerMenu::
 
   jr Menu
 
+MusicPlayerMenu_nosgb::
+  ld hl, menu_ui_ptr
+
+  ld a, LOW(music_player_ui)
+  ld [hl+], a
+  ld a, HIGH(music_player_ui)
+  ld [hl+], a
+  ld a, LOW(music_player_init)
+  ld [hl+], a
+  ld [hl], HIGH(music_player_init)
+
+  ld a, 1
+  ld [main_menu_2part], a
+
+  jr Menu.no_sgb
+
 MainMenu::
+  push af
   ld hl, menu_ui_ptr
   ld [hl], LOW(main_menu_ui)
   inc hl
@@ -304,14 +321,15 @@ MainMenu::
   xor a
   ld [main_menu_2part], a
 
+  pop af
   jr c, Menu.no_sgb
 
 Menu:
   ld hl, skin_menus
   call colorize
-  call safe_turn_off_lcd
 
 .no_sgb:
+  call safe_turn_off_lcd
   call reset_opl3
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   call init_playfield_buffer
@@ -1820,7 +1838,7 @@ main_menu_ui:
 .jump:
   dw goto_gameplay
   dw goto_levelsmenu
-  dw goto_musicplayermenu
+  dw goto_musicplayermenu_nosgb
   dw goto_creditsmenu
 .no_a:
   ld a, [hPressedKeys]

@@ -1571,6 +1571,11 @@ game_step2::
   ld [hl], a
   ld [bc], a
 
+  ;; if we had to pre-mark the match, don't make the animation
+  bit 1, a
+  ld e, %10000001
+  jr nz, .no_take2
+
   ;; unintuitive, but we reuse anim_y_temp as the palette param to `create_animation`
   and 1
   ld [anim_y_temp], a

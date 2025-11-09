@@ -1,13 +1,16 @@
 include "defines.asm"
 
+;; Graphical bits:
 ;; %0000000x = normal block
 ;; %0000001x = bomb
 ;; %0000010x = marked for destruction
 ;; %0000011x = getting swept by radar
 
+;; Behavioral bits:
 ;; bit 7 = always there
 ;; bit 6 = "marked" for deletion by the radar
 ;; bit 5 = something to do with bombs
+;; bit 0 = color
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Debug toggles to make development easier
@@ -1496,12 +1499,9 @@ game_step2::
   and e
   jr nz, .failed_match
 
-  ld a, d
-  and 1
-  ld e, a
-
   ;;;;;;;
 
+  ld a, d
   or $80 | (1 << 6) ; TODO: Make this use the actual block, not replace it with the standard
   ld [hl+], a
   ld [bc], a
@@ -1509,10 +1509,13 @@ game_step2::
   ld [hl], a
   ld [bc], a
 
+  ;; unintuitive, but we reuse anim_y_temp as the palette param to `create_animation`
+  and 1
+  ld [anim_y_temp], a
+
+  ;; unintuitive, but we reuse anim_x_temp as the "info" param to `create_animation`
   ld a, c
   ld [anim_x_temp], a
-  ld a, e
-  ld [anim_y_temp], a
 
   ;; Split out XY coords from board pos ; TODO: Might be a good candidate for a lookup table...
   ld d, 0

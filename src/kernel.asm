@@ -1,7 +1,7 @@
 include "defines.asm"
 
-DEF DBG_SCANLINES1 = 1
-DEF DBG_SCANLINES2 = 1
+; DEF DBG_SCANLINES1 = 1
+; DEF DBG_SCANLINES2 = 1
 
 MACRO update_sprite  ; which sprite, x, y, tile
   ld a, \3+16

@@ -1514,7 +1514,7 @@ game_step2::
   ld a, e
   ld [anim_y_temp], a
 
-  ;; Split out XY coords from board pos
+  ;; Split out XY coords from board pos ; TODO: Might be a good candidate for a lookup table...
   ld d, 0
   ld a, l
   dec a
@@ -1567,12 +1567,21 @@ game_step2::
   ld hl, board.end-1
   ld bc, board.end-1-ROW-1
 
+  ld e, %110
 .destroy_loop:
   ld a, [hl]
-  and %110
-  cp %110
-  jr nz, .no_destroy
+  and e
+  cp e
+  jr z, .do_destroy
 
+.no_destroy:
+  dec l
+.no_destroy2:
+  dec c
+  jr nz, .destroy_loop
+  jr .done_destroy_loop
+
+.do_destroy:
   ld a, [bc]
   cp [hl]
   ld [hl], 0
@@ -1582,7 +1591,7 @@ game_step2::
   cp [hl]
   jr nz, .no_destroy2
 
-  ;; Split out XY coords from board pos
+  ;; Split out XY coords from board pos TODO: Might be a good candidate for a lookup table...
   ld d, 0
   ld a, l
   inc l
@@ -1626,11 +1635,9 @@ game_step2::
   pop bc
   pop hl
 
-.no_destroy:
-  dec l
-.no_destroy2:
-  dec c
-  jr nz, .destroy_loop
+  ld e, %110
+  jr .no_destroy
+
 .done_destroy_loop:
   xor a
   ld [need_to_destroy], a

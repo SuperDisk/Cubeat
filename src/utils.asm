@@ -20,8 +20,12 @@ safe_turn_off_lcd::
   ld [rLCDC], a
   ret
 
+clear_oam2::
+  ld hl, wShadowOAM2
+  jr clear_oam.1
 clear_oam::
   ld hl, wShadowOAM
+.1:
   ld c, NB_SPRITES * 4
   xor a
   jp MemsetSmall

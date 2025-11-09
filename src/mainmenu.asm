@@ -258,7 +258,7 @@ PauseMenu::
   xor a
   ld [main_menu_2part], a
 
-  jr Menu.no_sgb
+  jr Menu
 
 LevelsMenu::
   ld hl, menu_ui_ptr

@@ -66,7 +66,14 @@ goto_gameplay_restore::
   ld [rLCDC], a
 
   pop af
-  jp Kernel
+  jp Kernel_restore
+
+goto_pause_menu::
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  jp PauseMenu
 
 goto_musicplayer::
   xor a

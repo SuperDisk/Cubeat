@@ -1,13 +1,16 @@
 (DONE) Make music player work
-- Implement pause menu
+(DONE) Implement pause menu
+- Fix bug where radar can half-delete blocks
+- Fix bug where block flashes for a frame after making a match
 - Implement game over menus
 - Make game loop forever once we get to end
 - Make bonus work
 - Make bombs work
-- Fix bug where radar can half-delete blocks
 
 - get music done
 - make music loop properly
+
+- get sound effects done
 
 - Get assets from Elias
   - Music player buttons

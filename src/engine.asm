@@ -438,13 +438,11 @@ game_step::
   bit PADB_START, a
   jp z, .no_shit
 
+  ; ld a, [level_num]
+  ; add 4
+  ; ld [level_num], a
 
-  ld a, [level_num]
-  add 4
-  ld [level_num], a
-  inc a ; set a to nonzero (level num is never 255)
-  ld [locked_level], a
-  ld hl, goto_gameplay
+  ld hl, goto_pause_menu
   call FadeOut
 
 ;;;;;;;;;;;;;;;;;;;;;;;

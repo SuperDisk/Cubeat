@@ -135,7 +135,13 @@ ds (playfield_buffer_rom.end - playfield_buffer_rom)
 
 SECTION "Kernel", ROM0
 
+Kernel_restore::
+  scf
+  jr Kernel.1
 Kernel::
+  or a
+.1:
+  push af
   call clear_oam
 
   ld hl, skin0.border_bank
@@ -277,7 +283,8 @@ Kernel::
   ld hl, KnownRet
   call FadeIn
 
-  call init_game
+  pop af
+  call nc, init_game
   ;; fallthrough
 
 kernel_loop:

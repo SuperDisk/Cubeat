@@ -28,6 +28,7 @@ MusicPlayer::
   ld [rROMB0], a
 
   call clear_oam
+  call clear_oam2
   call reset_opl3
 
   xor a

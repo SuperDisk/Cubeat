@@ -1,4 +1,5 @@
-- Make music player work
+(DONE) Make music player work
+- Implement pause menu
 - Implement game over menus
 - Make game loop forever once we get to end
 - Make bonus work
@@ -10,4 +11,5 @@
 
 - Get assets from Elias
   - Music player buttons
+  - Music artist credits
   - Credits sequence

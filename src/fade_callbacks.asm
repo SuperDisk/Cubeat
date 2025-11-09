@@ -54,6 +54,11 @@ goto_musicplayermenu_nosgb::
   pop af
   jp MusicPlayerMenu_nosgb
 
+goto_gameplay_fresh::
+  xor a
+  ld [level_num], a
+  ld [locked_level], a
+
 goto_gameplay::
   xor a
   ld [rLCDC], a

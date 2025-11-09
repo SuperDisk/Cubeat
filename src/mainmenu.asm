@@ -371,9 +371,6 @@ Menu:
   ld [tween_step2], a
   ld [tweening2], a
   ld [tween_endx1], a
-  ;; Set up other vars
-  ld [level_num], a
-  ld [locked_level], a
 
   ld a, [main_menu_inited]
   or a
@@ -1836,7 +1833,7 @@ main_menu_ui:
 
   jr .no_a
 .jump:
-  dw goto_gameplay
+  dw goto_gameplay_fresh
   dw goto_levelsmenu
   dw goto_musicplayermenu_nosgb
   dw goto_creditsmenu

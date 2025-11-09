@@ -144,7 +144,26 @@ Kernel::
   push af
   call clear_oam
 
-  ld hl, skin0.border_bank
+  ;; Colorize based on loaded skin...
+  ld a, BANK(skin_table)
+  ld [rROMB0], a
+
+  ld a, [level_num]
+  srl a ; /= 2
+  srl a ; /= 2
+  ld [current_skin], a
+  add a ; *= 2
+
+  ld hl, skin_table
+  add_a_to_hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  push hl
+
+  ld de, (skin0.border_bank - skin0)
+  add hl, de
+
   call colorize
   call safe_turn_off_lcd
 
@@ -152,7 +171,6 @@ Kernel::
 
   xor a
   ld [hPressedKeys], a
-  ld [current_skin], a
 
   ld de, static_ram_code
   ld hl, ram_code
@@ -173,7 +191,7 @@ Kernel::
   ld [draw_block0], a
   ld [draw_block1], a
 
-  ld hl, skin0
+  pop hl
   call load_skin
 
   call init_playfield_buffer

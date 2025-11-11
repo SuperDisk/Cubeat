@@ -1,7 +1,11 @@
 include "defines.asm"
 
-; DEF DBG_SCANLINES1 = 1
-; DEF DBG_SCANLINES2 = 1
+;; game_step = white
+;; game_step2 = black
+
+DEF DBG_PROFILE_GAMESTEP1 = 1
+DEF DBG_PROFILE_GAMESTEP2 = 1
+; DEF DBG_PROFILE_MUSIC = 1
 
 MACRO update_sprite  ; which sprite, x, y, tile
   ld a, \3+16
@@ -323,12 +327,12 @@ kernel_loop:
   ;; Run game logic update
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-IF DEF(DBG_SCANLINES1)
+IF DEF(DBG_PROFILE_GAMESTEP1)
   ld a, $00
   ld [rBGP], a
 ENDC
   call game_step
-IF DEF(DBG_SCANLINES1)
+IF DEF(DBG_PROFILE_GAMESTEP1)
   ld a, %00_10_01_11
   ld [rBGP], a
 ENDC
@@ -425,18 +429,22 @@ ENDC
   ;; Anything we couldn't cram into the previous step...
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-IF DEF(DBG_SCANLINES2)
+IF DEF(DBG_PROFILE_GAMESTEP2)
   ld a, $FF
   ld [rBGP], a
 ENDC
   call game_step2
-  ; ld a, %00_10_01_11
-  ; ld [rBGP], a
+IF DEF(DBG_PROFILE_GAMESTEP2)
+  ld a, %00_10_01_11
+  ld [rBGP], a
+ENDC
 
-  ; ld a, $00
-  ; ld [rBGP], a
+IF DEF(DBG_PROFILE_MUSIC)
+  ld a, $00
+  ld [rBGP], a
+ENDC
   call do_music
-IF DEF(DBG_SCANLINES2)
+IF DEF(DBG_PROFILE_MUSIC)
   ld a, %00_10_01_11
   ld [rBGP], a
 ENDC
@@ -484,12 +492,12 @@ ENDC
 
   call update_bg
 
-IF DEF(DBG_SCANLINES1)
+IF DEF(DBG_PROFILE_MUSIC)
   ld a, $00
   ld [rBGP], a
 ENDC
   call do_music
-IF DEF(DBG_SCANLINES1)
+IF DEF(DBG_PROFILE_MUSIC)
   ld a, %00_10_01_11
   ld [rBGP], a
 ENDC

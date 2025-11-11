@@ -2139,10 +2139,6 @@ anim_match_appear:
 
   anim_sprite 0,2,2,6,0,0
   anim_sprite 1,10,2,6,0,0
-  anim_frame_end
-
-  anim_sprite 0,2,2,6,0,0
-  anim_sprite 1,10,2,6,0,0
   anim_end
   ld de, 6
   add hl, de

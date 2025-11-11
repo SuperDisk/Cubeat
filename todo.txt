@@ -1,7 +1,8 @@
 (DONE) Make music player work
 (DONE) Implement pause menu
 (DONE) Fix bug where radar can half-delete blocks
-- Fix bug where block flashes for a frame after making a match
+(DONE) Fix bug where block flashes for a frame after making a match
+- Fix bug where a match in the last columns won't count until the next radar loop
 - Implement game over menus
 - Make game loop forever once we get to end
 - Make bonus work

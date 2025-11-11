@@ -1354,9 +1354,8 @@ ENDR
   ld h, [hl]
   ld l, a
 
-.process_anim:
   ld a, [hl+]
-
+.process_anim:
   cp $AE ; Animation End
   jr nz, .anim_continue
 
@@ -1420,7 +1419,7 @@ ENDR
   ENDC
 
   ld a, [hl+]
-  jr .anim_continue
+  jr .process_anim ;.anim_continue
 
 playfield_update::
   ld hl, board
@@ -2142,6 +2141,8 @@ anim_match_appear:
   anim_sprite 1,10,2,6,0,0
   anim_frame_end
 
+  anim_sprite 0,2,2,6,0,0
+  anim_sprite 1,10,2,6,0,0
   anim_end
   ld de, 6
   add hl, de

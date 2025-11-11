@@ -2075,8 +2075,6 @@ anim_bonus:
   anim_sprite 7,34,0,20,0,0
   anim_sprite 8,26,0,21,0,0
   anim_sprite 9,34,0,22,0,0
-  anim_frame_end
-
   anim_end
   ret
 
@@ -2099,8 +2097,6 @@ anim_explosion:
 
   anim_sprite 0,0,0,12,0,0
   anim_sprite 1,7,0,12,1,0
-  anim_frame_end
-
   anim_end
   ret
 

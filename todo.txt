@@ -2,9 +2,9 @@
 (DONE) Implement pause menu
 (DONE) Fix bug where radar can half-delete blocks
 (DONE) Fix bug where block flashes for a frame after making a match
-- Fix bug where a match in the last columns won't count until the next radar loop
-- Implement game over menus
+(DONE) Fix bug where a match in the last columns won't count until the next radar loop
 - Make game loop forever once we get to end
+- Implement game over menus
 - Make bonus work
 - Make bombs work
 

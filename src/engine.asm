@@ -556,6 +556,14 @@ ENDC
   cp 163-16-3
   jr c, .no_reset_radar
 
+  ;; immediately perform a destroy when we reset radar.
+
+  ;; TODO: This happens in game_step1, so this could potentially take up too
+  ;; much time. Look into this if we start having problems with our frame budget
+  push hl
+  call perform_destroy
+  pop hl
+
   ld a, [num_destroyed]
 
   ld h, 0
@@ -585,14 +593,9 @@ ENDC
   ld [score_counter+1], a
 
   xor a
-  ; a = 0
   ld [num_destroyed], a
   ld h, a
   ld l, a
-
-  inc a
-  ; a = 1
-  ld [need_to_destroy], a
 .no_reset_radar:
   ld a, l
   ld [radar_pos], a
@@ -1458,7 +1461,7 @@ game_step2::
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   if DEF(DBG_NO_BLOCK_PHYSICS)
-  jp .perform_destroy
+  jp .end_frame_destroy
   ENDC
 
   ld bc, board.end-1 - ROW
@@ -1470,7 +1473,7 @@ game_step2::
 .failed_match:
   ld a, c
   or a
-  jp z, .perform_destroy
+  jp z, .end_frame_destroy
   xor a
 .fall_loop:
   or [hl]
@@ -1485,14 +1488,14 @@ game_step2::
   dec l
   dec c
   jr nz, .fall_loop
-  jr .perform_destroy
+  jr .end_frame_destroy
 
 .no_take2:
   xor a
   dec l
   dec c
   jr nz, .fall_loop
-  jr .perform_destroy
+  jr .end_frame_destroy
 
 .try_find_match:
   ld h, HIGH(edge_array)
@@ -1624,15 +1627,33 @@ game_step2::
   ld e, %10000001
   jr .no_take2
 
+.end_frame_destroy:
+  ld a, [need_to_destroy]
+  or a
+  call nz, perform_destroy
+
+update_graphics2:
+  ld a, [drop_pos]
+  add a
+  add a
+  add a
+
+  add 32
+
+  spriteX 9
+  spriteX 10
+  spriteX 11
+  spriteX 12
+  spriteX 13
+  spriteX 14
+
+  ret
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Perform a destroy if necessary
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.perform_destroy:
-  ld a, [need_to_destroy]
-  or a
-  jr z, update_graphics2
-
+perform_destroy:
   ld hl, board.end-1
   ld bc, board.end-1-ROW-1
 
@@ -1710,22 +1731,6 @@ game_step2::
 .done_destroy_loop:
   xor a
   ld [need_to_destroy], a
-
-update_graphics2:
-  ld a, [drop_pos]
-  add a
-  add a
-  add a
-
-  add 32
-
-  spriteX 9
-  spriteX 10
-  spriteX 11
-  spriteX 12
-  spriteX 13
-  spriteX 14
-
   ret
 
 ;;; Creates an animation.

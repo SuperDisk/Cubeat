@@ -25,16 +25,16 @@ STATE_TO_HEX = {
     BLANK: "00",
     WHITE: "80",
     BLACK: "81",
-    WHITE_BOMB: "E2",
-    BLACK_BOMB: "E3",
+    WHITE_BOMB: "D2",
+    BLACK_BOMB: "D3",
 }
 
 HEX_TO_STATE = {
     "00": BLANK,
     "80": WHITE,
     "81": BLACK,
-    "E2": WHITE_BOMB,
-    "E3": BLACK_BOMB,
+    "D2": WHITE_BOMB,
+    "D3": BLACK_BOMB,
 }
 
 class TileEditor(tk.Tk):
@@ -261,7 +261,7 @@ class TileEditor(tk.Tk):
                     raise ValueError(f"Row {row_idx+1}, Col {col_idx+1}: invalid token '{token}'.")
                 code = token[1:].upper()
                 if code not in HEX_TO_STATE:
-                    raise ValueError(f"Row {row_idx+1}, Col {col_idx+1}: unsupported value '${code}' (use $00, $80, $81, $E2, $E3).")
+                    raise ValueError(f"Row {row_idx+1}, Col {col_idx+1}: unsupported value '${code}' (use $00, $80, $81, $D2, $D3).")
                 row_states.append(HEX_TO_STATE[code])
 
             parsed.append(row_states)

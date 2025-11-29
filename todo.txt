@@ -3,6 +3,7 @@
 (DONE) Fix bug where radar can half-delete blocks
 (DONE) Fix bug where block flashes for a frame after making a match
 (DONE) Fix bug where a match in the last columns won't count until the next radar loop
+- Fix but where match in the last column doesn't count toward destroyed score
 - Make bombs work
 - Make bonus work
 - Implement game over menus

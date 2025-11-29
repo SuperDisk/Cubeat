@@ -4,7 +4,7 @@ include "defines.asm"
 ;; game_step2 = black
 
 ; DEF DBG_PROFILE_GAMESTEP1 = 1
-; DEF DBG_PROFILE_GAMESTEP2 = 1
+DEF DBG_PROFILE_GAMESTEP2 = 1
 ; DEF DBG_PROFILE_MUSIC = 1
 
 MACRO update_sprite  ; which sprite, x, y, tile

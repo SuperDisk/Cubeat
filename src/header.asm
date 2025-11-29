@@ -199,7 +199,7 @@ wShadowOAM2::
 ;; of real sprites. It doesn't appear.
 dummy_sprite:: ds 4
 
-SECTION "Stack", WRAM0
+SECTION "Stack", WRAMX
 
 wStack:
   ds STACK_SIZE

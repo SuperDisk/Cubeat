@@ -95,7 +95,7 @@ ENDM
 
 ; 64 bytes, should be sufficient for most purposes. If you're really starved on
 ; check your stack usage and consider setting this to 32 instead. 16 is probably not enough.
-STACK_SIZE equ $40
+STACK_SIZE equ (1024*4) ;$40
 
 
 ; Use this to cause a crash.

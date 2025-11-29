@@ -10,23 +10,31 @@ CELL = 32  # pixel size of each cell
 BLANK = 0
 WHITE = 1
 BLACK = 2
+WHITE_BOMB = 3
+BLACK_BOMB = 4
 
 STATE_TO_COLOR = {
     BLANK: "#2b2b2b",   # board background
     WHITE: "#ffffff",
     BLACK: "#000000",
+    WHITE_BOMB: "#ffffff",  # same base color, will draw bomb indicator
+    BLACK_BOMB: "#000000",  # same base color, will draw bomb indicator
 }
 
 STATE_TO_HEX = {
     BLANK: "00",
     WHITE: "80",
     BLACK: "81",
+    WHITE_BOMB: "E2",
+    BLACK_BOMB: "E3",
 }
 
 HEX_TO_STATE = {
     "00": BLANK,
     "80": WHITE,
     "81": BLACK,
+    "E2": WHITE_BOMB,
+    "E3": BLACK_BOMB,
 }
 
 class TileEditor(tk.Tk):
@@ -46,6 +54,8 @@ class TileEditor(tk.Tk):
         # Keyboard shortcuts
         self.bind_all("<Key-w>", lambda e: self._set_tool(WHITE))
         self.bind_all("<Key-b>", lambda e: self._set_tool(BLACK))
+        self.bind_all("<Key-1>", lambda e: self._set_tool(WHITE_BOMB))
+        self.bind_all("<Key-2>", lambda e: self._set_tool(BLACK_BOMB))
         self.bind_all("<Key-e>", lambda e: self._set_tool(BLANK))
 
     def _build_ui(self):
@@ -59,12 +69,21 @@ class TileEditor(tk.Tk):
                         command=lambda: self._set_tool(WHITE)).pack(side=tk.LEFT)
         ttk.Radiobutton(controls, text="Black (B)", variable=self.tool_var, value=BLACK,
                         command=lambda: self._set_tool(BLACK)).pack(side=tk.LEFT)
+        ttk.Radiobutton(controls, text="White Bomb (1)", variable=self.tool_var, value=WHITE_BOMB,
+                        command=lambda: self._set_tool(WHITE_BOMB)).pack(side=tk.LEFT)
+        ttk.Radiobutton(controls, text="Black Bomb (2)", variable=self.tool_var, value=BLACK_BOMB,
+                        command=lambda: self._set_tool(BLACK_BOMB)).pack(side=tk.LEFT)
         ttk.Radiobutton(controls, text="Eraser (E)", variable=self.tool_var, value=BLANK,
                         command=lambda: self._set_tool(BLANK)).pack(side=tk.LEFT, padx=(0,12))
 
         ttk.Button(controls, text="Clear", command=self.clear_board).pack(side=tk.LEFT, padx=(0,8))
         ttk.Button(controls, text="Copy DB", command=self.copy_db_to_clipboard).pack(side=tk.LEFT, padx=(0,8))
         ttk.Button(controls, text="Load from Clipboard", command=self.load_from_clipboard).pack(side=tk.LEFT)
+
+        # Hex index display
+        ttk.Label(controls, text="Index:").pack(side=tk.LEFT, padx=(12,4))
+        self.hex_index_var = tk.StringVar(value="--")
+        ttk.Label(controls, textvariable=self.hex_index_var, width=4).pack(side=tk.LEFT)
 
         # Canvas for grid
         w = COLS * CELL
@@ -74,6 +93,7 @@ class TileEditor(tk.Tk):
 
         # Draw cells and grid lines
         self.cell_ids = [[None for _ in range(COLS)] for __ in range(ROWS)]
+        self.bomb_ids = [[None for _ in range(COLS)] for __ in range(ROWS)]
         for r in range(ROWS):
             for c in range(COLS):
                 x0 = c * CELL
@@ -92,6 +112,8 @@ class TileEditor(tk.Tk):
         self.canvas.bind("<B1-Motion>", self.on_left_click_drag)
         self.canvas.bind("<Button-3>", self.on_right_click)   # erase
         self.canvas.bind("<B3-Motion>", self.on_right_click_drag)
+        self.canvas.bind("<Motion>", self.on_mouse_move)
+        self.canvas.bind("<Leave>", self.on_mouse_leave)
 
     def _set_tool(self, tool_state):
         self.active_tool = tool_state
@@ -108,6 +130,25 @@ class TileEditor(tk.Tk):
         if self.grid_state[r][c] != state:
             self.grid_state[r][c] = state
             self.canvas.itemconfig(self.cell_ids[r][c], fill=STATE_TO_COLOR[state])
+
+            # Remove existing bomb indicator if any
+            if self.bomb_ids[r][c] is not None:
+                self.canvas.delete(self.bomb_ids[r][c])
+                self.bomb_ids[r][c] = None
+
+            # Draw bomb indicator for bomb states
+            if state in (WHITE_BOMB, BLACK_BOMB):
+                x0 = c * CELL
+                y0 = r * CELL
+                cx = x0 + CELL // 2
+                cy = y0 + CELL // 2
+                radius = CELL // 4
+                # Use contrasting color for the bomb circle
+                bomb_color = "#000000" if state == WHITE_BOMB else "#ffffff"
+                self.bomb_ids[r][c] = self.canvas.create_oval(
+                    cx - radius, cy - radius, cx + radius, cy + radius,
+                    fill=bomb_color, outline=bomb_color
+                )
 
     def on_left_click(self, event):
         pos = self._event_to_cell(event)
@@ -126,6 +167,19 @@ class TileEditor(tk.Tk):
 
     def on_right_click_drag(self, event):
         self.on_right_click(event)
+
+    def on_mouse_move(self, event):
+        pos = self._event_to_cell(event)
+        if pos:
+            r, c = pos
+            # Linear index: top-left is $01, left-to-right, top-to-bottom
+            index = r * COLS + c + 1
+            self.hex_index_var.set(f"${index:02X}")
+        else:
+            self.hex_index_var.set("--")
+
+    def on_mouse_leave(self, event):
+        self.hex_index_var.set("--")
 
     def clear_board(self):
         for r in range(ROWS):
@@ -207,7 +261,7 @@ class TileEditor(tk.Tk):
                     raise ValueError(f"Row {row_idx+1}, Col {col_idx+1}: invalid token '{token}'.")
                 code = token[1:].upper()
                 if code not in HEX_TO_STATE:
-                    raise ValueError(f"Row {row_idx+1}, Col {col_idx+1}: unsupported value '${code}' (use $00, $80, $81).")
+                    raise ValueError(f"Row {row_idx+1}, Col {col_idx+1}: unsupported value '${code}' (use $00, $80, $81, $E2, $E3).")
                 row_states.append(HEX_TO_STATE[code])
 
             parsed.append(row_states)

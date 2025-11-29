@@ -3,8 +3,8 @@ include "defines.asm"
 ;; game_step = white
 ;; game_step2 = black
 
-DEF DBG_PROFILE_GAMESTEP1 = 1
-DEF DBG_PROFILE_GAMESTEP2 = 1
+; DEF DBG_PROFILE_GAMESTEP1 = 1
+; DEF DBG_PROFILE_GAMESTEP2 = 1
 ; DEF DBG_PROFILE_MUSIC = 1
 
 MACRO update_sprite  ; which sprite, x, y, tile
@@ -310,6 +310,8 @@ Kernel::
   ;; fallthrough
 
 kernel_loop:
+  ld a, %00_10_01_11
+  ld [rBGP], a
   ld a, [transition_state]
   dec a
   call nz, transition_stage

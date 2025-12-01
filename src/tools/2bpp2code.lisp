@@ -14,7 +14,7 @@
                     (loop for b in block
                           for bytecnt from 0 do
                             (when (and (not (zerop bytecnt))
-                                       (zerop (mod bytecnt 11)))
+                                       (zerop (mod bytecnt 12)))
                               (format t "xor a~%")
                               (format t "ldh [rIF], a~%")
                               (format t "halt~%"))

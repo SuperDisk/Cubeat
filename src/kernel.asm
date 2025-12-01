@@ -4,7 +4,7 @@ include "defines.asm"
 ;; game_step2 = black
 
 ; DEF DBG_PROFILE_GAMESTEP1 = 1
-DEF DBG_PROFILE_GAMESTEP2 = 1
+; DEF DBG_PROFILE_GAMESTEP2 = 1
 ; DEF DBG_PROFILE_MUSIC = 1
 
 MACRO update_sprite  ; which sprite, x, y, tile
@@ -53,10 +53,16 @@ update_playfield_buffer:: ds 3 ; includes jump opcode
 
 transition_state:: db
 
-SECTION "Blockset drawing ram code", WRAM0
-current_blockset_bank: db
+SECTION "Blockset drawing ram code", WRAM0, ALIGN[8]
 draw_block0: ds 3
+db
 draw_block1: ds 3
+db
+draw_block2: ds 3
+db
+draw_block3: ds 3
+
+current_blockset_bank: db
 
 SECTION "Static RAM Code", ROM0
 static_ram_code::
@@ -194,6 +200,8 @@ Kernel::
   ld a, $C3 ; JP
   ld [draw_block0], a
   ld [draw_block1], a
+  ld [draw_block2], a
+  ld [draw_block3], a
 
   pop hl
   call load_skin
@@ -286,10 +294,10 @@ Kernel::
   update_sprite2 14, 64, 49+(16*5), $36
 
   ; Falling block
-  update_sprite2 15, 16, 48, $3A
-  update_sprite2 16, 16+8, 48, $3C
-  update_sprite2 17, 16, 48, $3E
-  update_sprite2 18, 16+8, 48, $3E
+  update_sprite2 15, 16, 48, $3C
+  update_sprite2 16, 16+8, 48, $3E
+  update_sprite2 17, 16, 48, $40
+  update_sprite2 18, 16+8, 48, $40
   alt_palette2 17
   alt_palette2 18
 
@@ -387,27 +395,37 @@ ENDC
   ld a, [current_blockset_bank]
   ld [rROMB0], a
 
-  ld hl, $83A0
+  ld hl, $83C0
+  ld b, %11
 
+  ld d, HIGH(draw_block0)
   ld a, [block+0]
-  and 1
-  call z, draw_block0
-  call nz, draw_block1
+  and b
+  add a ; *= 2
+  add a ; *= 4
+  ld e, a
+  rst CallDE
 
   ld a, [block+2]
-  and 1
-  call z, draw_block0
-  call nz, draw_block1
+  and b
+  add a ; *= 2
+  add a ; *= 4
+  ld e, a
+  rst CallDE
 
   ld a, [block+1]
-  and 1
-  call z, draw_block0
-  call nz, draw_block1
+  and b
+  add a ; *= 2
+  add a ; *= 4
+  ld e, a
+  rst CallDE
 
   ld a, [block+3]
-  and 1
-  call z, draw_block0
-  call nz, draw_block1
+  and b
+  add a ; *= 2
+  add a ; *= 4
+  ld e, a
+  rst CallDE
 
   call FadeStep
 
@@ -516,15 +534,39 @@ load_skin::
   ld a, [hl+]
   ld [current_blockset_bank], a
 
+  ;; TODO: This can most definitely be optimized
   ld a, [hl+]
   ld [draw_block0+1], a
+  ld e, a
   ld a, [hl+]
   ld [draw_block0+2], a
+  ld d, a
 
-  ld a, [hl+]
+  ld a, blockset_0_1 - blockset_0_0
+  add_a_to_de
+
+  ld a, e
   ld [draw_block1+1], a
-  ld a, [hl+]
+  ld a, d
   ld [draw_block1+2], a
+
+  ld a, blockset_0_1 - blockset_0_0
+  add_a_to_de
+  ld a, e
+  ld [draw_block2+1], a
+  ld a, d
+  ld [draw_block2+2], a
+
+  ld a, blockset_0_1 - blockset_0_0
+  add_a_to_de
+  ld a, e
+  ld [draw_block3+1], a
+  ld a, d
+  ld [draw_block3+2], a
+
+  ;; TODO: Get rid of
+  inc hl
+  inc hl
 
   ;; Block gfx offset
   ld a, [hl+]
@@ -554,7 +596,7 @@ load_skin::
   add HIGH(block_sprite_gfx)
   ld d, a
 
-  ld c, 32
+  ld c, 16*4 ; 4 tiles -- normal and bomb
   rst MemcpySmall
 
   ;; Leave 2 sprites of empty space in sprite area for block graphics

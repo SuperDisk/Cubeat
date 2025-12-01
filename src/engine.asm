@@ -2148,7 +2148,7 @@ MACRO anim_sprite
   db $0 ; sprite update
   db \3 + 16; y
   db \2 + 8 ; x
-  db (\4*2)+$40      ; tile
+  db (\4*2)+$42      ; tile
   db (\5 << 5) | (\6 << 6) ; flip flags
 ENDM
 

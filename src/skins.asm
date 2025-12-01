@@ -48,31 +48,6 @@ FOR I, 1, NUM_SKINS+1
   include "res/backgrounds/bg{02d:I}.asm"
 ENDR
 
-include "res/music/asof.asm"
-include "res/music/cutie.asm"
-; include "res/music/db.asm"
-; include "res/music/haunted.asm"
-; include "res/music/hydroplane.asm"
-; include "res/music/jazzberr.asm"
-; include "res/music/josss.asm"
-; include "res/music/journey.asm"
-; include "res/music/keisari.asm"
-; include "res/music/leafpile.asm"
-; include "res/music/nerve.asm"
-; include "res/music/opl3_journey_to_the_forgotten_star.asm"
-; include "res/music/opl3thing.asm"
-; include "res/music/orca.asm"
-; include "res/music/restart.asm"
-; include "res/music/sinstrat.asm"
-; include "res/music/sxtnt.asm"
-; include "res/music/test.asm"
-; include "res/music/thumb.asm"
-; include "res/music/trance.asm"
-; include "res/music/trial.asm"
-; include "res/music/try_again.asm"
-; include "res/music/wtf.asm"
-; include "res/music/zen.asm"
-
 FOR I, 1, NUM_SKINS+1
   SECTION FRAGMENT "frame_{02d:I}", ROMX
   frame_{02d:I}_tiles:
@@ -84,7 +59,8 @@ ENDR
 MACRO defskin ; id, gfx_init, map0, block0, block1
   .blockset_bank: db BANK(\4) ; bank of blockset
   .block0: dw \4
-  .block1: dw \5 ; block0 and block1
+  ; .block1: dw \5 ; block0 and block1
+  dw 0 ; to remove?
 
   .block_gfx_offset: dw \1*64 ; offset of block gfx
 

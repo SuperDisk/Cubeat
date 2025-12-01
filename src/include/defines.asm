@@ -11,6 +11,10 @@ INCLUDE "rgbds-structs/structs.asm"
 NB_SPRITES equ 40
 
 
+MACRO dwbe
+  db HIGH(\1), LOW(\1)
+ENDM
+
 ; I generally discourage the use of pseudo-instructions for a variety of reasons,
 ; but this one includes a label, and manually giving them different names is tedious.
 MACRO wait_vram

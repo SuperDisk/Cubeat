@@ -77,7 +77,11 @@ CallHL::
 
 SECTION "Rst $30", ROM0[$30]
 
-;; free
+CallDE::
+  ; bit 7, d
+  ; error nz
+  push de
+  ret
 
 SECTION "Rst $38", ROM0[$38]
 

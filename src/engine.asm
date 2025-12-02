@@ -942,7 +942,7 @@ ENDC
   ld h, a
   ld l, c
 
-  ld de, $20
+  ld de, $20-2
 
   ld a, IEF_STAT
   ldh [rIE], a
@@ -955,17 +955,19 @@ ENDC
   nop
 
   ld a, [block+0]
+  and %10000011
   ld [bc], a
   inc bc
   ld [hl+], a
   ld a, [block+1]
+  and %10000011
   ld [bc], a
   inc bc
   ld [hl+], a
 
   add hl, de
-  dec hl
-  dec hl
+  ; dec hl
+  ; dec hl
 
   ld a, h
   xor %00000100
@@ -978,10 +980,12 @@ ENDC
   nop
 
   ld a, [block+2]
+  and %10000011
   ld [bc], a
   inc bc
   ld [hl+], a
   ld a, [block+3]
+  and %10000011
   ld [bc], a
   ld [hl+], a
 
@@ -1179,14 +1183,14 @@ update_graphics:
   ;; Upcoming block tiles
 FOR OFS, 4
   ld a, [next_block1+OFS]
-  and 1
+  and %11
   add $38
   spriteTile1 10+OFS
 ENDR
 
 FOR OFS, 4
   ld a, [next_block2+OFS]
-  and 1
+  and %11
   add $38
   spriteTile1 14+OFS
 ENDR

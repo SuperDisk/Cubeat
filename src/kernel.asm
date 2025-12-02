@@ -226,15 +226,15 @@ Kernel::
   update_sprite 8, 128+(8*3), 4-3, 5
 
   ; Pice preview
-  update_sprite 10, 2, 16, $38
-  update_sprite 11, 10, 16, $39
-  update_sprite 12, 2, 16+8, $39
-  update_sprite 13, 10, 16+8, $38
+  update_sprite 14, 2, 16, $38
+  update_sprite 15, 10, 16, $39
+  update_sprite 16, 2, 16+8, $39
+  update_sprite 17, 10, 16+8, $38
 
-  update_sprite 14, 20, 16, $38
-  update_sprite 15, 28, 16, $39
-  update_sprite 16, 20, 16+8, $39
-  update_sprite 17, 28, 16+8, $38
+  update_sprite 10, 20, 16, $38
+  update_sprite 11, 28, 16, $39
+  update_sprite 12, 20, 16+8, $39
+  update_sprite 13, 28, 16+8, $38
 
   ; Pice preview underlay
   update_sprite 30, 2, 16, $3E

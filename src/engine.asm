@@ -2290,11 +2290,15 @@ anim_match_appear:
   ld h, HIGH(board)
 
   ld a, [hl]
+  bit 4, a ; if bomb, skip this
+  ret nz
   and %11111001
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl-], a
 
   ld a, [hl]
+  bit 4, a ; if bomb, skip this
+  ret nz
   and %11111001
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl+], a
@@ -2305,11 +2309,15 @@ anim_match_appear:
   ld l, a
 
   ld a, [hl]
+  bit 4, a ; if bomb, skip this
+  ret nz
   and %11111001
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl-], a
 
   ld a, [hl]
+  bit 4, a ; if bomb, skip this
+  ret nz
   and %11111001
   or %100 ; make them the solid color (so it looks like the anim)
   ld [hl], a

@@ -4,6 +4,7 @@
 (DONE) Fix bug where block flashes for a frame after making a match
 (DONE) Fix bug where a match in the last columns won't count until the next radar loop
 - Make bombs work
+- Fix issue where falling bombs can propagate
 - Make bonus work
 - Fix bug where match in the last column doesn't count toward destroyed score
 - Implement game over menus

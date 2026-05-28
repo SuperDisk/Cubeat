@@ -136,13 +136,13 @@ Reset::
   ld [rSCY], a
 
   ; jp MusicPlayer
-  jp Kernel
+  ; jp Kernel
   ; jp MainMenu
   ; jp TitleScreen
   ; jp CreditsMenu
   ; jp MusicPlayerMenu
   ; jp PauseMenu
-  ; jp SplashScreen
+  jp SplashScreen
 
 SECTION "OAM DMA routine", ROMX
 

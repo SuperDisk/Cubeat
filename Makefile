@@ -42,7 +42,7 @@ LISP := sbcl --noinform --disable-debugger
 
 FURNACE := furnace
 VGMCMP := src/tools/ensure_vgm_cmp.sh
-GIF2TILES := $(LISP) --load src/tools/gif2tiles.lisp --eval "(main)"
+GIF2TILES := $(OBJDIR)/tools/gif2tiles
 TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
 VGMCOMPRESSOR4 := $(OBJDIR)/tools/vgmcompressor4
@@ -136,6 +136,10 @@ $(VGMCOMPRESSOR4): $(SRCDIR)/tools/vgmcompressor4.cpp
 	@$(MKDIR_P) $(@D)
 	$(CXX) $(HOSTCXXFLAGS) -o $@ $<
 
+$(GIF2TILES): $(SRCDIR)/tools/gif2tiles.cpp
+	@$(MKDIR_P) $(@D)
+	$(CXX) $(HOSTCXXFLAGS) -o $@ $< -lgif
+
 # $(RESDIR)/%.vgm: $(RESDIR)/%.fur
 #		@$(MKDIR_P) $(@D)
 #		$(FURNACE) $(PWD)/$< -vgmout $(PWD)/$(RESDIR)/$*.vgm
@@ -156,15 +160,15 @@ $(RESDIR)/%.deop.gif: $(RESDIR)/%.gif
 	@$(MKDIR_P) $(@D)
 	gifsicle --use-colormap src/res/background.colormap --unoptimize < $< > $@
 
-$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif
+$(RESDIR)/%.asm: $(RESDIR)/%.deop.gif $(GIF2TILES)
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@
 
-$(RESDIR)/%.menu.asm: $(RESDIR)/%.deop.gif
+$(RESDIR)/%.menu.asm: $(RESDIR)/%.deop.gif $(GIF2TILES)
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@ --menu
 
-$(RESDIR)/%.nocolon.asm: $(RESDIR)/%.deop.gif
+$(RESDIR)/%.nocolon.asm: $(RESDIR)/%.deop.gif $(GIF2TILES)
 	@$(MKDIR_P) $(@D)
 	$(GIF2TILES) $< $@ --no-colon
 

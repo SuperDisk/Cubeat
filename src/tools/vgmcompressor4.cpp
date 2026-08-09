@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
@@ -72,6 +73,17 @@ struct Bank {
   std::size_t size = 0;
 };
 
+struct DictionaryLocation {
+  std::size_t blob = 0;
+  std::size_t offset = 0;
+};
+
+struct PackedDictionary {
+  std::vector<Bytes> blobs;
+  std::unordered_map<Phrase, DictionaryLocation, PhraseHash> locations;
+  std::size_t size = 0;
+};
+
 std::uint8_t phrase_byte(const Phrase &phrase, std::size_t index) {
   return static_cast<std::uint8_t>((phrase.data >> (index * 8)) & 0xff);
 }
@@ -107,6 +119,177 @@ bool valid_phrase(const Phrase &phrase) {
   // checked for zero by the player and therefore cannot themselves be zero.
   return (phrase.size < 6 || phrase_byte(phrase, 4) != 0) &&
          (phrase.size < 8 || phrase_byte(phrase, 6) != 0);
+}
+
+Bytes phrase_body(const Phrase &phrase) {
+  Bytes body;
+  body.reserve(definition_cost(phrase));
+  for (std::size_t index = 0; index < phrase.size; ++index) {
+    body.push_back(phrase_byte(phrase, index));
+  }
+  if (phrase.size < 8) {
+    body.push_back(0);
+  }
+  return body;
+}
+
+std::string byte_key(const Bytes &bytes, std::size_t start,
+                     std::size_t size) {
+  return {reinterpret_cast<const char *>(bytes.data() + start), size};
+}
+
+PackedDictionary pack_dictionary(const PhraseSet &phrase_set) {
+  PackedDictionary result;
+  if (phrase_set.empty()) {
+    return result;
+  }
+
+  std::vector<Phrase> phrases(phrase_set.begin(), phrase_set.end());
+  std::sort(phrases.begin(), phrases.end(), PhraseLess{});
+  const auto count = phrases.size();
+
+  std::vector<Bytes> bodies;
+  bodies.reserve(count);
+  std::unordered_map<std::string, std::size_t> body_indices;
+  body_indices.reserve(count);
+  for (std::size_t index = 0; index < count; ++index) {
+    bodies.push_back(phrase_body(phrases[index]));
+    body_indices.emplace(byte_key(bodies.back(), 0, bodies.back().size()), index);
+  }
+
+  // Remove bodies that already occur inside a longer body. Locations are
+  // resolved through the containing body after the remaining strings are packed.
+  const auto absent = count;
+  std::vector<std::size_t> container(count, absent);
+  std::vector<std::size_t> container_offset(count, 0);
+  for (std::size_t outer = 0; outer < count; ++outer) {
+    for (const auto inner_size : {std::size_t{5}, std::size_t{7}}) {
+      if (inner_size >= bodies[outer].size()) {
+        continue;
+      }
+      for (std::size_t offset = 0;
+           offset + inner_size <= bodies[outer].size(); ++offset) {
+        const auto found =
+            body_indices.find(byte_key(bodies[outer], offset, inner_size));
+        if (found != body_indices.end() && found->second != outer) {
+          const auto inner = found->second;
+          if (container[inner] == absent ||
+              bodies[outer].size() > bodies[container[inner]].size()) {
+            container[inner] = outer;
+            container_offset[inner] = offset;
+          }
+        }
+      }
+    }
+  }
+
+  std::vector<std::size_t> nodes;
+  nodes.reserve(count);
+  for (std::size_t index = 0; index < count; ++index) {
+    if (container[index] == absent) {
+      nodes.push_back(index);
+    }
+  }
+
+  // Greedily form disjoint chains, considering the longest overlaps first.
+  // The union-find check prevents a chain from closing into a cycle.
+  std::vector<std::size_t> parent(count);
+  for (std::size_t index = 0; index < count; ++index) {
+    parent[index] = index;
+  }
+  const auto find_root = [&](std::size_t node) {
+    auto root = node;
+    while (parent[root] != root) {
+      root = parent[root];
+    }
+    while (parent[node] != node) {
+      const auto next = parent[node];
+      parent[node] = root;
+      node = next;
+    }
+    return root;
+  };
+
+  std::vector<std::size_t> incoming(count, absent);
+  std::vector<std::size_t> outgoing(count, absent);
+  std::vector<std::size_t> overlaps(count, 0);
+  for (std::size_t overlap = 7; overlap > 0; --overlap) {
+    std::unordered_map<std::string, std::vector<std::size_t>> prefixes;
+    prefixes.reserve(nodes.size());
+    for (const auto node : nodes) {
+      if (incoming[node] == absent && bodies[node].size() >= overlap) {
+        prefixes[byte_key(bodies[node], 0, overlap)].push_back(node);
+      }
+    }
+
+    for (const auto left : nodes) {
+      if (outgoing[left] != absent || bodies[left].size() < overlap) {
+        continue;
+      }
+      const auto suffix_start = bodies[left].size() - overlap;
+      const auto found =
+          prefixes.find(byte_key(bodies[left], suffix_start, overlap));
+      if (found == prefixes.end()) {
+        continue;
+      }
+      for (const auto right : found->second) {
+        const auto left_root = find_root(left);
+        const auto right_root = find_root(right);
+        if (incoming[right] == absent && left_root != right_root) {
+          outgoing[left] = right;
+          incoming[right] = left;
+          overlaps[left] = overlap;
+          parent[left_root] = right_root;
+          break;
+        }
+      }
+    }
+  }
+
+  std::vector<DictionaryLocation> index_locations(count);
+  std::vector<bool> has_location(count, false);
+  for (const auto first : nodes) {
+    if (incoming[first] != absent) {
+      continue;
+    }
+    const auto blob_index = result.blobs.size();
+    auto blob = bodies[first];
+    index_locations[first] = {blob_index, 0};
+    has_location[first] = true;
+
+    auto current = first;
+    while (outgoing[current] != absent) {
+      const auto next = outgoing[current];
+      const auto offset = blob.size() - overlaps[current];
+      index_locations[next] = {blob_index, offset};
+      has_location[next] = true;
+      blob.insert(blob.end(), bodies[next].begin() +
+                                  static_cast<std::ptrdiff_t>(overlaps[current]),
+                  bodies[next].end());
+      current = next;
+    }
+    result.size += blob.size();
+    result.blobs.push_back(std::move(blob));
+  }
+
+  for (std::size_t index = 0; index < count; ++index) {
+    if (!has_location[index]) {
+      auto owner = index;
+      auto offset = std::size_t{0};
+      while (!has_location[owner]) {
+        if (container[owner] == absent) {
+          throw std::logic_error("contained dictionary body has no owner");
+        }
+        offset += container_offset[owner];
+        owner = container[owner];
+      }
+      index_locations[index] = {index_locations[owner].blob,
+                                index_locations[owner].offset + offset};
+      has_location[index] = true;
+    }
+    result.locations.emplace(phrases[index], index_locations[index]);
+  }
+  return result;
 }
 
 class JsonReader {
@@ -367,16 +550,22 @@ std::size_t stream_cost(const Plan &plan) {
   return size;
 }
 
+PhraseSet dictionary_phrases(const std::vector<Plan> &plans) {
+  PhraseSet dictionary;
+  for (const auto &[phrase, count] : phrases_used(plans)) {
+    static_cast<void>(count);
+    dictionary.insert(phrase);
+  }
+  return dictionary;
+}
+
 std::size_t encoding_size(const std::vector<Plan> &plans) {
   std::size_t size = 0;
   for (const auto &plan : plans) {
     size += stream_cost(plan);
   }
-  for (const auto &[phrase, count] : phrases_used(plans)) {
-    static_cast<void>(count);
-    size += definition_cost(phrase);
-  }
-  return size;
+  const auto dictionary = dictionary_phrases(plans);
+  return size + pack_dictionary(dictionary).size;
 }
 
 std::unordered_map<Phrase, std::int64_t, PhraseHash>
@@ -482,6 +671,7 @@ Encoding reweighted_encoding(const StreamRefs &streams,
           phrase, (estimates.at(phrase) + static_cast<double>(count)) / 2.0);
     }
     estimates = std::move(next_estimates);
+
   }
 
   PhraseSet selected;
@@ -676,6 +866,45 @@ std::string hex_byte(std::uint8_t value) {
 
 using PhraseLabels = std::unordered_map<Phrase, std::string, PhraseHash>;
 
+void emit_data_bytes(std::ostream &output, const Bytes &bytes,
+                     std::size_t first, std::size_t end) {
+  if (first == end) {
+    return;
+  }
+  output << "db ";
+  for (auto index = first; index < end; ++index) {
+    if (index != first) {
+      output << ',';
+    }
+    output << hex_byte(bytes[index]);
+  }
+  output << '\n';
+}
+
+void emit_dictionary(std::ostream &output, const PackedDictionary &dictionary,
+                     const PhraseLabels &labels) {
+  std::vector<std::map<std::size_t, std::vector<Phrase>>> labels_by_blob(
+      dictionary.blobs.size());
+  for (const auto &[phrase, location] : dictionary.locations) {
+    labels_by_blob[location.blob][location.offset].push_back(phrase);
+  }
+
+  for (std::size_t blob_index = 0; blob_index < dictionary.blobs.size();
+       ++blob_index) {
+    const auto &blob = dictionary.blobs[blob_index];
+    auto emitted_to = std::size_t{0};
+    for (auto &[offset, phrases] : labels_by_blob[blob_index]) {
+      emit_data_bytes(output, blob, emitted_to, offset);
+      std::sort(phrases.begin(), phrases.end(), PhraseLess{});
+      for (const auto &phrase : phrases) {
+        output << labels.at(phrase) << ":\n";
+      }
+      emitted_to = offset;
+    }
+    emit_data_bytes(output, blob, emitted_to, blob.size());
+  }
+}
+
 void emit_literal(std::ostream &output, const Bytes &stream,
                   const Segment &segment, bool ends_port) {
   const auto end = static_cast<std::size_t>(segment.start) + segment.size;
@@ -733,6 +962,9 @@ void emit_assembly(std::ostream &output, const std::string &song_name,
     }
     std::sort(phrases.begin(), phrases.end(), PhraseLess{});
 
+    PhraseSet phrase_set(phrases.begin(), phrases.end());
+    const auto dictionary = pack_dictionary(phrase_set);
+
     PhraseLabels labels;
     labels.reserve(phrases.size());
     for (std::size_t index = 0; index < phrases.size(); ++index) {
@@ -771,19 +1003,7 @@ void emit_assembly(std::ostream &output, const std::string &song_name,
            << "))\n";
     output << "dw " << destination << '\n';
 
-    for (const auto &phrase : phrases) {
-      output << labels.at(phrase) << ": db ";
-      for (std::size_t index = 0; index < phrase.size; ++index) {
-        if (index != 0) {
-          output << ',';
-        }
-        output << hex_byte(phrase_byte(phrase, index));
-      }
-      if (phrase.size < 8) {
-        output << ",0";
-      }
-      output << '\n';
-    }
+    emit_dictionary(output, dictionary, labels);
   }
 }
 

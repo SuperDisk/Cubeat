@@ -1091,6 +1091,24 @@ class AssemblyWriter {
     bool ignored_dma = false;
     emit_groups(writes, false, ignored_cycles, ignored_counter,
                 ignored_scanlines, ignored_dma);
+
+    // Gameplay enters the animation through gfx_init.  Besides populating
+    // VRAM, the original generator made that routine arm gfx0 for the first
+    // animated update.  Leaving the self-modifying jump pointed at gfx_init
+    // makes the first tick execute the initializer from an uninitialized ROM
+    // bank.
+    if (!options_.menu_mode) {
+      output_ << "ld a, LOW(" << prefix_ << "_gfx0)\n"
+              << "ld [ptr_next_update_bg], a\n"
+              << "ld a, HIGH(" << prefix_ << "_gfx0)\n"
+              << "ld [ptr_next_update_bg+1], a\n";
+      if (options_.no_colon) {
+        output_ << "ld a, LOW(BANK(" << prefix_ << "_gfx0))\n";
+      } else {
+        output_ << "ld a, BANK(" << prefix_ << "_gfx0)\n";
+      }
+      output_ << "ld [next_gfx_bank], a\n";
+    }
     output_ << "jp update_bg_done\n";
   }
 

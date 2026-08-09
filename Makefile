@@ -45,7 +45,8 @@ VGMCMP := src/tools/ensure_vgm_cmp.sh
 GIF2TILES := $(LISP) --load src/tools/gif2tiles.lisp --eval "(main)"
 TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
-VGMCOMPRESSOR4 := $(PY) src/tools/vgmcompressor4.py
+VGMCOMPRESSOR4 := $(OBJDIR)/tools/vgmcompressor4
+HOSTCXXFLAGS ?= -O3 -std=c++20 -Wall -Wextra -Wpedantic
 CREDITSMAKER := $(LISP) --load src/tools/creditsmaker.lisp --eval "(main)"
 BUTTONTOOL := $(LISP) --load src/tools/buttontool.lisp --eval "(main)"
 SUPERFAMICONV := superfamiconv
@@ -131,6 +132,10 @@ $(RESDIR)/%.sfx: $(RESDIR)/%.opt.vgm
 
 # VGM conversion
 
+$(VGMCOMPRESSOR4): $(SRCDIR)/tools/vgmcompressor4.cpp
+	@$(MKDIR_P) $(@D)
+	$(CXX) $(HOSTCXXFLAGS) -o $@ $<
+
 # $(RESDIR)/%.vgm: $(RESDIR)/%.fur
 #		@$(MKDIR_P) $(@D)
 #		$(FURNACE) $(PWD)/$< -vgmout $(PWD)/$(RESDIR)/$*.vgm
@@ -139,7 +144,7 @@ $(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
 	@$(MKDIR_P) $(@D)
 	$(VGMCMP) $< $(RESDIR)/$*.opt.vgm
 
-$(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm
+$(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm $(VGMCOMPRESSOR4)
 	@$(MKDIR_P) $(@D)
 	# $(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(VGMCOMPRESSOR3) $(RESDIR)/$*.asm
 	# $(PROLOG) $(SRCDIR)/tools/vgmcooker.pl --in_file $< | $(PY) src/tools/vgmdonothinger.py > $(RESDIR)/$*.asm

@@ -9,7 +9,7 @@ include "defines.asm"
 ;; Behavioral bits:
 ;; bit 7 = always there
 ;; bit 6 = "marked" for deletion by the radar
-;; bit 5 = unused, necessary due to how match finding works
+;; bit 5 = zero, necessary due to how match finding works
 ;; bit 4 = is a bomb
 ;; bit 3 = unused
 ;; bit 1-2 = visual appearance (checked for "getting swept")

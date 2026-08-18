@@ -1538,9 +1538,12 @@ game_step2::
 
 .fall_block:
   ld a, [bc]
-  ld [hl], a
+  ld [hl-], a
   xor a
   ld [bc], a
+  dec c
+  jr nz, .fall_loop
+  jp .end_frame_destroy
 
 .no_take:
   dec l

@@ -118,6 +118,16 @@ board: ds (18*11)
 
 board_end_sentinel: db
 
+;; Match finding uses the same low byte to look up whether a cell is on the
+;; left edge. Keep that lookup exactly one page above the board so switching
+;; between them only requires INC H / DEC H.
+ds $100 - (1 + (BOARD_W * BOARD_H) + 1)
+board_edge_start_sentinel: db
+edge_array: ds (BOARD_W * BOARD_H)
+
+ASSERT LOW(edge_array) == LOW(board)
+ASSERT HIGH(edge_array) == HIGH(board) + 1
+
 SECTION "Other constant data", ROM0
 
 initial_free_sprites:
@@ -304,14 +314,6 @@ ENDR
 ; db $81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81,$81
 ; ENDR
 
-SECTION "Board edge array", ROM0, ALIGN[8]
-
-edge_array:
-db 0
-REPT 11
-db $00,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-ENDR
-
 SECTION "Board edge array 2", ROM0, ALIGN[8]
 edge_array2:
 ; db 0
@@ -426,6 +428,22 @@ ENDC
   ld hl, animations
   ld c, 7*NUM_ANIMS
   rst MemsetSmall
+
+  ;; Build the left-edge mask one page above the board. Each row starts with
+  ;; zero; every other cell is $FF.
+  ld hl, edge_array
+  ld c, BOARD_H
+.init_edge_row:
+  xor a
+  ld [hl+], a
+  ld b, BOARD_W - 1
+  dec a
+.init_edge_columns:
+  ld [hl+], a
+  dec b
+  jr nz, .init_edge_columns
+  dec c
+  jr nz, .init_edge_row
 
   ld de, __test_board
   ld hl, board
@@ -1513,17 +1531,12 @@ game_step2::
   ld hl, board.end-1
   ld e, %10110001
   xor a
-  jr .fall_loop
 
-.failed_match:
-  ld a, c
-  or a
-  jp z, .end_frame_destroy
-  xor a
 .fall_loop:
   or [hl] ; load with flags
   jr nz, .try_find_match
 
+.fall_block:
   ld a, [bc]
   ld [hl], a
   xor a
@@ -1536,17 +1549,19 @@ game_step2::
   jp .end_frame_destroy
 
 .no_take2:
-  xor a
   dec l
   dec c
-  jr nz, .fall_loop
-  jr .end_frame_destroy
+
+.failed_match:
+  xor a
+  or [hl]
+  jr z, .fall_block
 
 .try_find_match:
   ;; if we're right on the left edge, don't form a match
-  ld h, HIGH(edge_array)
+  inc h
   and [hl]
-  ld h, HIGH(board)
+  dec h
   jr z, .no_take
 
   ;; Check if it's a new match.

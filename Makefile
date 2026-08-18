@@ -43,6 +43,7 @@ LISP := sbcl --noinform --disable-debugger
 FURNACE := furnace
 VGMCMP := src/tools/ensure_vgm_cmp.sh
 GIF2TILES := $(OBJDIR)/tools/gif2tiles
+OPL3VGMOPTIMIZER := $(OBJDIR)/tools/opl3vgmoptimizer
 TWOBPP2CODE := $(LISP) --load src/tools/2bpp2code.lisp --eval "(main)"
 VGMCOMPRESSOR3 := $(LISP) --load src/tools/vgmcompressor3.lisp --eval "(compress)"
 VGMCOMPRESSOR4 := $(OBJDIR)/tools/vgmcompressor4
@@ -140,13 +141,19 @@ $(GIF2TILES): $(SRCDIR)/tools/gif2tiles.cpp
 	@$(MKDIR_P) $(@D)
 	$(CXX) $(HOSTCXXFLAGS) -o $@ $< -lgif
 
+$(OPL3VGMOPTIMIZER): $(SRCDIR)/tools/opl3vgmoptimizer.cpp
+	@$(MKDIR_P) $(@D)
+	$(CXX) $(HOSTCXXFLAGS) -o $@ $<
+
 # $(RESDIR)/%.vgm: $(RESDIR)/%.fur
 #		@$(MKDIR_P) $(@D)
 #		$(FURNACE) $(PWD)/$< -vgmout $(PWD)/$(RESDIR)/$*.vgm
 
-$(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm
+$(RESDIR)/%.opt.vgm: $(RESDIR)/%.vgm $(OPL3VGMOPTIMIZER)
 	@$(MKDIR_P) $(@D)
-	$(VGMCMP) $< $(RESDIR)/$*.opt.vgm
+	$(OPL3VGMOPTIMIZER) $< $(RESDIR)/$*.nodummy.vgm
+	$(VGMCMP) $(RESDIR)/$*.nodummy.vgm $@
+	$(RM) $(RESDIR)/$*.nodummy.vgm
 
 $(RESDIR)/%.asm: $(RESDIR)/%.opt.vgm $(VGMCOMPRESSOR4)
 	@$(MKDIR_P) $(@D)

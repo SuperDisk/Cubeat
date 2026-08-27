@@ -41,8 +41,8 @@ DEF NUM_ANIMS = 11
 DEF EMPTY = 0
 DEF WHITE = $80
 DEF BLACK = $81
-DEF WHITEBOMB = $E2
-DEF BLACKBOMB = $E3
+DEF WHITEBOMB = $D2
+DEF BLACKBOMB = $D3
 ; there are more...
 
 MACRO update_sprite2  ; which sprite, x, y, tile
@@ -1529,6 +1529,10 @@ game_step2::
 
   ld bc, board.end-1 - ROW
   ld hl, board.end-1
+  ;; mask for
+  ;; high bit (is solid)
+  ;; bomb bit and bomb carry
+  ;; low bit (same color)
   ld e, %10110001
   xor a
 
@@ -1572,10 +1576,6 @@ game_step2::
   ;; In order to be a match, each block must have the same color, and the top
   ;; left and bottom right blocks must not be both marked.
 
-  ;; This routine used to use `xor` to check that bits 0 and 7 were the same,
-  ;; but now we we use an `and` and `add` together, as we also need to ensure
-  ;; that none of the involved tiles are bombs.
-
   ;; An `add` operation is similar to `xor` in that it checks the 0th
   ;; bit for color and 7th bit for solidity, but it also has the property of
   ;; ensuring that both blocks' 6th bit isn't 1. (which would mean this match is
@@ -1586,28 +1586,29 @@ game_step2::
 
   ld d, a
 
+  ;; compare bottom right and top right
   ld a, [bc]
-  and e ; clear "marked" bit
-  add d ; compare top and bottom bits (and check for no bomb)
+  xor d ; compare top and bottom bits
   and e
   jr nz, .no_take2
 
   dec c
   dec l
 
+  ;; compare bottom right and top left
   ld a, [bc]
   ;; no AND here. we need to ensure bit 6 isn't set on both
-  add d ; compare top and bottom bits (and check for no bomb)
+  add d ; compare top and bottom bits
   and e
   jr nz, .failed_match
 
+  ;; compare bottom right and bottom left
   ld a, d
-  and e ; clear "marked" bit
-  add [hl] ; compare top and bottom bits (and check for no bomb)
+  xor [hl] ; compare top and bottom bits
   and e
   jr nz, .failed_match
 
-  ;;;;;;;
+  ;;;;;;; match found
 
   ;; Check if the rightmost tile is touching the radar. If so, make ourselves
   ;; preemptively marked. This prevents the problem of detecting a match that is

@@ -57,6 +57,18 @@ MACRO update_sprite2  ; which sprite, x, y, tile
   ld [wShadowOAM2+(4*\1)+2], a
 ENDM
 
+;;; Gives the tile at [hl] the "marked" graphic, but only if it is marked
+;;; (bit 6), not a bomb (bit 4), and has the normal graphic (bits 1-2 clear).
+;;; Destroy: AF
+MACRO set_marked_graphic
+  ld a, [hl]
+  and %01010110
+  cp %01000000
+  jr nz, :+
+  set 2, [hl]
+:
+ENDM
+
 MACRO spriteX ; which sprite
   ld [wShadowOAM2+(4*(\1))+1], a
 ENDM
@@ -2410,43 +2422,29 @@ anim_match_appear:
   anim_sprite 0,2,2,6,0,0
   anim_sprite 1,10,2,6,0,0
   anim_end
+  ;; The animation is over: give the four tiles the solid "marked" graphic so
+  ;; they look like the last frame of the anim.
+  ;;
+  ;; A lot can happen to those cells while the animation plays (the radar can
+  ;; sweep them, a bomb can spread onto them, the square can be destroyed or
+  ;; fall), so only touch a tile that is still marked, isn't a bomb, and still
+  ;; has the normal graphic. Anything else is left exactly as it is.
   ld de, 6
   add hl, de
   ld l, [hl]
   ld h, HIGH(board)
 
-  ld a, [hl]
-  bit 4, a ; if bomb, skip this
-  ret nz
-  and %11111001
-  or %100 ; make them the solid color (so it looks like the anim)
-  ld [hl-], a
-
-  ld a, [hl]
-  bit 4, a ; if bomb, skip this
-  ret nz
-  and %11111001
-  or %100 ; make them the solid color (so it looks like the anim)
-  ld [hl+], a
+  set_marked_graphic ; top right
+  dec l
+  set_marked_graphic ; top left
 
   ; move down one row
   ld a, l
   add ROW
   ld l, a
 
-  ld a, [hl]
-  bit 4, a ; if bomb, skip this
-  ret nz
-  and %11111001
-  or %100 ; make them the solid color (so it looks like the anim)
-  ld [hl-], a
+  set_marked_graphic ; bottom left
+  inc l
+  set_marked_graphic ; bottom right
 
-  ld a, [hl]
-  bit 4, a ; if bomb, skip this
-  ret nz
-  and %11111001
-  or %100 ; make them the solid color (so it looks like the anim)
-  ld [hl], a
-
-.fail:
   ret

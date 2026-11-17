@@ -97,9 +97,9 @@ MACRO sgb_packet
 ENDM
 
 
-; 64 bytes, should be sufficient for most purposes. If you're really starved on
-; check your stack usage and consider setting this to 32 instead. 16 is probably not enough.
-STACK_SIZE equ $40
+; 64 bytes for ordinary use, plus room for the bomb flood fill in engine.asm,
+; which pushes one 2-byte entry per board cell (18*11 of them) plus a sentinel.
+STACK_SIZE equ $40 + 2*(18*11 + 1)
 
 
 ; Use this to cause a crash.

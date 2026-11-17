@@ -2302,11 +2302,6 @@ anim_match_appear:
 
   ret
 
-SECTION "Flood stack", WRAM0
-flood_saved_sp: dw
-flood_stack: ds 2*200 + 16
-.top:
-
 SECTION "Bomb flood fill", ROM0
 DEF FLOOD_MASK = %10011011 ; solid, not a bomb, not falling, not swept, color
 
@@ -2445,8 +2440,8 @@ flood_from:
   push bc
   push de
   push hl
-  ld [flood_saved_sp], sp
-  ld sp, flood_stack.top
+  ;; The fill keeps its to-do list on the stack: one entry per tile it turns,
+  ;; so up to 2 bytes per board cell. STACK_SIZE allows for that.
   ld a, b
   and %10000001
   ld c, a ; what an eligible tile looks like under FLOOD_MASK
@@ -2514,11 +2509,6 @@ flood_from:
   push hl
   jr .next
 .done:
-  ld hl, flood_saved_sp
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  ld sp, hl
   pop hl
   pop de
   pop bc

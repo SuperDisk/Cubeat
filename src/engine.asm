@@ -11,7 +11,10 @@ include "defines.asm"
 ;; bit 6 = "marked" for deletion by the radar
 ;; bit 5 = zero, necessary due to how match finding works
 ;; bit 4 = is a bomb
-;; bit 3 = unused
+;; bit 3 = falling (set by the fall loop on a tile it moved that hasn't landed
+;;         yet, and on placement for a half-block with nothing under it).
+;;         Bombs neither spread from nor onto a falling tile. Settled tiles
+;;         always have it clear, which the match finder's `add` relies on.
 ;; bit 1-2 = visual appearance (checked for "getting swept")
 ;; bit 0 = color
 
@@ -942,6 +945,12 @@ ENDC
   ld a, [block+3]
   ld [hl], a
 
+  ;; A half of the block with nothing under it is about to fall. Flag it now,
+  ;; since bombs get a chance to spread before the fall loop first moves it.
+  call flag_unsupported_column ; right half
+  dec l
+  call flag_unsupported_column ; left half
+
   ;; Reset falling block position
   xor a
   ld [falling_block_y], a
@@ -1541,14 +1550,62 @@ game_step2::
   jr nz, .try_find_match
 
 .fall_block:
+  ;; [hl] is empty. If there's a block above it, that block falls one cell.
   ld a, [bc]
+  or a
+  jr nz, .move_block
+  dec l
+  dec c
+  jr nz, .fall_loop
+.done:
+  jp .end_frame_destroy
+
+.move_block:
+  ;; A = the block that is falling into [hl]. Work out whether it has landed:
+  ;; it has if [hl] is on the floor, or the tile under [hl] is solid and isn't
+  ;; itself still falling. (Everything below this row was already processed
+  ;; this frame, so the falling bits down there are up to date.)
+  and %11110111
+  ld d, a ; assume it landed
+  ld a, l
+  cp LOW(board.end) - ROW
+  jr nc, .place_block ; bottom row
+  add ROW
+  ld l, a
+  ld a, [hl]
+  and %10001000
+  cp %10000000
+  jr z, .landed
+  set 3, d ; still falling
+.landed:
+  ld a, l
+  sub ROW
+  ld l, a
+.place_block:
+  ld a, d
   ld [hl-], a
   xor a
   ld [bc], a
   dec c
   jr nz, .fall_loop
-.done:
   jp .end_frame_destroy
+
+.diag:
+  ;; The top left compare failed. A = $80 means it only failed because top
+  ;; left and bottom right are both already marked (or top left is empty).
+  ;; That is still a new match if top right or bottom left isn't marked yet.
+  cp $80
+  jr nz, .failed_match ; color or bomb mismatch
+  inc c
+  ld a, [bc] ; top right
+  dec c
+  and [hl] ; bottom left
+  bit 6, a
+  jr nz, .failed_match ; all four are marked already
+  ld a, [bc]
+  add a
+  jr nc, .failed_match ; top left is empty
+  jr .check_bottom_left
 
 .no_take:
   dec h
@@ -1571,8 +1628,7 @@ game_step2::
   ;; Check if it's a new match.
 
   ;; In order to be a match, all four blocks must be solid, the same color,
-  ;; and not bombs, and the top left and bottom right blocks must not both
-  ;; be marked already.
+  ;; and not bombs, and at least one of them must not be marked already.
 
   ;; Top right and bottom left are compared against bottom right with `xor`,
   ;; which checks bit 7 (solid), bit 4 (bomb) and bit 0 (color) are equal.
@@ -1580,7 +1636,8 @@ game_step2::
   ;; Top left is compared with `add` instead. On the masked bits it behaves
   ;; like `xor`, except carries propagate: two bomb bits carry into bit 5,
   ;; and two marked bits (bit 6) carry into bit 7. Either one fails the
-  ;; match, which rejects all-bomb squares and already-marked matches.
+  ;; compare. The bomb case is a real failure. The marked case goes to `.diag`,
+  ;; which only rejects the match if the other two blocks are marked as well.
 
   ld d, a
 
@@ -1604,8 +1661,9 @@ game_step2::
   ld a, [bc]
   add d ; not xor: we need the carries out of bit 4 and bit 6 (see above)
   and e
-  jr nz, .failed_match
+  jr nz, .diag
 
+.check_bottom_left:
   ;; compare bottom right and bottom left
   ld a, d
   xor [hl] ; compare top and bottom bits
@@ -1630,26 +1688,34 @@ game_step2::
   cp e
   ld h, HIGH(board)
 
-  ld a, d
+  ;; E = the bits to add to each block
+  ld e, $80 | (1 << 6)
   jr nz, .not_radared
 
-  or %110 ; turn it into a marked block
+  ld e, $80 | (1 << 6) | %110 ; turn it into a marked block
 
-  push hl
-  ld hl, radar_marking_state
-  ld [hl], 1
-  pop hl
+  ld a, 1
+  ld [radar_marking_state], a
 
 .not_radared:
-  or $80 | (1 << 6) ; TODO: Make this use the actual block, not replace it with the standard
-  ld [hl+], a
-  ld [bc], a
+  ;; OR the bits into each block rather than storing one value in all four, so
+  ;; blocks that were already marked or swept keep their state.
+  ld a, [hl]
+  or e
+  ld [hl+], a ; bottom left
+  ld a, [hl]
+  or e
+  ld [hl], a ; bottom right
+  ld a, [bc]
+  or e
+  ld [bc], a ; top left
   inc c
-  ld [hl], a
-  ld [bc], a
+  ld a, [bc]
+  or e
+  ld [bc], a ; top right
 
   ;; if we had to pre-mark the match, don't make the animation
-  bit 1, a
+  bit 1, e
   ld e, %10110001
   jr nz, .no_take2
 
@@ -1870,7 +1936,7 @@ create_animation:
 
 propagate_bombs_left:
   ld hl, board.end-1
-  lb de, %00000110, %10000001
+  lb de, %00000110, %10001001
 
 REPT BOARD_H
   ld b, [hl]
@@ -1885,7 +1951,10 @@ REPT BOARD_W-1
   ld c, [hl]
   bit 4, b
   jr z, :+
+  bit 3, b ; a falling bomb doesn't spread
+  jr nz, :+
 
+  ;; same color and solid, and C isn't falling (B's falling bit is clear)
   ld a, c
   xor b
   and e
@@ -1906,7 +1975,7 @@ ENDR
 
 propagate_bombs_right:
   ld hl, board
-  lb de, %00000110, %10000001
+  lb de, %00000110, %10001001
 
 REPT BOARD_H
   ld b, [hl]
@@ -1921,7 +1990,10 @@ REPT BOARD_W-1
   ld c, [hl]
   bit 4, b
   jr z, :+
+  bit 3, b ; a falling bomb doesn't spread
+  jr nz, :+
 
+  ;; same color and solid, and C isn't falling (B's falling bit is clear)
   ld a, c
   xor b
   and e
@@ -1942,7 +2014,7 @@ ENDR
 
 propagate_bombs_up:
   ld hl, board.end-1
-  lb de, %00000110, %10000001
+  lb de, %00000110, %10001001
 
 REPT BOARD_W
   ld b, [hl]
@@ -1965,7 +2037,10 @@ REPT BOARD_H-1
   ld c, [hl]
   bit 4, b
   jr z, :+
+  bit 3, b ; a falling bomb doesn't spread
+  jr nz, :+
 
+  ;; same color and solid, and C isn't falling (B's falling bit is clear)
   ld a, c
   xor b
   and e
@@ -1988,7 +2063,7 @@ ENDR
 
 propagate_bombs_down:
   ld hl, board
-  lb de, %00000110, %10000001
+  lb de, %00000110, %10001001
 
 REPT BOARD_W
   ld b, [hl]
@@ -2011,7 +2086,10 @@ REPT BOARD_H-1
   ld c, [hl]
   bit 4, b
   jr z, :+
+  bit 3, b ; a falling bomb doesn't spread
+  jr nz, :+
 
+  ;; same color and solid, and C isn't falling (B's falling bit is clear)
   ld a, c
   xor b
   and e
@@ -2094,6 +2172,31 @@ goto_xy_pos_with_vram:
   ld l, c
   pop bc
 
+  ret
+
+;;; Flags a just-placed column of two tiles as falling if nothing is holding it
+;;; up, using the same rule as the fall loop's `.move_block`.
+;;; Param: HL = Pointer into board of the bottom tile of the column
+;;; Return: HL = unchanged
+;;; Destroy: AF E
+flag_unsupported_column:
+  ld a, l
+  cp LOW(board.end) - ROW
+  ret nc ; on the floor
+  ld e, l
+  add ROW
+  ld l, a
+  ld a, [hl]
+  ld l, e
+  and %10001000
+  cp %10000000
+  ret z ; resting on a tile that isn't falling
+  set 3, [hl]
+  ld a, l
+  sub ROW
+  ld l, a
+  set 3, [hl]
+  ld l, e
   ret
 
 ;;; Sets some pointers to a block position in the board.

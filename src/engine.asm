@@ -1547,9 +1547,11 @@ game_step2::
   ld [bc], a
   dec c
   jr nz, .fall_loop
+.done:
   jp .end_frame_destroy
 
 .no_take:
+  dec h
   dec l
   dec c
   jr nz, .fall_loop
@@ -1558,6 +1560,7 @@ game_step2::
 .no_take2:
   dec l
   dec c
+  jr z, .done
 
 .failed_match:
   xor a
@@ -1565,24 +1568,19 @@ game_step2::
   jr z, .fall_block
 
 .try_find_match:
-  ;; if we're right on the left edge, don't form a match
-  inc h
-  and [hl]
-  dec h
-  jr z, .no_take
-
   ;; Check if it's a new match.
 
-  ;; In order to be a match, each block must have the same color, and the top
-  ;; left and bottom right blocks must not be both marked.
+  ;; In order to be a match, all four blocks must be solid, the same color,
+  ;; and not bombs, and the top left and bottom right blocks must not both
+  ;; be marked already.
 
-  ;; An `add` operation is similar to `xor` in that it checks the 0th
-  ;; bit for color and 7th bit for solidity, but it also has the property of
-  ;; ensuring that both blocks' 6th bit isn't 1. (which would mean this match is
-  ;; already marked)
+  ;; Top right and bottom left are compared against bottom right with `xor`,
+  ;; which checks bit 7 (solid), bit 4 (bomb) and bit 0 (color) are equal.
 
-  ;; To ensure that the top left and bottom right tiles aren't both marked, we
-  ;; just don't apply the `and` to `d` before comparing.
+  ;; Top left is compared with `add` instead. On the masked bits it behaves
+  ;; like `xor`, except carries propagate: two bomb bits carry into bit 5,
+  ;; and two marked bits (bit 6) carry into bit 7. Either one fails the
+  ;; match, which rejects all-bomb squares and already-marked matches.
 
   ld d, a
 
@@ -1592,13 +1590,19 @@ game_step2::
   and e
   jr nz, .no_take2
 
+  ;; A = 0 here (the compare passed). If we're right on the left edge, don't
+  ;; form a match.
+  inc h ; the edge masks are one page above the board in ram
+  or [hl]
+  jr z, .no_take
+  dec h
+
   dec c
   dec l
 
   ;; compare bottom right and top left
   ld a, [bc]
-  ;; no AND here. we need to ensure bit 6 isn't set on both
-  add d ; compare top and bottom bits
+  add d ; not xor: we need the carries out of bit 4 and bit 6 (see above)
   and e
   jr nz, .failed_match
 

@@ -465,12 +465,25 @@ ENDC
   ld c, board.end - board
   rst MemcpySmall
 
+  ;; Clear the padding between the board and the edge array. The flood fill
+  ;; looks one row above and below the board without bounds checks.
+  ld hl, board_end_sentinel + 1
+  ld c, LOW(-(board_end_sentinel + 1))
+  xor a
+  rst MemsetSmall
+
   ld a, $F0
   ld [anim_end_sentinel], a
 
   ld a, $FF
   ld [board_start_sentinel], a
   ld [board_end_sentinel], a
+
+  ;; Spread any bombs the board started with. After this, bombs only need
+  ;; looking at when a tile lands.
+  IF !DEF(DBG_NO_BOMB_PHYSICS)
+  call bomb_scan_all
+  ENDC
 
   ld a, BANK(levels)
   ld [rROMB0], a
@@ -963,6 +976,20 @@ ENDC
   dec l
   call flag_unsupported_column ; left half
 
+  ;; Tiles that are resting on something have landed: check them for bomb
+  ;; contact. (A falling half gets checked by the fall loop when it lands.)
+  IF !DEF(DBG_NO_BOMB_PHYSICS)
+  call bomb_check_if_settled ; bottom left
+  inc l
+  call bomb_check_if_settled ; bottom right
+  ld a, l
+  sub ROW
+  ld l, a
+  call bomb_check_if_settled ; top right
+  dec l
+  call bomb_check_if_settled ; top left
+  ENDC
+
   ;; Reset falling block position
   xor a
   ld [falling_block_y], a
@@ -1061,9 +1088,13 @@ ENDC
 .mark_loop:
   bit 6, [hl] ; Check if it is a marked tile
   jr z, .continue_scan
+  bit 3, [hl] ; Leave it alone while it's still falling
+  jr nz, .continue_scan
+  ;; Turn it into the destroyable block. A bomb stays a bomb, so tiles that
+  ;; land next to it after the radar has swept it still join the chain (see
+  ;; `bomb_check_landed`, which never copies the swept state).
   ld a, [hl]
-  or %110 ; turn it into the destroyable block
-  and %11101111 ; remove bomb property
+  or %110
   ld [hl], a
   ld b, 1
 .continue_scan:
@@ -1523,22 +1554,8 @@ game_step_done:
 
 game_step2::
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Spread bombs to matching tiles
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  IF !DEF(DBG_NO_BOMB_PHYSICS)
-  ld a, [frame_counter]
-  and %11
-  jp z, propagate_bombs_left
-  dec a
-  jp z, propagate_bombs_right
-  dec a
-  jp z, propagate_bombs_up
-  jp propagate_bombs_down
-  ENDC
-
-.done_propagate:
+  ;; Bombs don't need a pass of their own: they spread the moment a tile lands
+  ;; (see `bomb_check_landed`, called from the fall loop and block placement).
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Make blocks fall and try to find matches
@@ -1594,10 +1611,17 @@ game_step2::
   sub ROW
   ld l, a
 .place_block:
-  ld a, d
-  ld [hl-], a
   xor a
   ld [bc], a
+  ld [hl], d
+  ;; If it has landed, this is the only moment a new bomb/non-bomb contact can
+  ;; appear, so deal with it right here.
+  IF !DEF(DBG_NO_BOMB_PHYSICS)
+  bit 3, d
+  call z, bomb_check_landed
+  ENDC
+  dec l
+  xor a
   dec c
   jr nz, .fall_loop
   jp .end_frame_destroy
@@ -1825,13 +1849,18 @@ perform_destroy:
   jr .done_destroy_loop
 
 .do_destroy:
+  ;; Compare ignoring the bomb and falling bits: a swept bomb and a swept
+  ;; normal block of the same color count as the same thing here.
   ld a, [bc]
-  cp [hl]
+  xor [hl]
+  and %11100111
   ld [hl], 0
   jr nz, .no_destroy
 
   dec l
-  cp [hl]
+  ld a, [bc]
+  xor [hl]
+  and %11100111
   jr nz, .no_destroy2
 
   ;; Split out XY coords from board pos TODO: Might be a good candidate for a lookup table...
@@ -1895,7 +1924,7 @@ perform_destroy:
 
   xor a
   ld [need_to_destroy], a
-  ret
+  jp flag_floating_tiles
 
 ;;; Creates an animation.
 ;;; Param: E = X
@@ -1944,182 +1973,6 @@ create_animation:
   or b
   ld [hl+], a ; palette
 
-  ret
-
-propagate_bombs_left:
-  ld hl, board.end-1
-  lb de, %00000110, %10001001
-
-REPT BOARD_H
-  ld b, [hl]
-  dec l
-  call .propagate
-ENDR
-  jp game_step2.done_propagate
-  ; ret
-
-.propagate:
-REPT BOARD_W-1
-  ld c, [hl]
-  bit 4, b
-  jr z, :+
-  bit 3, b ; a falling bomb doesn't spread
-  jr nz, :+
-
-  ;; same color and solid, and C isn't falling (B's falling bit is clear)
-  ld a, c
-  xor b
-  and e
-  jr nz, :+
-
-  ld a, c
-  and d
-  cp d
-  jr z, :+
-
-  ;; propagate bomb
-  ld [hl], b
-:
-  ld b, [hl]
-  dec l
-ENDR
-  ret
-
-propagate_bombs_right:
-  ld hl, board
-  lb de, %00000110, %10001001
-
-REPT BOARD_H
-  ld b, [hl]
-  inc l
-  call .propagate
-ENDR
-  jp game_step2.done_propagate
-  ; ret
-
-.propagate:
-REPT BOARD_W-1
-  ld c, [hl]
-  bit 4, b
-  jr z, :+
-  bit 3, b ; a falling bomb doesn't spread
-  jr nz, :+
-
-  ;; same color and solid, and C isn't falling (B's falling bit is clear)
-  ld a, c
-  xor b
-  and e
-  jr nz, :+
-
-  ld a, c
-  and d
-  cp d
-  jr z, :+
-
-  ;; propagate bomb
-  ld [hl], b
-:
-  ld b, [hl]
-  inc l
-ENDR
-  ret
-
-propagate_bombs_up:
-  ld hl, board.end-1
-  lb de, %00000110, %10001001
-
-REPT BOARD_W
-  ld b, [hl]
-  ld a, -ROW
-  add l
-  ld l, a
-
-  call .propagate
-
-  ld a, ROW*BOARD_H
-  add l
-  dec a
-  ld l, a
-ENDR
-  jp game_step2.done_propagate
-  ; ret
-
-.propagate:
-REPT BOARD_H-1
-  ld c, [hl]
-  bit 4, b
-  jr z, :+
-  bit 3, b ; a falling bomb doesn't spread
-  jr nz, :+
-
-  ;; same color and solid, and C isn't falling (B's falling bit is clear)
-  ld a, c
-  xor b
-  and e
-  jr nz, :+
-
-  ld a, c
-  and d
-  cp d
-  jr z, :+
-
-  ;; propagate bomb
-  ld [hl], b
-:
-  ld b, [hl]
-  ld a, -ROW
-  add l
-  ld l, a
-ENDR
-  ret
-
-propagate_bombs_down:
-  ld hl, board
-  lb de, %00000110, %10001001
-
-REPT BOARD_W
-  ld b, [hl]
-  ld a, ROW
-  add l
-  ld l, a
-
-  call .propagate
-
-  ld a, l
-  sub ROW*BOARD_H
-  inc a
-  ld l, a
-ENDR
-  jp game_step2.done_propagate
-  ; ret
-
-.propagate:
-REPT BOARD_H-1
-  ld c, [hl]
-  bit 4, b
-  jr z, :+
-  bit 3, b ; a falling bomb doesn't spread
-  jr nz, :+
-
-  ;; same color and solid, and C isn't falling (B's falling bit is clear)
-  ld a, c
-  xor b
-  and e
-  jr nz, :+
-
-  ld a, c
-  and d
-  cp d
-  jr z, :+
-
-  ;; propagate bomb
-  ld [hl], b
-:
-  ld b, [hl]
-  ld a, ROW
-  add l
-  ld l, a
-ENDR
   ret
 
 ;;; Generates a new block at the pointer in HL
@@ -2447,4 +2300,226 @@ anim_match_appear:
   inc l
   set_marked_graphic ; bottom right
 
+  ret
+
+SECTION "Flood stack", WRAM0
+flood_saved_sp: dw
+flood_stack: ds 2*200 + 16
+.top:
+
+SECTION "Bomb flood fill", ROM0
+DEF FLOOD_MASK = %10011011 ; solid, not a bomb, not falling, not swept, color
+
+;;; Flags every tile that has nothing solid under it as falling. Called after a
+;;; destroy, so that the falling bit is right before anything else looks at it.
+;;; Destroy: AF BC HL
+flag_floating_tiles:
+  ld hl, board.end-1 - ROW
+  ld bc, board.end-1
+.loop:
+  ld a, [hl]
+  or a
+  jr z, .next
+  ld a, [bc]
+  and %10001000
+  cp %10000000
+  jr z, .next
+  set 3, [hl]
+.next:
+  dec c
+  dec l
+  jr nz, .loop
+  ret
+
+;;; Runs the bomb check on every settled bomb on the board. Only needed when
+;;; a board is loaded with bombs already on it.
+;;; Destroy: AF HL
+bomb_scan_all::
+  ld hl, board.end-1
+.loop:
+  ld a, [hl]
+  and %00011000
+  cp %00010000
+  call z, bomb_check_landed
+  dec l
+  jr nz, .loop
+  ret
+
+;;; Param: HL = pointer into board. Does nothing if that tile is still falling.
+bomb_check_if_settled:
+  bit 3, [hl]
+  ret nz
+  ;; fallthrough
+
+;;; A tile has just come to rest at HL. If it is a bomb, spread it. If it is a
+;;; normal tile touching a settled bomb of its color, the bomb spreads onto it
+;;; (and through it).
+;;; Param: HL = pointer into board of the tile
+;;; Destroy: AF
+bomb_check_landed:
+  push bc
+  push de
+  ld a, [hl]
+  bit 4, a
+  jr nz, .is_bomb
+  ld c, a
+  ld d, %10011001
+  ld e, l
+  ;; up
+  ld a, l
+  sub ROW
+  ld l, a
+  ld a, [hl]
+  xor c
+  and d
+  cp %00010000
+  jr z, .found
+  ;; down
+  ld a, e
+  add ROW
+  ld l, a
+  ld a, [hl]
+  xor c
+  and d
+  cp %00010000
+  jr z, .found
+  ;; left, unless we're in column 0
+  ld l, e
+  inc h
+  ld a, [hl]
+  dec h
+  or a
+  jr z, .no_left
+  dec l
+  ld a, [hl]
+  xor c
+  and d
+  cp %00010000
+  jr z, .found
+.no_left:
+  ;; right, unless the next cell is column 0 of the next row
+  ld l, e
+  inc l
+  inc h
+  ld a, [hl]
+  dec h
+  or a
+  jr z, .none
+  ld a, [hl]
+  xor c
+  and d
+  cp %00010000
+  jr z, .found
+.none:
+  ld l, e
+  pop de
+  pop bc
+  ret
+.found:
+  ld b, [hl]
+  ld l, e
+  res 2, b ; spread it as an unswept bomb, even if that one has been swept
+  call flood_bomb
+  pop de
+  pop bc
+  ret
+.is_bomb:
+  ld b, a
+  res 2, b
+  call flood_from
+  pop de
+  pop bc
+  ret
+
+;;; Turns the tile at HL, and every settled same-color tile connected to it,
+;;; into the bomb B.
+;;; Param: HL = pointer into board of the first tile (must be eligible)
+;;; Param: B = the bomb value to write
+;;; Destroy: AF
+flood_bomb:
+  ld [hl], b
+  ;; fallthrough
+
+;;; Same, but the tile at HL is already a bomb and is left as it is.
+flood_from:
+  push bc
+  push de
+  push hl
+  ld [flood_saved_sp], sp
+  ld sp, flood_stack.top
+  ld a, b
+  and %10000001
+  ld c, a ; what an eligible tile looks like under FLOOD_MASK
+  ld d, FLOOD_MASK
+  ld e, l
+  ld l, 0
+  push hl ; sentinel
+  ld l, e
+  push hl
+.next:
+  pop hl
+  ld a, l
+  or a
+  jr z, .done
+  ;; left, unless we're in column 0
+  inc h
+  ld a, [hl]
+  dec h
+  or a
+  jr z, .no_left
+  dec l
+  ld a, [hl]
+  xor c
+  and d
+  jr nz, .no_left2
+  ld [hl], b
+  push hl
+.no_left2:
+  inc l
+.no_left:
+  ;; right, unless the next cell is column 0 of the next row
+  inc l
+  inc h
+  ld a, [hl]
+  dec h
+  or a
+  jr z, .no_right
+  ld a, [hl]
+  xor c
+  and d
+  jr nz, .no_right
+  ld [hl], b
+  push hl
+.no_right:
+  ;; up
+  ld a, l
+  sub ROW+1
+  ld l, a
+  ld a, [hl]
+  xor c
+  and d
+  jr nz, .no_up
+  ld [hl], b
+  push hl
+.no_up:
+  ;; down
+  ld a, l
+  add ROW*2
+  ld l, a
+  ld a, [hl]
+  xor c
+  and d
+  jr nz, .next
+  ld [hl], b
+  push hl
+  jr .next
+.done:
+  ld hl, flood_saved_sp
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  ld sp, hl
+  pop hl
+  pop de
+  pop bc
   ret

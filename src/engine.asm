@@ -26,6 +26,7 @@ include "defines.asm"
 DEF DBG_DONTFALL = 1
 ; DEF DBG_DONTANIMATE = 1
 DEF SELECT_PAUSES_RADAR = 1
+DEF DBG_SELECT_START_NEXT_SKIN = 1 ; hold Select and press Start to jump to the next skin
 ; DEF DBG_NO_BLOCK_PHYSICS = 1
 ; DEF DBG_NO_BOMB_PHYSICS = 1
 
@@ -549,7 +550,8 @@ load_level::
 
   ld a, d
   ld [current_skin], a
-  ld a, 16
+  ;; Ask the kernel to fade over to the new skin (see `transition_stage`)
+  ld a, 2
   ld [transition_state], a
 
   ret
@@ -569,6 +571,42 @@ game_step::
   ld a, [hPressedKeys]
   bit PADB_START, a
   jp z, .no_shit
+
+IF DEF(DBG_SELECT_START_NEXT_SKIN)
+  ;; Select + Start: jump to the first level of the next skin, wrapping back
+  ;; to the first one after the last.
+  ld a, [hHeldKeys]
+  bit PADB_SELECT, a
+  jr z, .pause
+
+  ld a, [level_num]
+  and %11111100 ; the skin changes every 4 levels
+  add 4
+  ld b, a
+  srl a
+  srl a
+  cp (skin_table.end - skin_table) / 2
+  jr c, .skin_exists
+  ld b, 0
+.skin_exists:
+  ;; Stay on the level we jump to. Otherwise the score would immediately level
+  ;; us up (or back up, after wrapping) to wherever it says we belong.
+  ld a, 1
+  ld [locked_level], a
+
+  ld a, BANK(levels)
+  ld [rROMB0], a
+  ld a, b
+  ld hl, level_table
+  add a
+  add_a_to_hl
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  call load_level
+  jp .no_shit
+.pause:
+ENDC
 
   ; ld a, [level_num]
   ; add 4
@@ -1708,9 +1746,10 @@ game_step2::
 
   ;;;;;;; match found
 
-  ;; Check if the rightmost tile is touching the radar. If so, make ourselves
-  ;; preemptively marked. This prevents the problem of detecting a match that is
-  ;; half-detected by the radar already.
+  ;; Check if the radar is on either column of the match. If so, make
+  ;; ourselves preemptively swept. Otherwise the radar could sweep only half of
+  ;; it: the right half if it's already on the right column, or (when this is
+  ;; its last frame over the left column) the right half but never the left.
   ld a, [radar_pos+1]
 
   srl a ; /2
@@ -1721,12 +1760,13 @@ game_step2::
   ld h, HIGH(x_lookup_table)
   inc l
   ld a, [hl-]
-  cp e
+  sub e ; right column minus radar column: 0 or 1 means the radar is on us
+  cp 2
   ld h, HIGH(board)
 
   ;; E = the bits to add to each block
   ld e, $80 | (1 << 6)
-  jr nz, .not_radared
+  jr nc, .not_radared
 
   ld e, $80 | (1 << 6) | %110 ; turn it into a marked block
 
@@ -1734,6 +1774,23 @@ game_step2::
   ld [radar_marking_state], a
 
 .not_radared:
+  ;; If any of the four is already swept, the radar is past it and it's about
+  ;; to be destroyed. Sweep the whole match so it all goes together, rather
+  ;; than leaving the new half behind, still marked, for the next pass.
+  ;; (Bit 1 is only ever set on a matchable tile when it has been swept.)
+  ld a, [bc] ; top left
+  or [hl] ; bottom left
+  or d ; bottom right
+  ld d, a
+  inc c
+  ld a, [bc] ; top right
+  dec c
+  or d
+  bit 1, a
+  jr z, .write_match
+  ld e, $80 | (1 << 6) | %110
+.write_match:
+
   ;; OR the bits into each block rather than storing one value in all four, so
   ;; blocks that were already marked or swept keep their state.
   ld a, [hl]

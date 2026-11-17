@@ -177,3 +177,4 @@ skin_table::
 FOR I, NUM_SKINS
   dw skin{d:I}
 ENDR
+.end::

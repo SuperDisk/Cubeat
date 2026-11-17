@@ -318,8 +318,6 @@ Kernel::
   ;; fallthrough
 
 kernel_loop:
-  ld a, %00_10_01_11
-  ld [rBGP], a
   ld a, [transition_state]
   dec a
   call nz, transition_stage
@@ -691,132 +689,17 @@ load_skin::
 
   ret
 
+;;; Called every kernel loop while a skin change is pending (`load_level` sets
+;;; `transition_state` to something other than 1).
+;;;
+;;; Fades out, then re-enters the kernel the same way resuming from pause does:
+;;; that reloads the skin for the current level, sets its colors up and fades
+;;; back in. Going through the fade system is what makes this work on CGB as
+;;; well as DMG/SGB, since only the fade writes the color palettes.
+;;;
+;;; If another fade is already running, FadeOut ignores the request and we just
+;;; ask again next loop. The kernel sets `transition_state` back to 1 when it
+;;; starts up.
 transition_stage:
-  ;; Fade out
-  ld [transition_state], a
-  cp 16
-  jr nz, .no_step1
-
-  BGColor DARK, WHITE, LIGHT, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, LIGHT, DARK
-  ld [rOBP0], a
-  BGColor LIGHT, DARK, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step1:
-  cp 14
-  jr nz, .no_step2
-
-  BGColor LIGHT, WHITE, WHITE, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, WHITE, LIGHT
-  ld [rOBP0], a
-  BGColor WHITE, LIGHT, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step2:
-  cp 12
-  jr nz, .no_step3
-
-  BGColor WHITE, WHITE, WHITE, WHITE
-  ld [rBGP], a
-  ld [rOBP0], a
-  ld [rOBP1], a
-  ret
-
-.no_step3:
-  cp 10
-  jp nz, .no_step4
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-
-  ld a, BANK(skin_table)
-  ld [rROMB0], a
-
-  ld a, [current_skin]
-  add a
-  ld hl, skin_table
-  ld d, 0
-  ld e, a
-  add hl, de
-  ld a, [hl+]
-  ld h, [hl]
-  ld l, a
-  push hl
-
-  ld e, (skin0.border_bank-skin0)
-  add hl, de
-  call colorize
-
-  ld a, IEF_VBLANK
-  ldh [rIE], a
-  xor a
-  ld [rIF], a
-  halt ; wait for VBlank
-
-  ;; Turn the LCD off
-  xor a
-  ldh [rLCDC], a
-
-  pop hl
-  call load_skin
-
-  ld a, LCDCF_ON | LCDCF_BGON | LCDCF_BG8800 | LCDCF_OBJON
-  ld [rLCDC], a
-
-  call UnfreezeScreen
-
-  pop af
-  jp kernel_loop
-
-.no_step4:
-  cp 8
-  jr nz, .no_step5
-
-  BGColor LIGHT, WHITE, WHITE, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, WHITE, LIGHT
-  ld [rOBP0], a
-  BGColor WHITE, LIGHT, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step5:
-  cp 6
-  jr nz, .no_step6
-
-  BGColor DARK, WHITE, LIGHT, WHITE
-  ld [rBGP], a
-  BGColor WHITE, WHITE, LIGHT, DARK
-  ld [rOBP0], a
-  BGColor LIGHT, DARK, WHITE, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step6:
-  cp 4
-  jr nz, .no_step7
-
-  BGColor BLACK, LIGHT, DARK, WHITE
-  ld [rBGP], a
-  BGColor LIGHT, WHITE, DARK, BLACK
-  ld [rOBP0], a
-  BGColor DARK, BLACK, LIGHT, WHITE
-  ld [rOBP1], a
-  ret
-
-.no_step7:
-  cp 2
-  ret nz
-
-  ld a, 1
-  ld [transition_state], a
-
-  ret
+  ld hl, goto_gameplay_restore
+  jp FadeOut

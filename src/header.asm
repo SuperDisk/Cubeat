@@ -127,6 +127,12 @@ Reset::
   ld [level_num], a
   ld [locked_level], a
 
+  ;; No record yet
+  ld hl, record_score
+  ld c, 4
+  rst MemsetSmall
+  xor a
+
   ;; Initialize sound effects
   ld [playing_sfx], a
   ld [sfx_priority], a
@@ -137,6 +143,7 @@ Reset::
 
   ; jp MusicPlayer
   jp Kernel
+  ; jp ResultsMenu
   ; jp MainMenu
   ; jp TitleScreen
   ; jp CreditsMenu

@@ -80,6 +80,13 @@ goto_pause_menu::
   pop af
   jp PauseMenu
 
+goto_results::
+  xor a
+  ld [rLCDC], a
+
+  pop af
+  jp ResultsMenu
+
 goto_musicplayer::
   xor a
   ld [rLCDC], a

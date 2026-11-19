@@ -128,7 +128,7 @@ SECTION "Board", WRAM0, ALIGN[8]
 ;; when we've bottomed out after an inc/dec, which only sets the Z flag.
 board_start_sentinel: db
 
-;; Board is 18 wide, 11 high (including the two tiles on top that are out of bounds)
+;; Board is 18 wide, 11 high
 board: ds (18*11)
 .end:
 
@@ -358,7 +358,7 @@ ENDR
 
 
 SECTION "Game vars", WRAM0
-score: ds 4 ; 7 digits
+score:: ds 4 ; 7 digits
 score_counter: dw
 score_curve: dw ; needed score to advance to the next level (3 digits)
 
@@ -367,7 +367,7 @@ locked_level:: db
 
 drop_pos: db
 
-time: dw
+time:: dw
 frame_counter: db
 second_counter: db
 radar_pos: dw
@@ -384,6 +384,8 @@ radar_paused: db
 ENDC
 
 dpad_frames: db
+
+game_over: db
 
 blocks:
 block:: ds 4
@@ -433,6 +435,7 @@ init_game::
   ld [num_destroyed], a
   ld [time+0], a
   ld [time+1], a
+  ld [game_over], a
   ld [anim_x_temp], a ; silences an uninitialized mem warning
 IF DEF(SELECT_PAUSES_RADAR)
   inc a
@@ -557,6 +560,15 @@ load_level::
   ret
 
 game_step::
+  ;; Game over
+  ld a, [game_over]
+  or a
+  jr z, .playing
+  ld hl, goto_results
+  call FadeOut
+  jp playfield_update
+.playing:
+
   call poll_joystick
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -786,8 +798,12 @@ ENDC
   ld a, [drop_pos]
   ld b, a
   ld a, [falling_block_y]
+  or a
+  jr z, .no_goto ; still above the board, free to move
   sub 2
-  jr c, .no_goto
+  jr nc, .in_board
+  xor a ; half way in: check the two rows it is entering
+.in_board:
   ld c, a
   call goto_xy_pos
   ld de, ROW
@@ -831,8 +847,8 @@ ENDC
 
   ;; If we're above the board, don't check for collision
   ld a, [falling_block_y]
-  cp 2
-  jr c, .save
+  or a
+  jr z, .save
 
   ;; Check hit block
   push hl
@@ -863,8 +879,8 @@ ENDC
 
   ;; If we're above the board, don't check for collision
   ld a, [falling_block_y]
-  cp 2
-  jr c, .save
+  or a
+  jr z, .save
 
   ;; Check hit block
   dec hl
@@ -933,6 +949,10 @@ ENDC
   inc a
   ld [falling_block_y], a
 
+  ;; The first step down takes the piece from above the board into it
+  dec a
+  call z, enter_board
+
   ld a, [falling_block_rate]
 
 .no_fall:
@@ -988,6 +1008,7 @@ ENDC
   ld a, [falling_block_y]
   sub 3
   ld c, a
+
   ld a, [drop_pos]
   ld b, a
 
@@ -2073,14 +2094,82 @@ ENDR
 ;;; Return: BC = Pointer into VRAM of coord
 ;;; Return: HL = Pointer into board of coord
 ;;; Destroy: AF DE
+;;; A new piece is about to drop from above the board into its top two rows.
+;;; As in Lumines Remastered: if something is in the way, try one column to the
+;;; left, then one to the right. Only if all three are blocked is the game
+;;; over, and then the piece stays above the board.
+;;; Destroy: AF B HL
+enter_board:
+  ld a, [drop_pos]
+  ld b, a
+  call .fits
+  ret nz
+
+  ld a, b
+  or a
+  jr z, .try_right
+  dec b
+  call .fits
+  jr nz, .moved
+  inc b
+
+.try_right:
+  ld a, b
+  cp BOARD_W-2
+  jr z, .game_over
+  inc b
+  call .fits
+  jr z, .game_over
+
+.moved:
+  ld a, b
+  ld [drop_pos], a
+  ret
+
+.game_over:
+  xor a
+  ld [falling_block_y], a
+  inc a
+  ld [game_over], a
+  ret
+
+;; NZ if the top two rows are free at columns B and B+1, Z if not. Tiles that
+;; are still falling don't count, since they are on their way out.
+.fits:
+  ld a, b
+  add LOW(board)
+  ld l, a
+  ld h, HIGH(board)
+  call .free
+  ret z
+  inc l
+  call .free
+  ret z
+  ld a, l
+  add ROW-1
+  ld l, a
+  call .free
+  ret z
+  inc l
+  ;; fallthrough
+.free:
+  ld a, [hl]
+  and %10001000
+  xor %10000000 ; Z if solid and not falling
+  ret
+
 goto_xy_pos_with_vram:
   xor a
 
   ld hl, $9CC0
   ld de, $20
+  ;; C may be 0 (the top row)
+  inc c
+  jr .next
 .mult:
   add ROW
   add hl, de
+.next:
   dec c
   jr nz, .mult
 

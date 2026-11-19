@@ -5,6 +5,9 @@ DEF BUTTON_SELECT = %01
 DEF BUTTON_MUSIC = %10
 DEF BUTTON_CREDITS = %11
 
+;; Debug toggles
+; DEF DBG_RESULTS_PREVIEW = 1 ; fill the results screen with sample values; Select flips "new record"
+
 MACRO spriteAttr  ; which sprite, x, y, tile
   ld a, \2
   ld [wShadowOAM+(4*\1)+3], a
@@ -116,6 +119,31 @@ text_lost_progress_map:
 incbin "res/menu/text_lost_progress.tilemapu"
 .end:
 
+text_results_gfx:
+incbin "res/menu/text_results.2bppu"
+.end:
+
+text_results_map:
+incbin "res/menu/text_results.tilemapu"
+.end:
+
+;; The box, 15x10 tiles, followed by the two rows that replace its record
+;; rows (8 and 9) when there is a new record.
+results_box_gfx:
+incbin "res/menu/results_box.2bppu"
+.end:
+
+results_box_map:
+incbin "res/menu/results_box.tilemapu"
+.end:
+
+;; Sprite tiles, loaded right after the cursor in this order (see the
+;; RESULTS_TILE_* constants).
+results_sprites_gfx:
+incbin "res/numbers_big_8x8.2bppu"
+incbin "res/menu/results_sprites.2bpp"
+.end:
+
 cursor_sprite:
 incbin "res/menu/cursor.2bpp"
 .end:
@@ -160,6 +188,14 @@ main_menu_inited:: db
 main_menu_2part: db
 
 coming_from_mainmenu: db
+
+;; Results screen
+record_score:: ds 4 ; best score since power on, same format as `score`
+new_record: db ; nonzero if this game set it
+results_font: db ; first digit tile of the font `results_put` draws with
+results_pitch: db ; how far apart its digits are
+results_digits: ds 7
+results_left: db
 
 SECTION "Tweening vars", WRAM0
 tween_dist: db
@@ -950,6 +986,352 @@ pause_ui:
   lb bc, 8, 2
   ld de, $9965
   ld hl, text_lost_progress_map
+  ;; tail call
+  jp MapRegion
+
+;;; The results screen shown after a game: level, time, score, and either the
+;;; record or "new record". Reads `level_num`, `time` and `score`.
+
+;; Sprite tiles
+DEF RESULTS_TILE_BIG = 1 ; ten big digits, then their thousands dot
+DEF RESULTS_TILE_COLON = RESULTS_TILE_BIG + 11
+DEF RESULTS_TILE_SMALL = RESULTS_TILE_COLON + 1 ; ten small digits, then their dot
+DEF RESULTS_TILE_PRESS = RESULTS_TILE_SMALL + 11 ; "PRESS START", 6 tiles
+
+;; Sprites. The cursor's four stay hidden.
+DEF RESULTS_SPRITE_PRESS = 4
+DEF RESULTS_SPRITE_NUMBERS = RESULTS_SPRITE_PRESS + 6
+
+;; Where things go on screen, in pixels
+DEF RESULTS_VALUE_X = 65 ; big digits start 2 pixels into their tile
+DEF RESULTS_LEVEL_Y = 49
+DEF RESULTS_TIME_Y = 65
+DEF RESULTS_SCORE_Y = 81
+DEF RESULTS_RECORD_X = 69
+DEF RESULTS_RECORD_Y = 99
+DEF RESULTS_PRESS_X = 56
+DEF RESULTS_PRESS_Y = 120
+
+ResultsMenu::
+  ld hl, menu_ui_ptr
+  ld a, LOW(results_ui)
+  ld [hl+], a
+  ld a, HIGH(results_ui)
+  ld [hl+], a
+  ld a, LOW(results_init)
+  ld [hl+], a
+  ld [hl], HIGH(results_init)
+
+  xor a
+  ld [main_menu_2part], a
+
+  jp Menu
+
+results_init:
+  ld de, text_results_gfx
+  ld hl, $9000
+  ld c, text_results_gfx.end - text_results_gfx
+  rst MemcpySmall
+
+  assert text_results_gfx.end - text_results_gfx == 5 * 16, "results_box.arg assumes 5 tiles before it"
+  ld de, results_box_gfx
+  ld bc, results_box_gfx.end - results_box_gfx
+  call Memcpy
+
+  ld de, results_sprites_gfx
+  ld hl, $8000 + RESULTS_TILE_BIG * 16
+  ld bc, results_sprites_gfx.end - results_sprites_gfx
+  call Memcpy
+
+IF DEF(DBG_RESULTS_PREVIEW)
+  ;; Show the numbers from the mockup instead of the game's
+  ld a, 16
+  ld [level_num], a
+  ld hl, time
+  ld a, $05
+  ld [hl+], a
+  ld [hl], $37
+  ld hl, score
+  ld a, $78
+  ld [hl+], a
+  ld a, $03
+  ld [hl+], a
+  ld a, $15
+  ld [hl+], a
+  ld [hl], $00
+  ld hl, record_score
+  ld a, $34
+  ld [hl+], a
+  ld a, $75
+  ld [hl+], a
+  ld a, $20
+  ld [hl+], a
+  ld [hl], $00
+ENDC
+
+  ;; Is this a new record? Compare from the most significant byte down.
+  ld hl, score + 3
+  ld de, record_score + 3
+  ld c, 4
+.compare:
+  ld a, [de]
+  cp [hl]
+  jr c, .new_record
+  jr nz, .no_record
+  dec hl
+  dec de
+  dec c
+  jr nz, .compare
+.no_record:
+  xor a
+  jr .set_record
+.new_record:
+  ld de, score
+  ld hl, record_score
+  ld c, 4
+  rst MemcpySmall
+  ld a, 1
+.set_record:
+  ld [new_record], a
+
+  ;; "PRESS START"
+FOR I, 6
+  ld hl, wShadowOAM + 4 * (RESULTS_SPRITE_PRESS + I)
+  ld a, RESULTS_PRESS_Y + 16
+  ld [hl+], a
+  ld a, RESULTS_PRESS_X + 8 * I + 8
+  ld [hl+], a
+  ld [hl], RESULTS_TILE_PRESS + I
+ENDR
+
+  call results_place_numbers
+  jp results_ui
+
+;;; Lays out the number sprites.
+results_place_numbers:
+  ;; Start from none, since how many there are depends on the values
+  ld hl, wShadowOAM + 4 * RESULTS_SPRITE_NUMBERS
+  ld c, 4 * (NB_SPRITES - RESULTS_SPRITE_NUMBERS)
+  xor a
+  rst MemsetSmall
+
+  ld de, wShadowOAM + 4 * RESULTS_SPRITE_NUMBERS
+  ld a, RESULTS_TILE_BIG
+  ld [results_font], a
+  ld a, 7
+  ld [results_pitch], a
+
+  ;; Level, without a leading zero
+  lb bc, RESULTS_VALUE_X, RESULTS_LEVEL_Y
+  ld a, [level_num]
+  ld h, -1
+.tens:
+  inc h
+  sub 10
+  jr nc, .tens
+  add 10
+  ld l, a
+  ld a, h
+  or a
+  call nz, results_put_digit
+  ld a, l
+  call results_put_digit
+
+  ;; Time, MM:SS
+  lb bc, RESULTS_VALUE_X, RESULTS_TIME_Y
+  ld a, [time + 1]
+  swap a
+  and $F
+  call results_put_digit
+  ld a, [time + 1]
+  and $F
+  call results_put_digit
+  ld a, RESULTS_TILE_COLON - RESULTS_TILE_BIG
+  call results_put
+  inc b
+  inc b
+  inc b
+  ld a, [time]
+  swap a
+  and $F
+  call results_put_digit
+  ld a, [time]
+  and $F
+  call results_put_digit
+
+  ;; Score
+  lb bc, RESULTS_VALUE_X, RESULTS_SCORE_Y
+  ld hl, score + 3
+  call results_put_number
+
+  ;; Record, unless the box says "new record" there instead
+  ld a, [new_record]
+  or a
+  ret nz
+
+  ld a, RESULTS_TILE_SMALL
+  ld [results_font], a
+  ld a, 4
+  ld [results_pitch], a
+  lb bc, RESULTS_RECORD_X, RESULTS_RECORD_Y
+  ld hl, record_score + 3
+  ;; fallthrough
+
+;;; Draws a 7 digit number with thousands dots and no leading zeros.
+;;; Param: HL = last (most significant) byte of a 4 byte BCD number
+;;; Param: B, C = X, Y
+;;; Param: DE = next free sprite
+;;; Destroy: AF HL
+results_put_number:
+  ;; Unpack to a digit per byte
+  push de
+  ld de, results_digits
+  ld a, [hl-]
+  and $F
+  ld [de], a
+  inc de
+REPT 3
+  ld a, [hl]
+  swap a
+  and $F
+  ld [de], a
+  inc de
+  ld a, [hl-]
+  and $F
+  ld [de], a
+  inc de
+ENDR
+  pop de
+
+  ;; Skip leading zeros, but always keep the last digit
+  ld hl, results_digits
+  ld a, 7
+.skip:
+  ld [results_left], a
+  dec a
+  jr z, .digit
+  ld a, [hl]
+  or a
+  jr nz, .digit
+  inc hl
+  ld a, [results_left]
+  dec a
+  jr .skip
+
+.digit:
+  ld a, [hl+]
+  call results_put_digit
+  ld a, [results_left]
+  dec a
+  ld [results_left], a
+  ret z
+  cp 6
+  jr z, .dot
+  cp 3
+  jr nz, .digit
+.dot:
+  ld a, 10
+  call results_put
+  inc b
+  inc b
+  jr .digit
+
+;;; Draws a digit and moves on to the next position.
+;;; Param: A = digit, the rest as `results_put`
+results_put_digit:
+  call results_put
+  ld a, [results_pitch]
+  add b
+  ld b, a
+  ret
+
+;;; Draws one glyph of the current font (see `results_font`).
+;;; Param: A = glyph: 0-9, or 10 for the thousands dot
+;;; Param: B, C = X, Y
+;;; Param: DE = next free sprite, advanced
+;;; Destroy: AF
+results_put:
+  push hl
+  ld hl, results_font
+  add [hl]
+  ld h, a
+  ld a, c
+  add 16
+  ld [de], a
+  inc e
+  ld a, b
+  add 8
+  ld [de], a
+  inc e
+  ld a, h
+  ld [de], a
+  inc e
+  xor a
+  ld [de], a
+  inc e
+  pop hl
+  ret
+
+results_ui:
+  ld hl, menu_frame_counter
+  inc [hl]
+
+  ;; Blink "PRESS START" about once a second
+  bit 5, [hl]
+  ld a, RESULTS_PRESS_Y + 16
+  jr z, .shown
+  xor a
+.shown:
+FOR I, 6
+  ld [wShadowOAM + 4 * (RESULTS_SPRITE_PRESS + I)], a
+ENDR
+
+  call poll_joystick
+
+  ld a, [hPressedKeys]
+  bit PADB_START, a
+  jr z, .no_start
+
+  ld hl, sfx_alt_radar_destroy_echo
+  call play_sfx
+
+  ld hl, goto_mainmenu
+  call FadeOut
+.no_start:
+
+IF DEF(DBG_RESULTS_PREVIEW)
+  ;; Select switches between the record and "new record" versions
+  ld a, [hPressedKeys]
+  bit PADB_SELECT, a
+  jr z, .no_select
+  ld a, [new_record]
+  xor 1
+  ld [new_record], a
+  call results_place_numbers
+.no_select:
+ENDC
+
+  ld a, BANK(text_results_gfx)
+  ld [rROMB0], a
+
+  lb bc, 5, 1
+  ld de, $9864
+  ld hl, text_results_map
+  call MapRegion
+
+  lb bc, 15, 10
+  ld de, $98A3
+  ld hl, results_box_map
+  call MapRegion
+
+  ld a, [new_record]
+  or a
+  ret z
+
+  ;; Swap the record row for "new record"
+  lb bc, 15, 2
+  ld de, $9983
+  ld hl, results_box_map + 15 * 10
   ;; tail call
   jp MapRegion
 

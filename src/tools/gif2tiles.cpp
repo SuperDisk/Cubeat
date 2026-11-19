@@ -32,6 +32,23 @@ constexpr int kMapHeight = 18;
 constexpr int kTileRows = 8;
 constexpr int kNormalReservedTiles = 8;
 
+// The timer colon is baked into the background at these screen coordinates.
+constexpr int kColonX = 80;
+constexpr int kColonY = 11;
+constexpr int kColonWidth = 2;
+constexpr int kColonHeight = 4;
+
+// Screens that show the background without a timer (the music player) cover
+// the colon with two sprites holding the pixels it replaced.  The first uses
+// OBP0 and the second OBP1, because neither palette has every background
+// color.  These are sprite tiles $7E and $7F, which gameplay leaves unused;
+// the music player's COLON_PATCH_TILE must match.
+constexpr int kColonPatchAddress = 0x87E0;
+constexpr int kColonPatchTiles = 2;
+
+// One 16-bit tile row per sprite tile and row, for one frame.
+using ColonPatch = std::array<std::uint16_t, kColonPatchTiles * kTileRows>;
+
 using Tile = std::array<std::uint16_t, kTileRows>;
 
 struct TileHash {
@@ -132,8 +149,42 @@ int rounded_frame_count(int delay_centiseconds) {
   return quotient;
 }
 
+// Builds the sprite rows that redraw `pixels` (the background under the colon,
+// row by row) on top of the colon.
+ColonPatch make_colon_patch(
+    const std::array<std::uint8_t, kColonWidth * kColonHeight> &pixels) {
+  // Indexed by GIF palette index: which patch tile draws it, and with which
+  // sprite color (as plane 0 / plane 1 bits, the way the hardware sees it).
+  // With the game's palettes (BGP %00_10_01_11, OBP0 %11_10_00_01, OBP1
+  // %00_01_11_10, and the matching CGB ones) these come out the same shade.
+  struct Source {
+    int tile;
+    int plane0;
+    int plane1;
+  };
+  constexpr std::array<Source, 4> sources = {{
+      {0, 1, 1},  // darkest: OBP0 color 3
+      {0, 0, 1},  // OBP0 color 2
+      {1, 0, 1},  // OBP1 color 2
+      {0, 1, 0},  // lightest: OBP0 color 1
+  }};
+  ColonPatch patch{};
+  for (int y = 0; y < kColonHeight; ++y) {
+    for (int x = 0; x < kColonWidth; ++x) {
+      const Source &source = sources[pixels[y * kColonWidth + x]];
+      const int bit = 7 - (kColonX % 8 + x);
+      // Low byte is stored first, so it holds plane 0.
+      patch[source.tile * kTileRows + kColonY % 8 + y] |=
+          static_cast<std::uint16_t>((source.plane0 << bit) |
+                                     (source.plane1 << (bit + 8)));
+    }
+  }
+  return patch;
+}
+
 std::vector<std::vector<std::uint8_t>> load_gif_frames(
-    const std::filesystem::path &filename, bool add_colon) {
+    const std::filesystem::path &filename, bool add_colon,
+    std::vector<ColonPatch> &colon_patches) {
   int error = 0;
   GifFileType *raw_gif = DGifOpenFileName(filename.c_str(), &error);
   if (raw_gif == nullptr) {
@@ -182,19 +233,27 @@ std::vector<std::vector<std::uint8_t>> load_gif_frames(
           "GIF contains palette indexes above 3; apply background.colormap");
     }
 
+    ColonPatch colon_patch{};
     if (add_colon) {
-      constexpr std::array<std::uint8_t, 8> colon = {3, 3, 0, 0,
-                                                     3, 3, 0, 0};
-      for (int y = 0; y < 4; ++y) {
-        for (int x = 0; x < 2; ++x) {
-          pixels[(11 + y) * kScreenWidth + 80 + x] = colon[y * 2 + x];
+      constexpr std::array<std::uint8_t, kColonWidth * kColonHeight> colon = {
+          3, 3, 0, 0, 3, 3, 0, 0};
+      std::array<std::uint8_t, kColonWidth * kColonHeight> replaced{};
+      for (int y = 0; y < kColonHeight; ++y) {
+        for (int x = 0; x < kColonWidth; ++x) {
+          auto &pixel = pixels[(kColonY + y) * kScreenWidth + kColonX + x];
+          replaced[y * kColonWidth + x] = pixel;
+          pixel = colon[y * kColonWidth + x];
         }
       }
+      colon_patch = make_colon_patch(replaced);
     }
 
     const int repetitions = rounded_frame_count(control.DelayTime);
     for (int repetition = 0; repetition < repetitions; ++repetition) {
       frames.push_back(pixels);
+      if (add_colon) {
+        colon_patches.push_back(colon_patch);
+      }
     }
   }
 
@@ -976,10 +1035,12 @@ std::vector<int> playfield_buffer_offsets() {
 class AssemblyWriter {
  public:
   AssemblyWriter(const Animation &animation, const Plan &plan,
-                 const Options &options)
+                 const Options &options,
+                 const std::vector<ColonPatch> &colon_patches)
       : animation_(animation),
         plan_(plan),
         options_(options),
+        colon_patches_(colon_patches),
         reserved_tiles_(options.menu_mode ? 0 : kNormalReservedTiles),
         prefix_(options.output.stem().stem().string()),
         offsets_(playfield_buffer_offsets()),
@@ -1037,6 +1098,7 @@ class AssemblyWriter {
   const Animation &animation_;
   const Plan &plan_;
   const Options &options_;
+  const std::vector<ColonPatch> &colon_patches_;  // empty if no colon
   int reserved_tiles_;
   std::string prefix_;
   std::vector<int> offsets_;
@@ -1082,6 +1144,25 @@ class AssemblyWriter {
     return writes;
   }
 
+  // The sprite rows that have to be rewritten to go from `before` to `frame`.
+  // When initializing, every row is written, including the empty ones.
+  WriteGroups collect_colon_patch_writes(int frame, int before,
+                                         bool initialize) const {
+    WriteGroups writes;
+    if (colon_patches_.empty()) {
+      return writes;
+    }
+    for (std::size_t row = 0; row < colon_patches_[frame].size(); ++row) {
+      const auto value = colon_patches_[frame][row];
+      if (!initialize && colon_patches_[before][row] == value) {
+        continue;
+      }
+      writes.top[value].push_back(
+          static_cast<std::uint16_t>(kColonPatchAddress + row * 2));
+    }
+    return writes;
+  }
+
   void write_gfx_init() {
     const auto writes = collect_writes(0, plan_.assignments[0],
                                        plan_.assignments[0], true);
@@ -1089,6 +1170,8 @@ class AssemblyWriter {
     int ignored_counter = 0;
     int ignored_scanlines = 0;
     bool ignored_dma = false;
+    emit_groups(collect_colon_patch_writes(0, 0, true), false, ignored_cycles,
+                ignored_counter, ignored_scanlines, ignored_dma);
     emit_groups(writes, false, ignored_cycles, ignored_counter,
                 ignored_scanlines, ignored_dma);
 
@@ -1122,6 +1205,11 @@ class AssemblyWriter {
     int cycle_counter = 0;
     int scanlines = 0;
     bool done_dma = false;
+    // This frame's map has just been swapped in and we are at the start of
+    // VBlank, so writing the colon patch first changes it in step with the
+    // background, before either is drawn.
+    emit_groups(collect_colon_patch_writes(frame, previous, false), true,
+                total_cycles, cycle_counter, scanlines, done_dma);
     emit_groups(writes, true, total_cycles, cycle_counter, scanlines, done_dma);
 
     if (!done_dma) {
@@ -1319,13 +1407,14 @@ void print_metrics(const Animation &animation, const Plan &plan,
 int main(int argc, char **argv) {
   try {
     const Options options = parse_options(argc, argv);
+    std::vector<ColonPatch> colon_patches;
     const auto pixels = load_gif_frames(
-        options.input, !options.menu_mode && !options.no_colon);
+        options.input, !options.menu_mode && !options.no_colon, colon_patches);
     const Animation animation = make_animation(pixels);
     ResidencyPlanner planner(animation,
                              options.menu_mode ? 0 : kNormalReservedTiles);
     const Plan plan = planner.make_plan(options.menu_mode);
-    AssemblyWriter writer(animation, plan, options);
+    AssemblyWriter writer(animation, plan, options, colon_patches);
     writer.write();
     print_metrics(animation, plan, options.menu_mode);
     return 0;

@@ -14,6 +14,11 @@ MACRO alt_palette
   ld [wShadowOAM+(4*\1)+3], a
 ENDM
 
+;; Must match kColonPatchAddress, kColonX and kColonY in gif2tiles.cpp
+DEF COLON_PATCH_TILE = $7E ; and $7F, which uses the other sprite palette
+DEF COLON_PATCH_X = 80
+DEF COLON_PATCH_Y = 8
+
 SECTION "Music Player gfx", ROMX
 back_gfx: incbin "res/menu/back_sprite.2bpp"
 .end:
@@ -96,6 +101,13 @@ FOR Y, 3
     DEF BLA = BLA+1
   ENDR
 ENDR
+
+  ;; The background has the gameplay timer's colon baked into it. Cover it
+  ;; with the two sprites the background animation keeps up to date with what
+  ;; should be there instead (see kColonPatchAddress in gif2tiles.cpp).
+  update_sprite (BLA), COLON_PATCH_X, COLON_PATCH_Y, COLON_PATCH_TILE
+  update_sprite (BLA+1), COLON_PATCH_X, COLON_PATCH_Y, COLON_PATCH_TILE+1
+  alt_palette (BLA+1)
 
   ld a, HIGH(wShadowOAM)
   call hOAMDMA

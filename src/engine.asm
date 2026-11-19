@@ -42,6 +42,8 @@ DEF ROW = 18
 
 DEF NUM_ANIMS = 11
 
+DEF BOMB_INTERVAL = 30 ; one piece in this many carries a bomb
+
 DEF EMPTY = 0
 DEF WHITE = $80
 DEF BLACK = $81
@@ -386,6 +388,7 @@ ENDC
 dpad_frames: db
 
 game_over: db
+bomb_counter: db ; pieces generated since the last one with a bomb
 
 blocks:
 block:: ds 4
@@ -436,6 +439,7 @@ init_game::
   ld [time+0], a
   ld [time+1], a
   ld [game_over], a
+  ld [bomb_counter], a
   ld [anim_x_temp], a ; silences an uninitialized mem warning
 IF DEF(SELECT_PAUSES_RADAR)
   inc a
@@ -2063,37 +2067,43 @@ generate_block:
   call rand
   pop hl
 
+  ;; Four random colors
 REPT 4
-  ld a, [rDIV]
-  and %111
-  push af
-
   ld a, c
   and 1
   or $80
   IF DEF(DBG_BLOCK)
   ld a, DBG_BLOCK
   ENDC
-
-  ld d, a
-  pop af
-  ld a, d
-  jr nz, :+
-  ;; is bomb
-  or %11010010
-:
   ld [hl+], a
   rrc c
 ENDR
 
+  ;; Bombs come at a fixed rate, as chain blocks do in Lumines Remastered:
+  ;; every BOMB_INTERVAL-th piece has exactly one, on a random tile.
+  ld a, [bomb_counter]
+  inc a
+  cp BOMB_INTERVAL
+  jr c, .no_bomb
+
+  push hl
+  ld a, b
+  and %11
+  inc a
+.pick:
+  dec hl
+  dec a
+  jr nz, .pick
+  ld a, [hl]
+  or %11010010
+  ld [hl], a
+  pop hl
+
+  xor a
+.no_bomb:
+  ld [bomb_counter], a
   ret
 
-;;; Sets some pointers to a block position in the board.
-;;; Param: C = Y position on board
-;;; Param: B = X position on board
-;;; Return: BC = Pointer into VRAM of coord
-;;; Return: HL = Pointer into board of coord
-;;; Destroy: AF DE
 ;;; A new piece is about to drop from above the board into its top two rows.
 ;;; As in Lumines Remastered: if something is in the way, try one column to the
 ;;; left, then one to the right. Only if all three are blocked is the game
@@ -2158,6 +2168,12 @@ enter_board:
   xor %10000000 ; Z if solid and not falling
   ret
 
+;;; Sets some pointers to a block position in the board.
+;;; Param: C = Y position on board
+;;; Param: B = X position on board
+;;; Return: BC = Pointer into VRAM of coord
+;;; Return: HL = Pointer into board of coord
+;;; Destroy: AF DE
 goto_xy_pos_with_vram:
   xor a
 

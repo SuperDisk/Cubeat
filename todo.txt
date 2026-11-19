@@ -6,8 +6,8 @@
 (DONE) Make bombs work
 (DONE) Fix issue where falling bombs can propagate
 (DONE) Fix bug where match in the last column doesn't count toward destroyed score
+(DONE) Implement game over menus
 - Make bonus work
-- Implement game over menus
 - Make game loop forever once we get to end
 
 - get music done

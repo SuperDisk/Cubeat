@@ -97,4 +97,4 @@
   deflevel 96, 805, 2, 3, 3, 25
   deflevel 97, 815, 5, 2, 1, 25
   deflevel 98, 825, 2, 1, 1, 25
-  deflevel 99, 999, 2, 1, 1, 25
+  deflevel 99, 835, 2, 1, 1, 25

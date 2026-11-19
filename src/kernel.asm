@@ -158,10 +158,16 @@ Kernel::
   ld a, BANK(skin_table)
   ld [rROMB0], a
 
+  ;; The skin changes every 4 levels. Past the last level the engine picks
+  ;; them at random instead, and has already set current_skin.
   ld a, [level_num]
+  cp ENDLESS_FIRST_LEVEL
+  jr nc, .endless
   srl a ; /= 2
   srl a ; /= 2
   ld [current_skin], a
+.endless:
+  ld a, [current_skin]
   add a ; *= 2
 
   ld hl, skin_table

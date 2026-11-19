@@ -153,3 +153,6 @@ ENDM
 ;; The first of the sprite tiles that the score is drawn into (see
 ;; hud_score.asm). Must be a multiple of 16.
 DEF SCORE_HUD_TILE = $70
+
+;; The first level past the ones in levels.inc (see LAST_LEVEL in engine.asm)
+DEF ENDLESS_FIRST_LEVEL = 100

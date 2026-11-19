@@ -44,6 +44,12 @@ DEF NUM_ANIMS = 11
 
 DEF BOMB_INTERVAL = 30 ; one piece in this many carries a bomb
 
+;; After the last level in levels.inc the game goes on forever: every
+;; ENDLESS_LEVEL_SCORE points is another level, played with the last level's
+;; speeds, and every 4 levels the skin changes to a random one.
+DEF LAST_LEVEL = ENDLESS_FIRST_LEVEL - 1
+DEF ENDLESS_LEVEL_SCORE = $01 ; in tens of thousands of points, BCD
+
 DEF EMPTY = 0
 DEF WHITE = $80
 DEF BLACK = $81
@@ -362,7 +368,9 @@ ENDR
 SECTION "Game vars", WRAM0
 score:: ds 4 ; 7 digits
 score_counter: dw
-score_curve: dw ; needed score to advance to the next level (3 digits)
+;; The score needed to advance to the next level, in BCD, most significant byte
+;; first. The 3 bytes line up with score+3, score+2 and score+1.
+score_curve: ds 3
 
 level_num:: db
 locked_level:: db
@@ -530,10 +538,12 @@ load_level::
   ld a, [hl+]
   ld [level_num], a
 
-  ld a, [hl+]
+  xor a
   ld [score_curve], a
   ld a, [hl+]
   ld [score_curve+1], a
+  ld a, [hl+]
+  ld [score_curve+2], a
 
   ld a, [hl+]
   ld [radar_speed], a
@@ -1279,24 +1289,31 @@ ENDC
   or a
   jr nz, .curve_not_reached
 
-  ld hl, score_curve+1
+  ld hl, score_curve+2
   ld a, [score+1]
   sub [hl]
   dec hl
   ld a, [score+2]
   sbc [hl]
+  dec hl
+  ld a, [score+3]
+  sbc [hl]
 
   jr c, .curve_not_reached
 
 .curve_reached:
-  ld a, BANK(levels)
-  ld [rROMB0], a
-
   ld hl, level_num
   ld a, [hl]
+  cp LAST_LEVEL
+  jr nc, .endless
+
   inc a
   ld [hl], a
 
+  ld a, BANK(levels)
+  ld [rROMB0], a
+
+  ld a, [hl]
   ld hl, level_table
   add a
   add_a_to_hl
@@ -1304,6 +1321,46 @@ ENDC
   ld h, [hl]
   ld l, a
   call load_level
+  jr .curve_not_reached
+
+.endless:
+  inc a
+  jr z, .curve_not_reached ; the level number is a byte, so it stops at 255
+  ld [hl], a
+
+  ld hl, score_curve+1
+  ld a, [hl]
+  add ENDLESS_LEVEL_SCORE
+  daa
+  ld [hl-], a
+  ld a, [hl]
+  adc 0
+  daa
+  ld [hl], a
+
+  ld a, [level_num]
+  and %11
+  jr nz, .curve_not_reached
+
+  ;; A random skin, other than the one we are on
+  call rand
+  ld a, b
+  and %00111111
+.skin_mod:
+  cp ((skin_table.end - skin_table) / 2) - 1
+  jr c, .skin_picked
+  sub ((skin_table.end - skin_table) / 2) - 1
+  jr .skin_mod
+.skin_picked:
+  ld hl, current_skin
+  cp [hl]
+  jr c, .skin_ok
+  inc a
+.skin_ok:
+  ld [hl], a
+  ;; Ask the kernel to fade over to the new skin (see `transition_stage`)
+  ld a, 2
+  ld [transition_state], a
 
 .curve_not_reached:
 
@@ -1421,36 +1478,60 @@ ENDR
   add $12
   spriteTile1 29
 
-  ;; Level
-  ld a, 19+(7*1)+8
-  spriteX1 3
-
+  ;; Level. Two digits, or three from level 100 on (sprite 9 is the hundreds).
   ld a, [level_num]
 
-  ld b, 0           ; Initialize B to store the tens digit
+  ld c, 0 ; hundreds
+.loop_hundreds:
+  cp 100
+  jr c, .done_hundreds
+  sub 100
+  inc c
+  jr .loop_hundreds
+.done_hundreds:
+
+  ld b, 0 ; tens
 .loop_tens:
-  sub 10             ; Compare A with 10
-  jr c, .done_tens  ; If A < 10, skip the tens subtraction
-  inc b             ; Increment B (the tens digit)
-  jr .loop_tens     ; Repeat the loop for the next tens digit
+  sub 10
+  jr c, .done_tens
+  inc b
+  jr .loop_tens
 .done_tens:
   add 10
-  ld d, b           ; Move the tens digit to register D
-  ld e, a           ; Move the remaining value (ones digit) to register E
+  ld e, a ; ones
 
-  ld a, e
+  ;; D = X of the tens digit
+  ld d, 19+8
+  ld a, c
+  or a
+  jr z, .no_hundreds
   add 8
-  cp 9
-  spriteTile1 3
-  jr nz, .normal_num
-
-  ld a, 19+(7*1)+8-1
-  spriteX1 3
-
-.normal_num:
+  spriteTile1 9
   ld a, d
+  spriteX1 9
+  ld a, 2+16
+  ld d, 19+7+8
+.no_hundreds:
+  ;; A = 0 here if there are no hundreds, which hides the sprite
+  ld [wShadowOAM+(4*9)], a
+
+  ld a, d
+  spriteX1 2
+  ld a, b
   add 8
   spriteTile1 2
+
+  ;; The 1 is narrower than the other digits, so it goes a pixel to the left
+  ld a, e
+  add 8
+  spriteTile1 3
+  cp 9
+  ld a, d
+  jr nz, .normal_num
+  dec a
+.normal_num:
+  add 7
+  spriteX1 3
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Process running animations

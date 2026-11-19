@@ -1124,17 +1124,31 @@ results_place_numbers:
   ;; Level, without a leading zero
   lb bc, RESULTS_VALUE_X, RESULTS_LEVEL_Y
   ld a, [level_num]
-  ld h, -1
-.tens:
+  ld h, 0
+.hundreds:
+  cp 100
+  jr c, .hundreds_done
+  sub 100
   inc h
+  jr .hundreds
+.hundreds_done:
+  ld l, -1
+.tens:
+  inc l
   sub 10
   jr nc, .tens
   add 10
-  ld l, a
+  push af
   ld a, h
   or a
   call nz, results_put_digit
+  ld a, h
+  or l
+  jr z, .no_tens
   ld a, l
+  call results_put_digit
+.no_tens:
+  pop af
   call results_put_digit
 
   ;; Time, MM:SS

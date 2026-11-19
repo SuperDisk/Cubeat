@@ -7,13 +7,12 @@
 (DONE) Fix issue where falling bombs can propagate
 (DONE) Fix bug where match in the last column doesn't count toward destroyed score
 (DONE) Implement game over menus
-- Make bonus work
-- Make game loop forever once we get to end
+(DONE) Make game loop forever once we get to end
+(DONE) Make bonus work
 
 - get music done
-- make music loop properly
-
 - get sound effects done
+- make music loop properly
 
 - Get assets from Elias
   - Music player buttons

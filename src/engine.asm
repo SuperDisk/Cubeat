@@ -44,11 +44,10 @@ DEF NUM_ANIMS = 11
 
 DEF BOMB_INTERVAL = 30 ; one piece in this many carries a bomb
 
-;; After the last level in levels.inc the game goes on forever: every
-;; ENDLESS_LEVEL_SCORE points is another level, played with the last level's
-;; speeds, and every 4 levels the skin changes to a random one.
+;; After the last level in levels.inc the game goes on forever: the levels keep
+;; coming, with the last level's speeds and quota of squares, and every 4
+;; levels the skin changes to a random one.
 DEF LAST_LEVEL = ENDLESS_FIRST_LEVEL - 1
-DEF ENDLESS_LEVEL_SCORE = $01 ; in tens of thousands of points, BCD
 
 DEF EMPTY = 0
 DEF WHITE = $80
@@ -102,9 +101,8 @@ MACRO deflevel
   ; Level number
   db \1
 
-  ; Curve score thousands (bcd)
-  db ((\2 / 10**2) % 10) << 4 | ((\2 / 10**1) % 10)
-  db ((\2 / 10**0) % 10) << 4
+  ; Squares to erase to get to the next level
+  db \2
 
   ; Radar speed (seconds for full sweep)
   dw MUL(DIV(BOARD_W * 8.0, (\3) * 30.0), 255.0) / 1.0
@@ -126,7 +124,7 @@ include "levels.inc"
 
 level_table:
 FOR I, 100
-  level{d:I}: dw levels+(I*8)
+  level{d:I}: dw levels+(I*7)
 ENDR
 
 SECTION "Board", WRAM0, ALIGN[8]
@@ -367,10 +365,13 @@ ENDR
 
 SECTION "Game vars", WRAM0
 score:: ds 4 ; 7 digits
-score_counter: dw
-;; The score needed to advance to the next level, in BCD, most significant byte
-;; first. The 3 bytes line up with score+3, score+2 and score+1.
-score_curve: ds 3
+score_counter: dw ; points won that haven't been counted into `score` yet
+combo: db ; multiplier for the next sweep that erases 4 squares or more (1 to 4)
+;; Levels are gained by erasing squares, as in Lumines: the squares of each
+;; radar sweep are added to level_squares when the sweep ends, and reaching
+;; level_quota is a level. Squares past the quota don't carry over.
+level_quota: db
+level_squares: db
 
 level_num:: db
 locked_level:: db
@@ -407,7 +408,8 @@ next_block2: ds 4
 ;; 1 = marking
 radar_marking_state: db
 need_to_destroy: db
-num_destroyed: db
+num_destroyed: db ; squares erased by the current sweep
+num_chained: db   ; bomb tiles erased by the current sweep
 
 animations:
 REPT NUM_ANIMS ; number of animation slots
@@ -444,11 +446,15 @@ init_game::
   ld [score_counter+0], a
   ld [score_counter+1], a
   ld [num_destroyed], a
+  ld [num_chained], a
   ld [time+0], a
   ld [time+1], a
   ld [game_over], a
   ld [bomb_counter], a
   ld [anim_x_temp], a ; silences an uninitialized mem warning
+  inc a
+  ld [combo], a
+  dec a
 IF DEF(SELECT_PAUSES_RADAR)
   inc a
   ld [radar_paused], a
@@ -538,12 +544,10 @@ load_level::
   ld a, [hl+]
   ld [level_num], a
 
+  ld a, [hl+]
+  ld [level_quota], a
   xor a
-  ld [score_curve], a
-  ld a, [hl+]
-  ld [score_curve+1], a
-  ld a, [hl+]
-  ld [score_curve+2], a
+  ld [level_squares], a
 
   ld a, [hl+]
   ld [radar_speed], a
@@ -615,11 +619,6 @@ IF DEF(DBG_SELECT_START_NEXT_SKIN)
   jr c, .skin_exists
   ld b, 0
 .skin_exists:
-  ;; Stay on the level we jump to. Otherwise the score would immediately level
-  ;; us up (or back up, after wrapping) to wherever it says we belong.
-  ld a, 1
-  ld [locked_level], a
-
   ld a, BANK(levels)
   ld [rROMB0], a
   ld a, b
@@ -690,7 +689,7 @@ IF DEF(SELECT_PAUSES_RADAR)
 
   ld a, [radar_paused]
   or a
-  jr nz, .check_rotate_piece
+  jp nz, .check_rotate_piece
   ; jr .check_rotate_piece
 ENDC
 
@@ -721,28 +720,77 @@ ENDC
   pop hl
 
   ld a, [num_destroyed]
-
-  ld h, 0
   ld l, a
 
-  ; hl *= 32
-  swap l
+  ;; Count this sweep's squares toward the next level
+  ld a, [level_squares]
+  add l
+  jr nc, .squares_fit
+  ld a, $FF
+.squares_fit:
+  ld [level_squares], a
+
+  ;; Scoring, as in Lumines: 40 points per square. A sweep that erases 4
+  ;; squares or more is worth 4 times that, times a combo that goes up by one
+  ;; (to 4 at most) for each such sweep in a row.
+  ld a, l
+  ld h, 0
   add hl, hl
+  add hl, hl
+  add hl, hl
+  ld d, h
+  ld e, l
+  add hl, hl
+  add hl, hl
+  add hl, de ; hl = squares * 40, 10200 at most
 
   cp 4
-  jr c, .less_than4
+  jr nc, .four_or_more
+  ld a, 1
+  ld [combo], a
+  jr .add_chained
 
-  ; hl *= 4
+.four_or_more:
   add hl, hl
-  add hl, hl
-
-.less_than4:
-  ld a, [score_counter]
-  ld c, a
-  ld a, [score_counter+1]
+  add hl, hl ; 40800 at most
+  ld d, h
+  ld e, l
+  ld a, [combo]
   ld b, a
-  add hl, bc
+  cp 4
+  jr nc, .combo_maxed
+  inc a
+  ld [combo], a
+.combo_maxed:
+  dec b
+  jr z, .add_chained
+.combo_loop:
+  add hl, de
+  jr c, .score_saturated
+  dec b
+  jr nz, .combo_loop
 
+.add_chained:
+  ;; 10 points per bomb tile erased
+  ld a, [num_chained]
+  ld e, a
+  ld d, 0
+  ld b, 10
+.chained_loop:
+  add hl, de
+  jr c, .score_saturated
+  dec b
+  jr nz, .chained_loop
+
+  ld a, [score_counter]
+  ld e, a
+  ld a, [score_counter+1]
+  ld d, a
+  add hl, de
+  jr nc, .score_fits
+.score_saturated:
+  ld hl, $FFFF
+.score_fits:
   ld a, l
   ld [score_counter], a
   ld a, h
@@ -750,6 +798,7 @@ ENDC
 
   xor a
   ld [num_destroyed], a
+  ld [num_chained], a
   ld h, a
   ld l, a
 .no_reset_radar:
@@ -937,7 +986,19 @@ ENDC
 
   ld a, [hHeldKeys]
   and [hl]
+  jr z, .no_down
+
+  ;; A point for each cell the piece is pulled down
+  ld hl, score_counter
+  inc [hl]
   jr nz, .do_fall
+  inc hl
+  inc [hl]
+  jr nz, .do_fall
+  ld a, $FF ; full: put it back
+  ld [hl-], a
+  ld [hl], a
+  jr .do_fall
 
 .no_down:
 
@@ -1223,63 +1284,7 @@ ENDC
   ;; Update score count
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  ;; TODO: Refactor this, it sucks.
-
-  ld c, 0
-
-  ld hl, score_counter
-  ld a, [hl]
-  or a
-
-  jr nz, .lsb_has_score
-
-  inc hl
-  or [hl]
-  jr z, .counter_empty
-
-  dec [hl]
-  dec hl
-
-  ld a, $FF
-  ld c, 1
-  ld [hl], a
-
-.lsb_has_score:
-  sub 8
-  ld d, 8
-  jr nc, .no_carry
-  add 8
-
-  ld d, a
-  xor a
-
-.no_carry:
-  add c
-  ld [hl], a
-
-  ld hl, score
-  ld a, d
-
-  add [hl]
-  daa
-  ld [hl+], a
-
-  ld a, 0
-  adc [hl]
-  daa
-  ld [hl+], a
-
-  ld a, 0
-  adc [hl]
-  daa
-  ld [hl+], a
-
-  ld a, 0
-  adc [hl]
-  daa
-  ld [hl], a
-
-.counter_empty:
+  call score_drain
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Advance level if necessary
@@ -1287,21 +1292,17 @@ ENDC
 
   ld a, [locked_level]
   or a
-  jr nz, .curve_not_reached
+  jr nz, .quota_not_reached
 
-  ld hl, score_curve+2
-  ld a, [score+1]
-  sub [hl]
-  dec hl
-  ld a, [score+2]
-  sbc [hl]
-  dec hl
-  ld a, [score+3]
-  sbc [hl]
+  ld hl, level_quota
+  ld a, [level_squares]
+  cp [hl]
+  jr c, .quota_not_reached
 
-  jr c, .curve_not_reached
+.quota_reached:
+  xor a
+  ld [level_squares], a
 
-.curve_reached:
   ld hl, level_num
   ld a, [hl]
   cp LAST_LEVEL
@@ -1321,26 +1322,16 @@ ENDC
   ld h, [hl]
   ld l, a
   call load_level
-  jr .curve_not_reached
+  jr .quota_not_reached
 
 .endless:
   inc a
-  jr z, .curve_not_reached ; the level number is a byte, so it stops at 255
-  ld [hl], a
-
-  ld hl, score_curve+1
-  ld a, [hl]
-  add ENDLESS_LEVEL_SCORE
-  daa
-  ld [hl-], a
-  ld a, [hl]
-  adc 0
-  daa
+  jr z, .quota_not_reached ; the level number is a byte, so it stops at 255
   ld [hl], a
 
   ld a, [level_num]
   and %11
-  jr nz, .curve_not_reached
+  jr nz, .quota_not_reached
 
   ;; A random skin, other than the one we are on
   call rand
@@ -1362,7 +1353,7 @@ ENDC
   ld a, 2
   ld [transition_state], a
 
-.curve_not_reached:
+.quota_not_reached:
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Refresh the graphics buffers
@@ -1943,6 +1934,70 @@ update_graphics2:
 
   ret
 
+;;; Counts some of the points waiting in `score_counter` into `score`: the
+;;; more there are waiting, the bigger the step, so that a big sweep doesn't
+;;; take half a minute to be counted.
+;;; Return: Z if there was nothing waiting
+;;; Destroy: AF BC DE HL
+score_drain:
+  ld hl, score_counter
+  ld a, [hl+]
+  ld h, [hl]
+  ld l, a
+  or h
+  ret z
+
+  ;; DE = the step, BC = the same in BCD
+  ld a, h
+  ld de, 1024
+  ld bc, $1024
+  cp HIGH(4096)
+  jr nc, .step
+  ld de, 256
+  ld bc, $0256
+  cp HIGH(1024)
+  jr nc, .step
+  ld de, 64
+  ld bc, $0064
+  or a
+  jr nz, .step
+  ld a, l
+  cp 8
+  jr c, .last
+  ld a, 8
+.last:
+  ld e, a
+  ld d, b
+  ld c, a
+
+.step:
+  ld a, l
+  sub e
+  ld [score_counter], a
+  ld a, h
+  sbc d
+  ld [score_counter+1], a
+
+  ld hl, score
+  ld a, [hl]
+  add c
+  daa
+  ld [hl+], a
+  ld a, [hl]
+  adc b
+  daa
+  ld [hl+], a
+  ld a, [hl]
+  adc 0
+  daa
+  ld [hl+], a
+  ld a, [hl]
+  adc 0
+  daa
+  ld [hl], a
+  or 1 ; NZ
+  ret
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Perform a destroy if necessary
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1968,6 +2023,8 @@ perform_destroy:
 .do_destroy:
   ;; Compare ignoring the bomb and falling bits: a swept bomb and a swept
   ;; normal block of the same color count as the same thing here.
+  bit 4, [hl]
+  call nz, .count_chained
   ld a, [bc]
   xor [hl]
   and %11100111
@@ -2034,6 +2091,8 @@ perform_destroy:
   and e
   cp e
   jr nz, .no_clear
+  bit 4, [hl]
+  call nz, .count_chained
   ld [hl], 0
 .no_clear
   dec l
@@ -2042,6 +2101,12 @@ perform_destroy:
   xor a
   ld [need_to_destroy], a
   jp flag_floating_tiles
+
+.count_chained:
+  ld a, [num_chained]
+  inc a
+  ld [num_chained], a
+  ret
 
 ;;; Creates an animation.
 ;;; Param: E = X
@@ -2172,6 +2237,11 @@ enter_board:
   ret
 
 .game_over:
+  ;; Count the points still waiting, so the results show the whole score
+.flush_score:
+  call score_drain
+  jr nz, .flush_score
+
   xor a
   ld [falling_block_y], a
   inc a

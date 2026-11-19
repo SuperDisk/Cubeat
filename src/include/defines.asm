@@ -149,3 +149,7 @@ MACRO sub_from_r16 ;; (high, low, value)
   add \1
   ld \1, a
 ENDM
+
+;; The first of the sprite tiles that the score is drawn into (see
+;; hud_score.asm). Must be a multiple of 16.
+DEF SCORE_HUD_TILE = $70

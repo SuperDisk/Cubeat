@@ -1264,10 +1264,10 @@ ENDC
   daa
   ld [hl+], a
 
-  ; ld a, 0
-  ; adc [hl]
-  ; daa
-  ; ld [hl+], a
+  ld a, 0
+  adc [hl]
+  daa
+  ld [hl], a
 
 .counter_empty:
 
@@ -1420,52 +1420,6 @@ ENDR
   and $F
   add $12
   spriteTile1 29
-
-  ;; Score
-  ld a, [score+0]
-  ld e, a
-  and $F
-  add $12
-  spriteTile1 25
-  ld a, e
-  and $F0
-  swap a
-  add $12
-  spriteTile1 24
-
-  ld a, [score+1]
-  ld e, a
-  and $F
-  add $12
-  spriteTile1 23
-  ld a, e
-  and $F0
-  swap a
-  add $12
-  spriteTile1 22
-
-  ld a, [score+2]
-  ld e, a
-  and $F
-  add $12
-  spriteTile1 21
-  ld a, e
-  and $F0
-  swap a
-  add $12
-  spriteTile1 20
-
-  ;; RIP
-  ; ld a, [score+3]
-  ; ld e, a
-  ; and $F
-  ; add $12
-  ; spriteTile1 19
-  ; ld a, e
-  ; and $F0
-  ; swap a
-  ; add $12
-  ; spriteTile1 18
 
   ;; Level
   ld a, 19+(7*1)+8

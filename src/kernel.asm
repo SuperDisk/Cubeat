@@ -205,6 +205,7 @@ Kernel::
 
   pop hl
   call load_skin
+  call score_hud_init
 
   call init_playfield_buffer
 
@@ -255,15 +256,10 @@ Kernel::
   alt_palette 36
   alt_palette 37
 
-  ; Score numbers
-  ; update_sprite 18, 115-(6*1), 9, $12
-  ; update_sprite 19, 115+(6*0), 9, $12
-  update_sprite 20, 115+(6*1)-1, 9, $12
-  update_sprite 21, 115+(6*2)-1, 9, $12
-  update_sprite 22, 115+(6*3)-1, 9, $12
-  update_sprite 23, 115+(6*4)-1, 9, $12
-  update_sprite 24, 115+(6*5)-1, 9, $12
-  update_sprite 25, 115+(6*6)-1, 9, $12
+  ; Score numbers (see hud_score.asm)
+FOR I, 6
+  update_sprite (20+I), 110+(8*I), 9, SCORE_HUD_TILE+I
+ENDR
 
   ; time numbers
   update_sprite 26, 80-15, 9, $12
@@ -425,6 +421,8 @@ ENDC
   ld e, a
   rst CallDE
 
+  call score_hud_blit
+
   call FadeStep
 
 .wait_for_before_radar:
@@ -456,6 +454,8 @@ IF DEF(DBG_PROFILE_GAMESTEP2)
   ld a, %00_10_01_11
   ld [rBGP], a
 ENDC
+
+  call score_hud_prepare
 
 IF DEF(DBG_PROFILE_MUSIC)
   ld a, $00

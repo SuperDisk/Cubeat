@@ -427,6 +427,10 @@ anim_y_temp: db
 anim_palette_temp: db
 oam_clear_after: db
 
+gameover_timer: db ; steps since topout
+shake_y:: db ; SCY
+gameover_drop: db ; px gap under the blocked piece
+
 SECTION "Engine code", ROM0
 init_game::
   xor a
@@ -452,6 +456,7 @@ init_game::
   ld [game_over], a
   ld [bomb_counter], a
   ld [anim_x_temp], a ; silences an uninitialized mem warning
+  ld [shake_y], a
   inc a
   ld [combo], a
   dec a
@@ -582,8 +587,9 @@ game_step::
   ld a, [game_over]
   or a
   jr z, .playing
-  ld hl, goto_results
-  call FadeOut
+  ld a, BANK(gameover_step)
+  ld [rROMB0], a
+  call gameover_step
   jp playfield_update
 .playing:
 
@@ -662,14 +668,6 @@ ENDC
 
   ; ld hl, goto_titlescreen
   ; call FadeOut
-
-  ; xor a
-  ; ld [anim_y_temp], a
-  ; ld [anim_x_temp], a
-  ; ld d, 80
-  ; ld e, 80
-  ; ld bc, anim_bonus
-  ; call create_animation
 
 .no_shit:
 
@@ -1642,6 +1640,10 @@ game_step_done:
   ret
 
 game_step2::
+  ;; Frozen during game over
+  ld a, [game_over]
+  or a
+  ret nz
 
   ;; Bombs don't need a pass of their own: they spread the moment a tile lands
   ;; (see `bomb_check_landed`, called from the fall loop and block placement).
@@ -1998,6 +2000,26 @@ score_drain:
   or 1 ; NZ
   ret
 
+;;; Shifts the board down one row.
+;;; Destroy: AF C DE HL
+board_drain_row:
+  ld hl, board.end - 1
+  ld de, board.end - 1 - ROW
+  ld c, board.end - board - ROW
+.drain_loop:
+  ld a, [de]
+  dec e
+  ld [hl-], a
+  dec c
+  jr nz, .drain_loop
+  xor a
+  ld c, ROW
+.drain_top:
+  ld [hl-], a
+  dec c
+  jr nz, .drain_top
+  ret
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Perform a destroy if necessary
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2242,11 +2264,27 @@ enter_board:
   call score_drain
   jr nz, .flush_score
 
+  ;; One free row under the piece
+  ld a, [drop_pos]
+  add LOW(board)
+  ld l, a
+  ld h, HIGH(board)
+  ld a, [hl+]
+  or [hl]
+  ;; -1: see .no_correct
+  ld a, 8 - 1
+  jr z, .gap
+  xor a
+.gap:
+  ld [gameover_drop], a
+
   xor a
   ld [falling_block_y], a
   inc a
   ld [game_over], a
-  ret
+  ld a, BANK(gameover_start)
+  ld [rROMB0], a
+  jp gameover_start
 
 ;; NZ if the top two rows are free at columns B and B+1, Z if not. Tiles that
 ;; are still falling don't count, since they are on their way out.
@@ -2421,68 +2459,6 @@ ENDM
 MACRO anim_end
   db $AE
 ENDM
-
-anim_bonus:
-  anim_sprite 0,0,0,13,0,0
-  anim_sprite 1,8,0,14,0,0
-  anim_sprite 2,14,0,15,0,0
-  anim_sprite 3,22,0,16,0,0
-  anim_sprite 4,26,0,17,0,0
-  anim_sprite 5,34,0,18,0,0
-  anim_sprite 6,40,0,19,0,0
-  anim_sprite 7,48,0,20,0,0
-  anim_sprite 8,53,0,21,0,0
-  anim_sprite 9,61,0,22,0,0
-  anim_frame_end
-
-  anim_sprite 0,2,0,13,0,0
-  anim_sprite 1,10,0,14,0,0
-  anim_sprite 2,15,0,15,0,0
-  anim_sprite 3,23,0,16,0,0
-  anim_sprite 4,26,0,17,0,0
-  anim_sprite 5,34,0,18,0,0
-  anim_sprite 6,39,0,19,0,0
-  anim_sprite 7,47,0,20,0,0
-  anim_sprite 8,51,0,21,0,0
-  anim_sprite 9,59,0,22,0,0
-  anim_frame_end
-
-  anim_sprite 0,7,0,13,0,0
-  anim_sprite 1,15,0,14,0,0
-  anim_sprite 2,18,0,15,0,0
-  anim_sprite 3,26,0,16,0,0
-  anim_sprite 4,26,0,17,0,0
-  anim_sprite 5,34,0,18,0,0
-  anim_sprite 6,36,0,19,0,0
-  anim_sprite 7,44,0,20,0,0
-  anim_sprite 8,46,0,21,0,0
-  anim_sprite 9,54,0,22,0,0
-  anim_frame_end
-
-  anim_sprite 0,16,0,13,0,0
-  anim_sprite 1,24,0,14,0,0
-  anim_sprite 2,22,0,15,0,0
-  anim_sprite 3,30,0,16,0,0
-  anim_sprite 4,26,0,17,0,0
-  anim_sprite 5,34,0,18,0,0
-  anim_sprite 6,32,0,19,0,0
-  anim_sprite 7,40,0,20,0,0
-  anim_sprite 8,36,0,21,0,0
-  anim_sprite 9,44,0,22,0,0
-  anim_frame_end
-
-  anim_sprite 0,24,0,13,0,0
-  anim_sprite 1,33,0,14,0,0
-  anim_sprite 2,26,0,15,0,0
-  anim_sprite 3,34,0,16,0,0
-  anim_sprite 4,26,0,17,0,0
-  anim_sprite 5,34,0,18,0,0
-  anim_sprite 6,26,0,19,0,0
-  anim_sprite 7,34,0,20,0,0
-  anim_sprite 8,26,0,21,0,0
-  anim_sprite 9,34,0,22,0,0
-  anim_end
-  ret
 
 anim_explosion:
   anim_sprite 0,0,0,8,0,0
@@ -2779,4 +2755,297 @@ flood_from:
   pop hl
   pop de
   pop bc
+  ret
+
+SECTION "Game over", ROMX ; ROM0 is full
+
+DEF GAMEOVER_OAM_OFS = $4C ; first animation sprite
+DEF GAMEOVER_IMPACT_STEPS = 4 ; shake before the drain
+DEF GAMEOVER_DRAIN_ROWS = BOARD_H + 2 ; +2 for the blocked piece
+DEF GAMEOVER_DRAIN_STEPS = GAMEOVER_DRAIN_ROWS * 2
+DEF GAMEOVER_SHAKE_STEPS = GAMEOVER_IMPACT_STEPS + GAMEOVER_DRAIN_STEPS + 3
+DEF PIECE_OAM_OFS = 15 * 4 ; falling piece sprites
+DEF PIECE_LAST_Y = 16 + 48 + (BOARD_H - 1) * 8
+DEF GAMEOVER_PAUSE_STEPS = 10 ; between the shake and the text
+DEF GAMEOVER_WORD_STEPS = 8   ; between GAME and OVER
+
+MACRO gameover_sprite ; y, tile pair
+  db GAMEOVER_Y + 16 + \1
+  IF \2 < GAMEOVER_TILES_A / 2
+    db GAMEOVER_TILE_A + \2 * 2
+  ELIF \2 < (GAMEOVER_TILES_A + GAMEOVER_TILES_B) / 2
+    db GAMEOVER_TILE_B + \2 * 2 - GAMEOVER_TILES_A
+  ELSE
+    db GAMEOVER_TILE_C + \2 * 2 - GAMEOVER_TILES_A - GAMEOVER_TILES_B
+  ENDC
+ENDM
+
+MACRO draw_sprites ; how many. HL = their X, DE = their Y and tile, BC = OAM
+REPT \1
+  ld a, [de]
+  inc de
+  ld [bc], a
+  inc c
+  ld a, [hl+]
+  add GAMEOVER_X + 8
+  ld [bc], a
+  inc c
+  ld a, [de]
+  inc de
+  ld [bc], a
+  inc c
+  xor a
+  ld [bc], a
+  inc c
+ENDR
+ENDM
+
+;; The sprites and frames below are generated by tools/mk_gameover.py
+
+DEF GAMEOVER_SPRITES_GAME = 9
+DEF GAMEOVER_SPRITES_OVER = 8
+DEF GAMEOVER_TILES = 34
+DEF GAMEOVER_FRAMES = 14
+DEF GAMEOVER_WIDTH = 51
+DEF GAMEOVER_HEIGHT = 24
+DEF GAMEOVER_TOP = 5 ; rows of GAME's sprites above the text
+DEF GAMEOVER_X = 80 - GAMEOVER_WIDTH / 2
+DEF GAMEOVER_Y = 72 - GAMEOVER_HEIGHT / 2 - GAMEOVER_TOP
+
+;; Y, tile pair
+gameover_sprites:
+  gameover_sprite 0, 0
+  gameover_sprite 0, 1
+  gameover_sprite 0, 2
+  gameover_sprite 0, 3
+  gameover_sprite 0, 4
+  gameover_sprite 0, 5
+  gameover_sprite 0, 6
+  gameover_sprite 0, 7
+  gameover_sprite 0, 8
+  gameover_sprite 16, 9
+  gameover_sprite 16, 10
+  gameover_sprite 16, 11
+  gameover_sprite 16, 12
+  gameover_sprite 16, 13
+  gameover_sprite 16, 14
+  gameover_sprite 16, 15
+  gameover_sprite 16, 16
+
+;; X of GAME's sprites, per frame
+gameover_frames_game:
+  db 17, 25, 17, 25, 13, 21, 29, 17, 25
+  db 15, 23, 16, 24, 14, 22, 30, 19, 27
+  db 13, 21, 16, 24, 15, 23, 31, 22, 30
+  db 11, 19, 15, 23, 16, 24, 32, 24, 32
+  db 8, 16, 14, 22, 17, 25, 33, 26, 34
+  db 6, 14, 13, 21, 18, 26, 34, 29, 37
+  db 4, 12, 12, 20, 19, 27, 35, 31, 39
+  db 2, 10, 12, 20, 20, 28, 36, 34, 42
+  db 0, 8, 11, 19, 21, 29, 37, 36, 44
+  db -1, 7, 11, 19, 22, 30, 38, 37, 45
+  db -2, 6, 10, 18, 22, 30, 38, 38, 46
+  db -2, 6, 10, 18, 22, 30, 38, 38, 46
+  db -1, 7, 11, 19, 22, 30, 38, 37, 45
+  db 0, 8, 11, 19, 21, 29, 37, 36, 44
+
+;; X of OVER's sprites, per frame
+gameover_frames_over:
+  db 17, 25, 17, 25, 17, 25, 17, 25
+  db 15, 23, 17, 25, 18, 26, 19, 27
+  db 13, 21, 16, 24, 18, 26, 21, 29
+  db 11, 19, 16, 24, 19, 27, 23, 31
+  db 8, 16, 16, 24, 20, 28, 26, 34
+  db 6, 14, 15, 23, 20, 28, 28, 36
+  db 4, 12, 15, 23, 21, 29, 30, 38
+  db 2, 10, 14, 22, 21, 29, 32, 40
+  db 0, 8, 14, 22, 22, 30, 34, 42
+  db -1, 7, 14, 22, 22, 30, 35, 43
+  db -2, 6, 14, 22, 23, 31, 36, 44
+  db -2, 6, 14, 22, 23, 31, 36, 44
+  db -1, 7, 14, 22, 22, 30, 35, 43
+  db 0, 8, 14, 22, 22, 30, 34, 42
+
+assert GAMEOVER_TILES == GAMEOVER_TILES_A + GAMEOVER_TILES_B + GAMEOVER_TILES_C
+
+gameover_last_tiles:
+  incbin "res/anim_gameover.2bpp", (GAMEOVER_TILES_A + GAMEOVER_TILES_B) * 16, GAMEOVER_TILES_C * 16
+
+DEF GAMEOVER_WAIT = GAMEOVER_SHAKE_STEPS + GAMEOVER_PAUSE_STEPS + GAMEOVER_FRAMES * 2 + GAMEOVER_WORD_STEPS ; waiting for a button
+DEF GAMEOVER_END = GAMEOVER_WAIT + 1
+
+gameover_shake:
+  db 3, 0, 3, 0
+REPT GAMEOVER_DRAIN_ROWS
+  db 2, 0
+ENDR
+  db 1, 0, 0
+.end:
+assert .end - gameover_shake == GAMEOVER_SHAKE_STEPS
+
+;;; Destroy: AF BC HL
+gameover_start::
+  xor a
+  ld [gameover_timer], a
+  ;; Hide the highlight and animation sprites, keep the falling piece
+  ld hl, wShadowOAM2 + 9 * 4
+  ld c, (40 - 9) * 4
+.hide:
+  ld a, l
+  cp LOW(wShadowOAM2 + 15 * 4)
+  jr c, .clear
+  cp LOW(wShadowOAM2 + 19 * 4)
+  jr c, .skip
+.clear:
+  ld [hl], 0
+.skip:
+  inc l
+  dec c
+  jr nz, .hide
+  ret
+
+;;; Destroy: AF BC DE HL
+gameover_step::
+  ld hl, gameover_timer
+  ld a, [hl]
+  cp GAMEOVER_WAIT
+  jp z, .wait
+  jr nc, .leave
+  inc [hl]
+
+  ;; update_graphics has drawn the piece for the last time
+  or a
+  call z, .close_gap
+
+  ;; Animation sprites are hidden by now
+  cp 2
+  call z, .load_last_tiles
+
+  sub GAMEOVER_SHAKE_STEPS
+  jp nc, .text
+
+  add GAMEOVER_SHAKE_STEPS
+  ld b, a
+  add LOW(gameover_shake)
+  ld l, a
+  adc HIGH(gameover_shake)
+  sub l
+  ld h, a
+  ld a, [hl]
+  ld [shake_y], a
+
+  ;; Drain a row every other step
+  ld a, b
+  sub GAMEOVER_IMPACT_STEPS
+  ret c
+  cp GAMEOVER_DRAIN_STEPS
+  ret nc
+  rra
+  ret c
+  call board_drain_row
+
+  ;; The piece goes down with it
+  ld hl, wShadowOAM2 + PIECE_OAM_OFS
+REPT 4
+  ld a, [hl]
+  or a
+  jr z, :+
+  add 8
+  and %11111000 ; snap to grid (see .no_correct)
+  cp PIECE_LAST_Y + 1
+  jr c, :+
+  xor a
+:
+  ld [hl], a
+  ld a, l
+  add 4
+  ld l, a
+ENDR
+  ret
+
+.leave:
+  ld hl, goto_results
+  jp FadeOut
+
+;; Destroy: C HL (not AF)
+.close_gap:
+  push af
+  ld a, [gameover_drop]
+  ld c, a
+  ld hl, wShadowOAM2 + PIECE_OAM_OFS
+REPT 4
+  ld a, [hl]
+  add c
+  ld [hl], a
+  ld a, l
+  add 4
+  ld l, a
+ENDR
+  pop af
+  ret
+
+;; Destroy: BC DE HL (not AF)
+.load_last_tiles:
+  push af
+  ld de, gameover_last_tiles
+  ld hl, $8000 + GAMEOVER_TILE_C * 16
+  ld c, GAMEOVER_TILES_C * 16
+.wait_vram:
+  ldh a, [rSTAT]
+  and STATF_BUSY
+  jr nz, .wait_vram
+  ld a, [de]
+  ld [hl+], a
+  inc de
+  dec c
+  jr nz, .wait_vram
+  pop af
+  ret
+
+.wait:
+  call poll_joystick
+  ldh a, [hPressedKeys]
+  and PADF_A | PADF_B | PADF_START
+  ret z
+  inc [hl]
+  ret
+
+.text:
+  sub GAMEOVER_PAUSE_STEPS
+  ret c
+
+  ;; A = steps since GAME started
+  push af
+  cp GAMEOVER_FRAMES
+  jr c, .game
+  ld a, GAMEOVER_FRAMES - 1
+.game:
+  ld hl, gameover_frames_game
+  ld c, GAMEOVER_SPRITES_GAME
+  call .seek
+  ld de, gameover_sprites
+  ld bc, wShadowOAM2 + GAMEOVER_OAM_OFS
+  draw_sprites GAMEOVER_SPRITES_GAME
+
+  pop af
+  sub GAMEOVER_FRAMES + GAMEOVER_WORD_STEPS
+  ret c
+  push bc
+  ld hl, gameover_frames_over
+  ld c, GAMEOVER_SPRITES_OVER
+  call .seek
+  pop bc
+  draw_sprites GAMEOVER_SPRITES_OVER
+  ret
+
+;; Param: HL = frames, A = which one, C = bytes per frame
+;; Return: HL = that frame
+.seek:
+  ld b, 0
+  or a
+  ret z
+.seek_loop:
+  add hl, bc
+  dec a
+  jr nz, .seek_loop
   ret

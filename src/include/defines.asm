@@ -150,9 +150,11 @@ MACRO sub_from_r16 ;; (high, low, value)
   ld \1, a
 ENDM
 
-;; The first of the sprite tiles that the score is drawn into (see
-;; hud_score.asm). Must be a multiple of 16.
 DEF SCORE_HUD_TILE = $70
-
-;; The first level past the ones in levels.inc (see LAST_LEVEL in engine.asm)
+DEF GAMEOVER_TILE_A = $5C
+DEF GAMEOVER_TILES_A = SCORE_HUD_TILE - GAMEOVER_TILE_A
+DEF GAMEOVER_TILE_B = $76
+DEF GAMEOVER_TILES_B = $7E - GAMEOVER_TILE_B
+DEF GAMEOVER_TILE_C = $42
+DEF GAMEOVER_TILES_C = 6
 DEF ENDLESS_FIRST_LEVEL = 100

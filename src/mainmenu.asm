@@ -1290,16 +1290,6 @@ results_ui:
   ld hl, menu_frame_counter
   inc [hl]
 
-  ;; Blink "PRESS START" about once a second
-  bit 5, [hl]
-  ld a, RESULTS_PRESS_Y + 16
-  jr z, .shown
-  xor a
-.shown:
-FOR I, 6
-  ld [wShadowOAM + 4 * (RESULTS_SPRITE_PRESS + I)], a
-ENDR
-
   call poll_joystick
 
   ld a, [hPressedKeys]

@@ -128,8 +128,8 @@ explosion_anim:
 incbin "res/anim_explosion.2bpp"
 .end:
 
-bonus_anim:
-incbin "res/anim_bonus.2bpp"
+gameover_anim:
+incbin "res/anim_gameover.2bpp"
 .end:
 
 SECTION "Playfield Buffer ROM", ROMX
@@ -361,6 +361,7 @@ ENDC
   ld [rLCDC], a
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
+  call shake_end
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Execute buffer, loading tile data into unused map
@@ -378,6 +379,9 @@ ENDC
   ld [rIF], a
   halt ; wait for VBlank
   nop
+
+  ld a, [shake_y]
+  ldh [rSCY], a
 
   assert IEF_VBLANK + 1 == IEF_STAT
   ld a, IEF_STAT
@@ -489,6 +493,7 @@ ENDC
   ld [rLCDC], a
   ld a, HIGH(wShadowOAM)
   call hOAMDMA
+  call shake_end
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Load gfx, and swap map
@@ -508,6 +513,9 @@ ENDC
   ldh a, [rLCDC]
   xor %00001000
   ldh [rLCDC], a
+
+  ld a, [shake_y]
+  ldh [rSCY], a
 
   ld a, IEF_STAT
   ldh [rIE], a
@@ -529,6 +537,28 @@ ENDC
   call tick_sfx
 
   jp kernel_loop
+
+;;; Resets SCY before rows below the tilemap would show.
+;;; Call below the play area, before VBlank.
+;;; Destroy: AF B
+shake_end:
+  ld a, [shake_y]
+  or a
+  ret z
+  cpl
+  add 145 ; 144 - shake_y
+  ld b, a
+.wait_line:
+  ldh a, [rLY]
+  cp b
+  jr c, .wait_line
+.wait_hblank:
+  ldh a, [rSTAT]
+  and STATF_BUSY ; HBlank or VBlank
+  jr nz, .wait_hblank
+  xor a
+  ldh [rSCY], a
+  ret
 
 load_skin::
   ld a, BANK(skins)
@@ -625,10 +655,14 @@ load_skin::
   ld c, explosion_anim.end - explosion_anim
   rst MemcpySmall
 
-  ;; Copy bonus anim to sprite area
-  ld de, bonus_anim
-  ld bc, bonus_anim.end - bonus_anim
+  ;; Game over letters
+  assert LOW(GAMEOVER_TILE_A * 16) == LOW($8420 + (block_match_anim.end - block_match_anim) + (explosion_anim.end - explosion_anim))
+  ld de, gameover_anim
+  ld bc, GAMEOVER_TILES_A * 16
   call Memcpy
+  ld hl, $8000 + GAMEOVER_TILE_B * 16
+  ld c, GAMEOVER_TILES_B * 16
+  rst MemcpySmall
 
   ;; Copy "pice" graphics to bg area
   ld a, BANK(block_gfx)
